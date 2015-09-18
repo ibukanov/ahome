@@ -1,0 +1,6 @@
+
+SubDirCcFlags -Wall -Wextra -g ;
+
+Main spipe : socket_pipe.c ;
+
+Main local_to_cmd : local_to_cmd.c ;

@@ -1,0 +1,197 @@
+#!/bin/bash
+
+set -u
+set -e
+
+tdir=""
+
+info() {
+    printf "%s\n" "$*" 1>&2
+}
+
+err() {
+    printf "%s\n" "$*" 1>&2
+    exit 1
+}
+
+cleanup() {
+    [ -d "$tdir" ] && rm -rf "$tdir"
+}
+
+trap cleanup EXIT
+
+
+
+tdir="$(mktemp -d)"
+
+images_root=/var/lib/libvirt/images
+image_dir="$images_root/coreos"
+os_image="$image_dir/coreos_production_qemu_image.img"
+hippyru_image="$images_root/hippyru.img"
+config_root="$image_dir/config"
+config_file="$config_root/openstack/latest/user_data"
+
+
+if [ ! -f "$os_image" ]; then
+    mkdir -p "$image_dir"
+    curl 'http://stable.release.core-os.net/amd64-usr/current/coreos_production_qemu_image.img.bz2' | bzcat > "$os_image"
+fi
+
+if [ ! -f "$hippyru_image" ]; then
+    # write zeros at the start to facilitate detection of filesystem absence
+    info "allocating $hippyru_image"
+    dd if=/dev/zero "of=$hippyru_image" bs=64K count=1 status=none
+    fallocate -l 124G "$hippyru_image"
+fi
+
+ssh_authorized_keys=''
+for k in /root/.ssh/id_ed25519.pub /home/igor/.ssh/id_ed25519.pub ; do
+    if [ -f "$k" ]; then
+	# Format for content directive in YUML file
+	ssh_authorized_keys="$(printf '%s\n      %s' "$ssh_authorized_keys" "$(cat "$k")")"
+    fi
+done
+
+[ -n "$ssh_authorized_keys" ] || err "No public key found to login"
+
+cat > "$tdir/user_data.yaml" <<EOF
+#cloud-config
+
+hostname: thip
+manage_etc_hosts: localhost
+
+coreos:
+  units:
+    # static network
+    - name: 10-eth0.network
+      content: |
+       [Match]
+       Name=eth0
+
+       [Network]
+       Address=192.168.100.4/24
+       Gateway=192.168.100.1
+       DNS=192.168.100.1
+
+    - name: setup_hippyru_storage.service
+      command: start
+      content: |
+        [Unit]
+        Before=docker.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/etc/setup_hippyru_storage
+
+write_files:
+  - path: /etc/setup_hippyru_storage
+    permissions: 0770
+    owner: root:root
+    content: |
+      #!/bin/bash
+      set -e -u
+      mkdir -p /area/hippyru
+      if ! mount -t ext4 /dev/vdb /area/hippyru 2>/dev/null; then 
+          mkfs.ext4 -L hippyru /dev/vdb
+          mount -t ext4 /dev/vdb /area/hippyru
+      fi
+      mkdir -p /home/hippyru
+      mkdir -p /area/hippyru/hippyru
+      mount --bind /area/hippyru/hippyru /home/hippyru
+
+  - path: /etc/ssh/sshd_config
+    permissions: 0600
+    owner: root:root
+    content: |
+      UsePrivilegeSeparation sandbox
+      Subsystem sftp internal-sftp
+      ClientAliveInterval 180
+
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+      UseDNS no
+      AuthorizedKeysFile /etc/ssh/authorized_keys/%u
+
+  - path: /etc/ssh/authorized_keys/root
+    permissions: 0600
+    owner: root:root
+    content: |$ssh_authorized_keys      
+
+  - path: /opt/bin/tmux
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      exec toolbox --bind=/run/docker.sock --bind-ro=/usr/bin/docker --bind-ro=/var/log/journal --bind-ro=/etc/machine-id --bind=/home/hippyru tmux "\$@"
+EOF
+
+if [ ! -f "$config_file" ] || \
+       ! diff --brief "$config_file" "$tdir/user_data.yaml" > /dev/null; then
+    info "updating $config_file"
+    mkdir -p "$(dirname "$config_file")"
+    cat "$tdir/user_data.yaml" > "$config_file"
+    semanage fcontext -a -t virt_content_t "$config_root(/.*)?"
+    restorecon -R "$config_root"
+fi
+
+cat > "$tdir/core-thip.xml" <<EOF
+<domain type='kvm'>
+  <name>coreos-thip</name>
+  <memory unit='MiB'>768</memory>
+  <currentMemory unit='MiB'>768</currentMemory>
+  <vcpu placement='static'>2</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <pae/>
+  </features>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-kvm</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='$os_image'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='$images_root/hippyru.img'/>
+      <target dev='vdb' bus='virtio'/>
+    </disk>
+    <filesystem type='mount' accessmode='squash'>
+      <source dir='$config_root/'/>
+      <target dir='config-2'/>
+      <readonly/>
+    </filesystem>
+    <controller type='usb' model='none' index='0'/> 
+    <interface type='network'>
+      <mac address='52:54:00:fe:b3:c0'/>
+      <source network='default'/>
+      <target dev='vnet1'/>
+      <model type='virtio'/>
+      <alias name='net0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <memballoon model='virtio'>
+    </memballoon>
+  </devices>
+</domain>
+EOF
+
+if ! virsh dominfo coreos-thip > /dev/null 2>&1 ; then
+    info "creating new VM coreos-thip"
+    virsh define "$tdir/core-thip.xml"
+fi

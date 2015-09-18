@@ -1,0 +1,38 @@
+#!/bin/sh
+
+prog_name="$(basename "$0")"
+
+options="$(getopt -n "$prog_name" -s sh bo "$@")"
+test $? -eq 0 || exit 1
+eval set -- "$options"
+
+qdiff_cmd="hg qdiff -p -U9"
+stdout=""
+while true ; do
+    case "$1" in
+	-b) qdiff_cmd="$qdiff_cmd -b"; shift ;;
+	-o) stdout=1; shift ;; 
+	--) shift ; break ;;
+	*) echo "unexpected getopt output: $1" ; exit 2 ;;
+    esac
+done
+
+test $# -eq 0 || { echo "$prog_name: unexpected argument $1" >&2 ; exit 1; }
+
+print_patch() {
+  hg qheader
+  echo
+  $qdiff_cmd
+}
+
+patch_name="$(hg qtop)"
+test $? -lt 1 || { echo "$patch_name" 1>&2; exit 1; }
+
+if test -n "$stdout"; then
+    print_patch
+else
+    file="/tmp/$patch_name"
+    print_patch > "$file"
+    echo "$file"
+    l "$file"
+fi

@@ -1,0 +1,7 @@
+$include  /etc/inputrc
+
+# do not bell on tab-completion
+set bell-style none
+set show-all-if-ambiguous  on
+set completion-query-items 200
+set mark-symlinked-directories on

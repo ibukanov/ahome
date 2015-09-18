@@ -1,0 +1,30 @@
+mozilla-inbound rules
+https://wiki.mozilla.org/Inbound_Sheriff_Duty
+ssh://hg.mozilla.org/integration/mozilla-inbound
+
+make test targets
+https://developer.mozilla.org/en/Mozilla_automated_testing
+
+Try Server: http://tbpl.mozilla.org/?tree=Try
+
+http://trychooser.pub.build.mozilla.org/ - try option builder
+
+try everything without talos
+try: -b do  -p all -u all -t none
+
+try everything without talos and without jetpack/opengl
+
+try: -b do -p all -u reftest,reftest-ipc,reftest-no-accel,crashtest,crashtest-ipc,xpcshell,jsreftest,mozmill-all,mochitests -t none
+
+http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/
+
+
+Benchmarks:
+150+ tabs - http://gregor-wagner.com/tmp/mem
+
+v8-v6 - http://v8.googlecode.com/svn/data/benchmarks/v6/run.html
+
+realtime raytrace - http://29a.ch/2010/6/2/realtime-raytracing-in-javascript
+
+Spinning balls
+http://v8.googlecode.com/svn/branches/bleeding_edge/benchmarks/spinning-balls/index.html

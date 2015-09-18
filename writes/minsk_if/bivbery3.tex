@@ -1,0 +1,418 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc} % Input encoding
+\usepackage[T2A]{fontenc} % Output encoding
+\usepackage[russian]{babel} % Russian words for Chapter, etc
+
+% Original was: \documentstyle[14pt,russian]{artr}
+
+\def\baselinestretch{1.4}
+\textheight 210mm
+%\textwidth 150mm
+\topmargin 20.0mm
+%\hoffset 10.0mm
+
+\def\Hhat{ \ifmmode {\hat H} \else {$\hat H$} \fi }
+\def\Hhatf#1{ \ifmmode {\hat H(#1)} \else {$\hat H(#1)$} \fi}
+
+\def\HZhat{ \ifmmode {\hat H_0} \else {$\hat H_0$} \fi}
+\def\HZtilde{ \ifmmode {\tilde H_0} \else {$\tilde H_0$} \fi}
+
+\def\Vhat{ \ifmmode {\hat V} \else {$\hat V$} \fi}
+\def\Vform{ \ifmmode {\Vhat^{-1}d\Vhat} \else {$\Vhat^{-1}d\Vhat$} \fi}
+
+\def\Jg#1#2{ \ifmmode {J^{(#1)}_{#2}} \else {$J^{(#1)}_{#2}$} \fi}
+
+\def\der#1{\partial_#1}
+
+\def\lam#1{ \ifmmode {\lambda_#1} \else {$\lambda_#1$} \fi}
+
+\def\cosT#1{\cos \theta_{#1}}
+
+\def\KetVect#1{|#1\!\!>}
+\def\BraVect#1{<\!\!#1|}
+\def\DirProd#1#2{<\!\!#1|#2\!\!>}
+
+\def\mod#1{\mid\!\!#1\!\!\mid}
+
+%\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+
+{\large\bf Фаза Берри для невырожденной трехуровневой квантовой системы. }
+
+Буканов~И.В., Толкачев~Е.А, Трегубович~А.Я.
+
+{\it Институт физики им. Б.И.~Степанова АН Беларуси}
+
+\end{center}
+
+\begin{abstract}
+   Построены замкнутые выражения, позволяющие вычислить фазу Берри,
+возникающую при динамической эволюции параметров невырожденной
+трехуровневой квантовой системы общего вида.
+\end{abstract}
+
+Как известно, в последние годы уделяется значительное внимание исследованию
+геометро - топологических зффектов в квантовых системах. К их числу
+относится, в частности, комплекс наблюдаемых и предсказываемых явлений
+под общим названием фаза Берри~\cite{FirstBerryWork,AllBerryPhase}.
+Универсальная геометрическая природа этой фазы позволяет с единых позиций
+интерпретировать такие, казалось бы, разнородные явления, как нейтринные
+осциляции~\cite{NaumovWork} и некоторые закономерности в молекулярных
+спектрах~\cite{AboutPhaseInSpectra}. Экспериментальное наблюдение фазы Берри
+в нейтронных и оптических экспериментах породило определенные надежды на
+возможность ее практического использования.
+
+Однако вскоре выяснилось, что конкретные вычисления данного эффекта можно
+провести лишь для ряда простых квантовых систем, описываемых квадратичным
+гамильтонианом~\cite{About2Hamiltonian} или обладающих 3-х параметрической
+группой динамической симметрии~\cite{FirstBerryWork,AboutExactSolution}.
+Попытки в рамках стандартного подхода
+получить результат, например, для трехуровневой системы, удались лишь
+ценой существенных ограничений на вид соответствующего
+гамильтониана ~\cite{CeulemansWork,KorenblitWork}.
+
+В данной работе на примере трехуровневой системы общего вида развит новый
+метод вычисления геометрической фазы для квантовых систем, описываемых
+гамильтонианами, которые реализуют некоторое представление алгебры Ли
+группы динамической симметрии.
+
+Рассмотрим квантовую систему с гамильтонианом \Hhatf{x}, $x\in \Omega$,
+где $\Omega $ --- $N$ мерное пространство параметров, и пусть параметры
+изменяются во времени, описывая в $\Omega$ гладкий замкнутый контур $C$,
+так что $x=x(t)$ и для некоторых $t_0$, $t_1$: $x(t_0)=x(t_1)$.
+
+  Тогда эволюция состояния $\KetVect{\psi}$ системы будет описываться 
+временным
+уравнением Шредингера:
+$$
+   i\hbar \der{t}\KetVect{\psi} = \Hhatf{x(t)}\KetVect{\psi}
+$$
+
+Если теперь состояние $\KetVect{\psi}$ системы в момент $t_0$
+удовлетворяет условию:
+$$
+\KetVect{\psi} = \KetVect{n(x(t_0))}, \quad \mbox{ где }
+  \Hhatf{x}\KetVect{n(x)}=E_n\KetVect{n(x)},
+$$
+причем для всех $x \in C$ зависимость $E_n$, $\KetVect{n}$ от $x$ достаточно
+гладкая и уровень энергии с номером $n$ невырожден, то в случае применимости
+адиабатического приближения можно считать~\cite{AboutAdiabat}:
+\begin{equation}
+  \KetVect{\psi(t_1)} \approx \exp(i\alpha_n(t_1)) \KetVect{n(x(t_1))},
+\end{equation}
+причем фазовый множитель $\alpha_n(t)$
+дается выражением \cite{FirstBerryWork}:
+$$
+\alpha_n(t_1) = - \hbar^{-1} \int_{t_0}^{t_1}E_n(x(t)) dt + \gamma_n(t_1),
+$$
+где $\gamma_n(t_1)$ -- геометрическая фаза:
+\begin{equation}
+\gamma_n(t_1) = \int_{t_0}^{t_1} \dot \gamma_n(t) dt
+   = i \oint_{C}\DirProd{n}{\der{\mu}n} dx^{\mu}
+  \label{GammaPhase}
+\end{equation}
+
+Перепишем теперь ~ (\ref{GammaPhase}) в терминах унитарного преобразования,
+диагонализирующего \Hhat. В силу эрмитовости \Hhat такое
+преобразование всегда существует и по определению:
+\begin{equation}
+\Hhatf{t} = \Vhat(t) \HZhat(t) \Vhat^{-1}(t),
+\quad \Vhat^{-1} = \Vhat^{+},
+\quad \HZhat = diag\{E_1(t),\ldots,E_n(t),\ldots\} \label{HamiltDecomp}
+\end{equation}
+
+Тогда:
+\begin{equation}
+\KetVect{n} = \Vhat\KetVect{n_0},
+\quad \HZhat\KetVect{n_0} = E_n\KetVect{n_0}
+  \label{SelfVector}
+\end{equation}
+Откуда для $\dot \gamma(t)$ получаем:
+\begin{equation}
+\dot \gamma(t)dt
+  = i\BraVect{n_0}\Vhat^{+} \der{\mu}\Vhat\KetVect{n_0} dx^{\mu}
+  = i(\Vform)_{nn},
+  \label{FullGammaPhase}
+\end{equation}
+где введена матричнозначная дифференциальная форма
+$d\Vhat = \der{\mu}\Vhat dx^{\mu}$
+
+Применим теперь ~ (\ref{FullGammaPhase}) к вычислению геометрической фазы в
+трехуровневой системе.
+Прежде всего заметим, что данная система обладает группой
+динамической симметрии $SU(3)$, т.к. ее гамильтониан является
+произвольной эрмитовой $3 \times 3$ матрицей c нулевым следом и,
+следовательно, $\Hhat \in su(3)$, где $su(3)$ --- алгебра группы $SU(3)$.
+Тогда $\Hhat$ можно представить в виде:
+\begin{equation}
+\Hhat = \Vhat \HZtilde \Vhat^{-1},
+\label{HamiltRepresent}
+\end{equation}
+где $\Vhat \in SU(3)$,
+\begin{equation}
+  \Vhat = V_1 V_2 V_3,
+  \label{VRepresent}
+\end{equation}
+$V_i = \exp(\alpha_i\Jg{i}{+} - \alpha_i^{\ast}\Jg{i}{-})$,
+$\alpha_i$  ---  3 комплексных параметра,
+$$
+\HZtilde = \sum_{i=1}^{3} E_{(i)}\Jg{i}{3},
+$$
+$\Jg{i = 1, 2, 3}{3, \pm}$ --- генераторы
+$su(3)$ в базисе Картана-Вейля, причем $\Jg{1}{3}+\Jg{2}{3}+\Jg{2}{3} = 0$
+и выполняются коммутационные соотношения:
+$$
+[\Jg{i}{\pm}, \Jg{j}{\mp} ] = [ \Jg{i}{3},\Jg{j}{3} ] = 0,
+  i \not= j; \quad
+[ \Jg{i}{+}, \Jg{i}{-} ] = \Jg{i}{3}; \quad
+[ \Jg{i}{3}, \Jg{i}{\pm} ] = \pm 2\Jg{i}{\pm}; \quad
+$$
+$$
+[ \Jg{i}{3}, \Jg{j}{\pm} ] = \mp \Jg{j}{\pm}, i \not= j; \quad
+[ \Jg{i}{\pm}, \Jg{j}{\pm} ] = \mp \varepsilon_{ijk}\Jg{k}{\pm};  \quad
+$$
+%     , где индексы 1,2,3 можно циклически    переставлять;
+
+  В случае фундаментального представления, которое и
+реализуется в случае трехуровневой системы, $\Jg{i}{3, \pm}$
+можно выразить через матрицы Гелл - Манна:
+$$
+\Jg{1}{\pm} = (\lam{1} \pm i\lam{2}) / 2; \quad
+\Jg{2}{\pm} = (\lam{4} \mp i\lam{5}) / 2; \quad
+\Jg{3}{\pm} = (\lam{6} \pm i\lam{7}) / 2; \quad
+$$
+$$
+\Jg{1}{3} = \lam{3}; \quad
+\Jg{2}{3} = (-\lam{3} - \sqrt{3}\lam{8}) / 2; \quad
+\Jg{3}{3} = (-\lam{3} + \sqrt{3}\lam{8}) / 2; \quad
+$$
+  Поэтому в рассматриваемом представлении:
+$$
+(\Jg{i}{\pm})_{nn} = 0; \quad (\Jg{i}{3})_{nm} = 0, \quad n \not= m
+$$
+Откуда: $ \HZtilde = diag\{E_1,E_2,E_3\}$, где $E_k$ --- уровни
+энергии системы.
+Тем сасмым показано, что разложение ~ (\ref{HamiltRepresent})
+имеет вид ~ (\ref{HamiltDecomp}).
+
+Вычислим теперь $\dot \gamma_1 dt$ в явном виде
+в рассматриваемой параметризации $\Hhat$. Для этого запишем:
+$$
+V_i = \exp(\alpha_i\Jg{i}{+} - \alpha_i^{\ast}\Jg{i}{-}) =
+\exp(\theta_i(e^{i\phi_i}\Jg{i}{+} - e^{-i\phi_i}\Jg{i}{-})), \quad
+\alpha_i = \theta_i e^{i\phi_i}
+$$
+   Тогда, перемножая $V_i$, получим для первого столбца
+$\Vhat$ $=$ $V_1V_2V_3$ в фундаментальном представлении:
+\begin{equation}
+    V_{11} = \cosT{1}\cosT{2}, \quad
+    V_{21} = -\cosT{2} \sin \theta_1 e^{-i\phi_1}, \quad
+    V_{31} = \sin \theta_2 e^{i\phi_2}
+  \label{VMatrixExpression}
+\end{equation}
+
+Откуда:
+\begin{equation}
+  \dot \gamma_1 dt
+   = i (\Vform)_{11}
+   = - Im(\sum_{i=1}^{3} V^\ast_{i1} dV_{i1})
+   = \sin^2\theta_1 \cos^2\theta_2 d\phi_1 -
+                     \sin^2\theta_2 d\phi_2
+  \label{FullFormExpression}
+\end{equation}
+
+В принципе, ~ (\ref{FullFormExpression}) и дает выражение для
+геометрической фазы одного из уровней, необходимо лишь по заданной
+зависимости \Vhat от времени проинтегрировать форму $\dot \gamma_1 dt$.
+Однако в реальных
+задачах обычно бывают известны только матричные элементы
+гамильтониана и для того, чтобы применять ~ (\ref{FullFormExpression}),
+необходимо найти зависимость $\theta_{1,2}$ , $\phi_{1,2}$ от $H_{ij}$.
+
+Для этого представим~(\ref{HamiltDecomp}) в виде
+$HV = VH_0$ или:
+$$
+  H_{i1}V_{11} + H_{i2}V_{21} + H_{i3}V_{31} = V_{ij}(H_0)_{11} = 
+V_{i1}E_{1},
+    \quad i = 1..3
+$$
+Откуда после простых преобразований получим:
+$$
+{V_{21} \over V_{11}} =
+    {H_{23}H_{31} - H_{21} \Delta_3 \over \Delta_2 \Delta_3 - 
+\mod{H_{23}}^2},
+  \qquad
+{V_{31} \over V_{11}} =
+    {H_{32}H_{21} - H_{31} \Delta_2 \over \Delta_2 \Delta_3 - 
+\mod{H_{23}}^2},
+$$
+где по определению: $\Delta_i = H_{ii} - E_1, \quad i = 2..3 $
+
+Но из явного вида $V_{i1}$ ~ (\ref{VMatrixExpression}) следует:
+$$
+V_{21} / V_{11} = - tg \theta_1 e^{-i\phi_1}, \quad
+V_{31} / V_{11} \cosT{1} = tg \theta_2 e^{i\phi_2}, \quad
+$$
+или:
+\begin{equation}
+- tg \theta_1 e^{-i\phi_1} =
+    {H_{23}H_{31} - H_{21} \Delta_3 \over \Delta_2 \Delta_3 - 
+\mod{H_{23}}^2},
+\quad
+tg \theta_2 e^{i\phi_2} =
+    {H_{32}H_{21} - H_{31} \Delta_2 \over \Delta_2 \Delta_3 - 
+\mod{H_{23}}^2}
+\label{ThetaPhiFromH}
+\end{equation}
+
+Это позволяет выразить $\theta_{1,2}$ , $\phi_{1,2}$
+через $H_{ij}$~, что и дает искомую
+связь параметров $V_{i1}$ с матричными элементами гамильтониана,
+при этом входящее в ~ (\ref{ThetaPhiFromH}) значение $E_1$
+может быть найдено путем решения следующего кубического уравнения на
+собственные значения для $H$~, например, с помощью формул Кардано:
+\begin{equation}
+    E^3 + Sp{\overline H}E - DetH = 0,
+\label{SelfEquation}
+\end{equation}
+где ${\overline H}$ -- взаимная матрица~\cite{AboutMatrix},
+$$
+    Sp{\overline H} = - (H_{22})^2 - (H_{33})^2 - H_{22}H_{33}
+     - \mod{H_{23}}^2 - \mod{H_{31}}^2 - \mod{H_{12}}^2,
+$$
+$$
+    DetH = (H_{22} + H_{33})(\mod{H_{23}}^2 - H_{22}H_{33})
+$$
+$$
+    - H_{22}\mod{H_{31}}^2 - H_{33}\mod{H_{12}}^2 + 2Re(H_{12}H_{23}H_{31})
+$$
+
+Здесь следует сделать два замечания. Во первых, в качестве $E_1$
+может быть выбрано любое из решений (\ref{SelfEquation}),
+т. к. стоящие на диагонале в $H_0$ значения
+$E_i$ могут быть упорядочены произвольным образом, и, следовательно,
+полученные формулы для геометрической фазы применимы для любого из уровней
+3 уровневой системы. Во вторых, (\ref{FullFormExpression}),
+(\ref{ThetaPhiFromH}) не применимы при условии:
+\begin{equation}
+  \Delta_2 \Delta_3 = \mod{H_{23}}^2
+%\label{BadCondition}
+\end{equation}
+Однако это не ограничивает общность полученных результатов,
+т. к. если гамильтониан системы не вырожден, то обращение в ноль
+знаменателя в (\ref{ThetaPhiFromH}) является чисто координатной особенностью
+и связано с конкретным выбором параметризации \Vhat~(\ref{VRepresent}).
+
+В качестве примера использования полученных результатов рассмотрим систему,
+в которой изменяются только диагональные элементы
+гамильтониана~\cite{NaumovWork}. Тогда, беря в качестве независимых
+параметров $H_{22}$, $H_{33}$,
+подставляя (\ref{ThetaPhiFromH}) в (\ref{FullFormExpression}) и учитывая
+$$
+   dH_{12} = dH_{23} = dH_{31} = 0, \qquad H_{11} = - H_{22} - H_{33},
+$$
+получаем:
+$$
+  \dot \gamma_1 dt = Im(H_{12}H_{23}H_{31}) {d(H_{22} - H_{33}) \over L},
+$$
+   где
+$$
+    L = (\Delta_2 \Delta_3 - \mod{H_{23}}^2)^2
+     + \mod{H_{23}H_{31} - H_{12}^{\ast} \Delta_3}^2
+     + \mod{H_{12}^{\ast}H_{23}^{\ast} - H_{31}\Delta_2}^2,
+$$
+$$
+    \Delta_{i} = \Delta_{i}(t) = H_{ii}(t) - E(H_{22}(t), H_{33}(t)), 
+\qquad i = 2, 3
+$$
+   Откуда, считая, что $\dot \gamma_1dt$ является формой потенциала $A$
+  некоторого векторного поля на плоскости ($H_{22}$, $H_{33}$), для тензора
+  напряженности $F=dA$ имеем:
+\begin{equation}
+   F =
+    6 Im(H_{12}H_{23}H_{31}) { \Delta_2 \Delta_3 - \mod{H_{23}} \over 
+L^2 } E
+  (1-{ \partial E \over \partial H_{22} }-{ \partial E \over \partial 
+H_{33} })
+   dH_{33} \wedge dH_{22}
+  \label{FOnPlate}
+\end{equation}
+   Из (\ref{FOnPlate}) следует, что в общем случае произвольной зависимости
+$H_{22}$, $H_{33}$ от времени $F \ne 0$, и в данной
+системе может наблюдаться топологическая фаза, в отличии от утверждения,
+содержащегося в работе~\cite{NaumovWork}.
+%Это можно явно показать в случае
+
+%Заключение.
+
+Примененный в данной работе метод, в принципе, позволяет найти 
+геометрическую
+фазу в случае
+произвольной $SU(N)$ системы, однако, т.к. в окончательные формулы,
+как и в $SU(3)$ случае, будут входить собственные значения $E$
+гамильтониана, то в силу ограничений, накладываемых теоремой Абеля, явные
+аналитические выражения в общем случае можно будет получить
+только при $N \le 4$.
+
+\begin{thebibliography}{10}
+
+\bibitem{FirstBerryWork}
+  Berry~M.~V. // Proc. Roy. Soc. 1987. V. A392. P.~45.
+\bibitem{AllBerryPhase}
+  Shapere~A., Wilczek~F. Geometric Phases in Physics. World Scientific,
+  Singapore, 1989.
+\bibitem{NaumovWork}
+  Наумов~В.~А. // ЖЭТФ. 1992. Т. 101. С.~3.
+\bibitem{AboutPhaseInSpectra}
+  Виницкий~С.И., Дербов~В.Л., Дубовик~В.М., Марковски~Б.Л., 
+Степановский~Ю.П.
+  // УФН. 1990. Т. 160. N6. С.~1.
+\bibitem{About2Hamiltonian}
+  Dodonov~V.V., Man'ko~V.I. in Topological Phases in: Quantum Theory.
+  Eds. Markovski~B., Vinitsky~S.I. World Scientific, Singapore, 1989. P.~74.
+\bibitem{AboutExactSolution}
+  Chaturvedi~S., Sriram~M., Shrinivasan~V. // J.Phys. 1987. V. A20. P.~L1071
+\bibitem{CeulemansWork}
+  Ceulemans~A., Szopa~M. // J.Phys. 1991. V. A24. P.~4495.
+\bibitem{KorenblitWork}
+  Korenblit~S.E., Kuznetsov~V.E., Naumov~V.A. in: Proc. Int. Conf.
+  Quantum systems : New trends and methods. Minsk, 1994.
+  Eds. Barut~A.O. et al. World Scientific, Singapure, 1995. P.~208.
+\bibitem{AboutAdiabat}
+  Messiah~A. Quantum Mechanics. North-Holland, Amsterdam, 1970. V.~2.
+\bibitem{AboutMatrix}
+  Гантмахер Ф. Р. Теория матриц. Москва, 1988.
+\end{thebibliography}
+
+\pagebreak
+
+\begin{center}
+
+{\large\bf Berry phase for a nondegenerated three-level quantum system. }
+
+Bukanov~I.V., Tolkachev~E.A, Tregubovich~A.Ya.
+
+{\it Stepanov~B.I. Institute of Physics, Academy of Sciences of Belarus.}
+
+\end{center}
+
+\begin{center}
+{\bf Abstract. }
+\end{center}
+
+\begin{center}
+  Closed expressions have been built enabling to calculate Berry phase
+  appearing during dynamic evolution of parameters
+  of a general-type nondegenerated three-level quantum system.
+
+%  Построены замкнутые выражения, позволяющие вычислить фазу Берри,
+%возникающую при динамической эволюции параметров невырожденной
+%трехуровневой квантовой сиситемы общего вида.
+\end{center}
+
+\end{document}
+
+

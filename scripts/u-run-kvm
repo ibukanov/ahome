@@ -1,0 +1,19 @@
+#!/bin/bash
+
+graphic=(-vnc localhost:3)
+graphic=(-nographic)
+
+exec sudo kvm -m 512 -net nic -net user -redir tcp:19022::22 -cdrom /home/igor/s/CentOS-5.2-i386-bin-DVD/CentOS-5.2-i386-bin-DVD.iso -boot c ${graphic[@]} /scratch/igor/fedora.kvmimg
+
+
+
+exec sudo kvm -m 512 -net nic -net user -redir tcp:2022::22 -nographic /scratch/igor/kvm.img
+
+
+exec sudo kvm -cdrom /scratch/igor/download/Fedora-9-i386-DVD.iso -m 512 -kernel /home/igor/s/fedora/vmlinuz -initrd /home/igor/s/fedora/initrd.img -append 'vnc vncpassword=qwerty lang=en_US keymap=us ip=dhcp ipv6=auto headless' -net nic -net user -redir tcp:5904::5901 -vnc localhost:3 /scratch/igor/kvm.img
+
+ 
+
+exec sudo kvm -cdrom /scratch/igor/download/Fedora-9-i386-DVD.iso -hda /scratch/igor/kvm.drive -m 512 -vnc localhost:3 -boot d
+
+exec sudo kvm -cdrom /scratch/igor/download/Fedora-9-i386-DVD.iso -hda /scratch/igor/kvm.drive -m 512 -kernel /home/igor/s/fedora/vmlinuz -initrd /home/igor/s/fedora/initrd.img -append 'text' -vnc localhost:3

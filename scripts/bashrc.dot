@@ -1,0 +1,247 @@
+#!/bin/bash
+
+# enable extended shell patterns
+shopt -s extglob
+
+### SET ENVIROMMENT VARIABLES
+
+export LANG="en_US.UTF-8"
+#export LC_ALL="C"
+
+export PERL5LIB="$HOME/a/perl/mylib"
+
+export LESS=\
+'ciMQsPM?f%f .?n?m(file %i of %m) ..?ltline %lt'\
+'?L/%L. :byte %bB?s/%s. .?e(END) ?x- Next\: %x.:'\
+'?pB%pB\%..%t [h=help q=quit]'
+
+export JLESSCHARSET="utf-8"
+unset LESSCHARSET
+
+unset LESSOPEN
+
+export PAGER="$HOME/a/scripts/l"
+export MANPAGER="u-man-pager"
+
+export GZIP="-v"
+
+unset INPUTRC
+
+if test -f "$HOME/.env"; then
+    source "$HOME/.env"
+fi
+
+export TEXINPUTS=".:$HOME/a/dev/tex_lib:$HOME/ysoft/tex:$HOME/ysoft/tex/data"
+TEXINPUTS="${TEXINPUTS}:"
+
+export CVSEDITOR=u-cvs-editor
+
+export DARCS_EDITOR="u-cvs-editor"
+export GIT_EDITOR="u-cvs-editor"
+export GIT_PAGER="cat"
+export SVN_EDITOR=u-cvs-editor
+
+### NO CORE FILES
+#ulimit -c 0
+
+### umask to create files by default as u=rwx,g=rwx,o=
+umask 007
+
+### Setup SSH agent
+i="$HOME/.ssh/remote_ssh_agent"
+test -z "$SSH_AUTH_SOCK" -a -S "$i" && export SSH_AUTH_SOCK="$i"
+
+### INTERACTIVE-ONLY SETTINGS when PS1 is set
+if test -n "${PS1+1}"; then
+
+    is_watson=""
+    test "${HOSTNAME%%.*}" = watson && is_watson=1
+
+    # TODO detect that vnc server is indeed running on watson perhaps
+    # via reading its pid file.
+    test -z "$DISPLAY" -a  -n "$is_watson" && export DISPLAY=":2.0"
+
+    # Disable blinking cursor in linux console
+    test "$TERM" = linux && echo -e '\033[?17;0;64c'
+
+    # Change shell promt
+
+    if test -n "$VNCDESKTOP" -o -n "$SSH_CLIENT"; then
+        arch=""
+        test -n "$is_watson" -a "$(uname -m)" = i686 && arch="-32"
+        PS1="@\h${arch}\w> "
+    else
+        # Probably a local terminal
+        PS1='\w> '
+    fi
+
+    case "$TERM" in
+        xterm* | cygwin | dtterm | iris-ansi | aixterm | screen )
+            PS1="\\[\\e]2;$PS1\\a\\]$PS1"
+            ;;
+    esac
+
+    unset PROMPT_COMMAND
+
+    ### BIND SETTINGS
+
+    ## single tab should show all ambiguous names
+    if test "$TERM" != "dumb"; then
+        bind 'set page-completions off'
+        bind 'set visible-stats on'
+    fi
+
+    ### SHELL CUSTOMIZATION
+
+    ## dirs to cd
+    CDPATH=".:..:$HOME:$HOME/m"
+
+    ## recognize escape in echo without -e flag
+    #shopt -s xpg_echo
+
+    ## history customization
+    HISTSIZE=1000
+    HISTCONTROL=erasedups
+    HISTFILESIZE=10000
+    shopt -s histappend
+
+    ## do not exit on Ctrl-D
+    IGNOREEOF=10000
+
+    ## make patterns which failed to match to generate errors
+    ## if bash supports that. Otherwise make it to expand to null string.
+    if test ${BASH_VERSINFO[0]} -ge 3; then
+        shopt -s failglob
+    else
+        shopt -s nullglob
+    fi
+
+    ## immediately notify when commands started with `&' finish
+    ## (use ^L to clear the screen)
+    set -o notify
+
+    ## try to follow symlinks
+    #set symlinks  = ignore
+
+    unset -f l
+
+    ### COMPLETION
+
+    complete_by_extension() {
+        # add directories but not CVS
+        local -a dirs files
+        dirs=($(compgen -A directory -X '&CVS' "$2"))
+        case "$1" in
+            tex|latex|pdftex)
+                files=($(compgen -A file -X '!*.tex' "$2")) ;;
+            xdvi)
+                files=($(compgen -A file -X '!*.dvi' "$2")) ;;
+        esac
+        COMPREPLY=("${dirs[@]}" "${files[@]}")
+    }
+
+    complete_sudo() {
+        if test $COMP_CWORD -eq 1; then
+            COMPREPLY=($(compgen -A command "$2"))
+        else
+            COMPREPLY=($(compgen -A file "$2"))
+        fi
+    }
+
+    complete -r
+
+    complete -A directory cd
+    complete -A command type which where source
+    complete -o filenames -F complete_sudo sudo
+
+    complete -o filenames -F complete_by_extension tex latex pdftex xdvi
+
+    complete -C u-complete-man-bash man
+
+    ### ALIASES
+
+    unalias -a
+
+    alias 'cd..=cd ..'
+
+    alias 'll=ls -al'
+    function ls() {
+        command ls -AF "$@"
+    }
+
+    alias 'cp=cp -i'
+    #alias 'mv=mv -i --strip-trailing-slashes'
+    alias 'mv=mv -i'
+
+    alias man='u-man'
+
+    #alias which='alias | which --read-alias'
+    alias where='which -a'
+
+    function start() {
+	(cd $HOME
+	 "$@" &
+	disown $! )
+    }
+
+    complete -A command start
+
+    # cd replacement that supports cd =pattern syntax to change to the first
+    # cd history entry matching the pattern
+    function cd() {
+        if test $# -eq 0; then
+            command cd
+            return
+        fi
+        if test -z "$1" -o "$1" = "="; then
+            echo "bad usage: empty dir name" 1>&2
+            return
+        fi
+        local dir="${1#=}"
+        if test "$dir" = "$1"; then
+            # push the directory to the stack and remove the entry that
+            # duplicates the stack top
+            if test "$dir" = "-"; then
+                dir="${OLDPWD:-$HOME}"
+            fi
+            pushd "$dir" > /dev/null
+            if test $? -ne 0; then
+                return
+            fi
+            local i=1
+            while test $i -lt ${#DIRSTACK[@]}; do
+                if test "${DIRSTACK[$i]}" = "$PWD"; then
+                    popd +$i > /dev/null
+                else
+                    i=$(($i + 1))
+                fi
+            done
+            return
+        fi
+
+        # Search history for the matching dir starting from one under assumption
+        # that changing to the current dir is not desirable
+        local i=1
+        while test $i -lt ${#DIRSTACK[@]}; do
+            local entry="${DIRSTACK[$i]}"
+            if test "${entry/$dir}" != "$entry"; then
+                popd -n +$i > /dev/null
+                pushd "$entry" > /dev/null
+                return
+            fi
+            i=$(($i + 1))
+        done
+        echo "Failed to find '$dir' in ${DIRSTACK[*]}" 1>&2
+    }
+
+    # initialize dir stack from the history
+    if test -n "$HISTFILE" -a -r "$HISTFILE"; then
+        for i in $(grep '^cd ' "$HISTFILE" | cut -d' ' -f2); do
+            pushd -n ${i/#~/$HOME} > /dev/null
+        done
+    fi
+fi
+
+unset i
+
+test -f "$HOME/.bashrc_extra" && source "$HOME/.bashrc_extra"

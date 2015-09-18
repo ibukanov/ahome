@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if test ! -e "/tmp/emacs$(id -u)/server"; then
+  exec l "$@"
+fi
+
+exec emacsclient -n "$@"

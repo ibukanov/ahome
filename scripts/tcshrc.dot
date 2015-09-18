@@ -1,0 +1,218 @@
+#!/bin/tcsh
+
+unset tmp_*
+
+if ($user == root) set tmp_is_root = 1
+
+#-#if ( $OSTYPE == linux ) then
+#-#  set tmp_ef_user = "`id -un`"
+#-#  if ( $tmp_ef_user != $user ) then
+#-#     set user = $tmp_ef_user
+#-#  endif
+#-#endif
+
+### SET PATH
+
+setenv PATH "`$HOME/a/bin/u-path`"
+
+### SET PROGRAM ENVIROMMENT VARIABLES
+
+setenv LANG en_US.UTF-8
+setenv LC_ALL C
+
+setenv GZIP -v
+
+unsetenv INPUTRC
+
+setenv TEXINPUTS "."
+if ( -d "$HOME/a/tex/lib" ) then
+  setenv TEXINPUTS "${TEXINPUTS}:$HOME/a/tex/lib"
+endif
+if ( -d "$HOME/a/extensions/tex" ) then
+  foreach i ( $HOME/a/extensions/tex/* )
+    if ( -d "$i" && "$i" !~ */CVS ) then
+      setenv TEXINPUTS "${TEXINPUTS}:$i"
+    endif
+  end
+endif
+setenv TEXINPUTS "${TEXINPUTS}:"
+
+setenv PERL5LIB "$HOME/a/perl/mylib"
+
+setenv LESS '-ciMqsPM?f%f .?n?m(file %i of %m) ..?ltline %lt'
+setenv LESS "$LESS"'?L/%L. :byte %bB?s/%s. .?e(END) ?x- Next\: %x.:'
+setenv LESS "$LESS"'?pB%pB\%..%t [h=help q=quit]'
+
+setenv LESSCHARSET "utf-8"
+
+if ($?LESSOPEN) unsetenv LESSOPEN
+
+setenv PAGER          "less -R"
+
+setenv CVSEDITOR      "vi"
+
+### SET UMASK
+
+if ( $?tmp_is_root ) then
+   umask 022
+else
+   umask 007
+endif
+
+### NO CORE FILES
+limit coredumpsize  0
+
+### SET TERMINAL KNOWLEDGE BASE IF UNKNOWN
+
+## termcap
+set tmp_termcap_size = `filetest -Z ~/etc/termcap`
+if ( $tmp_termcap_size > 0 ) then
+  set tmp_sys_size = 0
+  if ( $?TERMCAP ) then
+    set tmp_sys_size = `filetest -Z "$TERMCAP"`
+  else if ( -r /etc/termcap ) then
+    set tmp_sys_size = `filetest -Z /etc/termcap`
+  endif
+  if ( $tmp_sys_size < $tmp_termcap_size ) then
+    setenv TERMCAP ~/etc/termcap
+  else if ( $tmp_sys_size > $tmp_termcap_size ) then
+    echo "This system got bigger termcap!"
+  endif
+endif
+
+## terminfo
+if ( -d ~/etc/terminfo && ! $?TERMINFO && ! -d /usr/share/terminfo ) then
+  setenv TERMINFO ~/etc/terminfo
+endif
+
+
+if ( $?prompt ) then
+  ### INTERACTIVE-ONLY SETTINGS
+
+  ### SET PROMPT
+  
+  set prompt = "%.08%# "
+
+  if ($?TERM) then
+
+    ## underline root prompt
+    if ( $?tmp_is_root ) then
+      if ( $TERM =~ xterm* || $TERM == dtterm || $TERM == linux ) then 
+        set prompt = "%U%.08%u%# "
+      endif
+    endif
+
+    ## to have useful information in the titles of windows:
+    if ( $TERM =~ xterm* || $TERM == dtterm || $TERM == iris-ansi \
+         || $TERM == aixterm ) then
+      set host_info
+      if ( $?tmp_is_root ) then
+	set host_info = "ROOT@%M   "
+      else if ( ! $?WINDOWID ) then
+	set host_info = "%M->%n   "
+      endif
+      set prompt="%{\e]2\;${host_info}%~>^g\e]1\;%m^g%}$prompt"
+    endif
+    ### Otherwise arrow keys will/might not work
+    if ( $TERM =~ hp* ) set prompt="%{`echotc ks`%}$prompt" 
+
+  endif
+
+  ### BIND KEYS
+  
+  if ($?TERM) then
+  ## for linux console
+    bindkey '\e[1~'    beginning-of-line  # Home
+    bindkey '\e[4~'    end-of-line        # End
+      
+  ## for xterm
+    bindkey '\e[H'     beginning-of-line  # Home
+    bindkey '\e[F'     end-of-line        # End
+
+  ## common
+  ## Note: X resource customization may be required to make this work on xterm
+    bindkey '\e[3~'    delete-char        # Del,  xterm 
+    
+  endif
+  
+  ### SHELL CUSTOMIZATION
+    
+  ## show completion list as soon as possible and beep only when no match
+  set autolist  = true
+  set matchbeep = nomatch
+
+  ## ignore lomg absence
+  unset autologout
+  
+  ## dirs to cd 
+  set cdpath    = (. \.. $HOME)
+  
+  ## do smart echo
+  set echo_style  = both
+
+  ## commands to remember: do not save history to file
+  unset histfile
+  unset savehist   
+  set history   = 1024
+  
+  ## do not exit on Ctrl-D
+  set ignoreeof
+  
+  ### to check mail periodically if not using Xwindows.
+  if ( ! $?WINDOWID ) set mail = ( 300 /var/spool/mail/$user )
+
+  ## immediately notify when commands started with `&' finish 
+  ## (use ^L to clear the screen)
+  set notify
+  
+  ## treat .name as any other name 
+  set showdots  = -A
+  set listflags = $showdots
+
+  ## try to follow symlinks
+  set symlinks  = ignore
+  
+  ### COMPLETION
+  
+  uncomplete  *
+  
+  complete cd             'p/1/d/'
+  complete which          'p/*/c/'
+  complete where          'p/*/c/'
+
+  complete tex           'p/*/f:*.tex/'
+  complete latex         'p/*/f:*.tex/'
+  complete xdvi          'p/*/f:*.dvi/'
+  #complete ghostview     'p/*/f:*.{ps,eps,PS,EPS,epsf}/'
+  
+  if ( -X list_man_entries ) then
+    complete man 'n/*/`list_man_entries`/'
+  else
+    complete man 'n/*/c/'
+  endif
+
+  ### ALIASES
+  
+  unalias *
+
+  alias cd..  cd ..
+  alias cp    cp -i
+  alias ll    ls -al
+  alias ls    ls -AF
+#  alias mv    mv -i --strip-trailing-slashes
+  alias mv    mv -i
+  
+  if ( -X ispell ) then
+    alias pico pico -w -s ispell
+  else
+    alias pico pico -w
+  endif
+
+  alias x     "xterm \!* &" 
+  
+  if ( $OSTYPE == linux ) alias who who -iHT
+  
+endif
+
+unset tmp_*
+unset i

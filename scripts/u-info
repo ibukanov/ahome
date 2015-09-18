@@ -1,0 +1,3 @@
+#!/bin/sh
+
+v info --subnodes -o - "$@" 2>/dev/null

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+dconf write /org/gnome/settings-daemon/plugins/power/button-power "'hibernate'"

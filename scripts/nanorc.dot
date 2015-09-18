@@ -1,0 +1,7 @@
+set speller /usr/bin/hunspell
+unset backup
+#set backupdir /tmp
+#set const
+set nowrap
+set smarthome
+set morespace

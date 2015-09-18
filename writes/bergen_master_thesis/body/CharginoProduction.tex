@@ -1,0 +1,2295 @@
+\chapter{Chargino production}
+
+\section{Lagrangian representation}
+
+In this chapter I consider the production cross section
+for the lightest charginos by the process 
+\bel{charginoProdProc}
+e^+e^- \rightarrow \chi^+\chi^- ,
+\ee
+
+where I denote by $\chi$ the lightest chargino $\chi_1$. Also I will refer
+to $\chi^+$ as the chargino particle and to $\chi^-$ as 
+the corresponding antiparticle.
+
+\P
+At the tree level, the process is represented by the following 
+interaction terms from the MSSM Lagrangian,
+
+\bel{eToChi}
+L_{int}
+  = L[e, \gamma] + L[e, Z]
+  + L[\chi, \gamma] + L[\chi, Z] 
+  + L[e, \tilde{\nu_{e1}}, \chi]
+.
+\ee         
+
+Here $L[e, \gamma]$ and $L[e, Z]$  represent the usual coupling 
+of electrons with photons and $Z^0$ bosons and the remaining terms are given 
+by~\rf{charginoCoupling} and~\rf{ChiLSNu}. 
+
+\P
+To simplify the cross-section calculations I found it useful to introduce 
+the following notations,
+
+\bem
+L[e, \gamma] & = & -\overline{\psi}_e e\gu{\rho} \psi_e A_\rho
+\nel
+&\equiv&
+\overline{\psi}_e \gu{\rho}(a_\gamma - b_\gamma \gd5 ) \psi_e D^\gamma_\rho,
+\nel
+L[e, Z] &=& - \frac{g}{4\cos\theta_W} 
+  \overline{\psi}_e \gu{\rho} [(1 - 4\sin^2\theta_W) - \gd5] \psi_e Z_\rho
+\nel
+& \equiv &
+\overline{\psi}_e \gu{\rho}(a_Z - b_Z \gd5 ) \psi_e D^Z_\rho,
+
+\ee
+
+with
+\bel{chargeGabIs}
+a_\gamma = -e \equiv - \abs{e}, \quad b_\gamma = 0, 
+\ee
+
+\beml{chargeZabIs}
+a_Z  =  -\frac{g}{4\cos\theta_W}(1 - 4\sin^2\theta_W),
+\quad 
+b_Z  =  -\frac{g}{4\cos\theta_W},
+\ee
+
+and
+\be
+D^\gamma_\rho =  A_\rho, \quad D^Z_\rho =  Z_\rho
+.
+\ee
+
+According to~\rf{charginoCoupling} I can write 
+in the case of the  coupling of the lightest chargino $\chi_1$
+with the gauge bosons
+\beml{charge-L-with-chi-and-gamma}
+L[\chi, \gamma] &=& 
+\overline{\psi}_{\chi_1} e\gu{\rho} \psi_{\chi_1} A_\rho
+\nel
+& \equiv &
+\overline{\psi}_{\chi}\gu{\rho}(A_\gamma - B_\gamma \gu5)\psi_{\chi}
+   D^\gamma_\rho,
+\nel
+L[\chi,Z] &=&
+    \frac{g}{4 \cos \theta_W} 
+    \overline{\psi}_{\chi_1} \gu{\rho} 
+\nel && \times
+    \Bigl\lbrace 
+          [2\cos (2\theta_W) 
+            + \abs{Y_{11}}^2 + \abs{X_{11}}^2]
+        
+          + \gu5 [\abs{Y_{11}}^2 - \abs{X_{11}}^2]\Bigr\rbrace
+
+    \psi_{\chi_1} Z_\rho
+\nel
+& \equiv &
+  \overline{\psi}_{\chi}\gu{\rho}(A_Z - B_Z \gu5)\psi_{\chi} 
+      D^Z_\rho,
+\ee
+
+where 
+
+\bel{chargeGABIs}
+A_\gamma  = e, \quad B_\gamma =   0, 
+\ee
+
+and
+\beml{chargeZABIs}
+A_Z &=& \frac{g}{4 \cos \theta_W}
+             [2\cos (2\theta_W) + \abs{Y_{11}}^2 + \abs{X_{11}}^2],
+\nel
+B_Z &=& - \frac{g}{4 \cos \theta_W} [\abs{Y_{11}}^2 - \abs{X_{11}}^2].
+\ee
+
+The interaction term between electrons and positrons, charginos and
+scalar electron neutrinos is given by~\rf{lagranChiLSNu}
+(I write in the following $\tilde\nu^L_e$ simply as $\tilde\nu$)
+
+\bem
+L[e, \tilde{\nu}_{e1}, \chi] & = &
+  \frac{g}{2} 
+    [-\psi^T_{\chi_1}C (\Vc^\chi_{e1L} + \Ac^\chi_{e1L}\gd{5}) \psi_{e}
+                    \tilde{\nu}^\hc
+       + \overline{\psi}_e (\Vc^{\chi\hc}_{e1L} - \Ac^{\chi\hc}_{e1L} \gd{5})
+                 C^{-1}\overline{\psi}_{\chi_1}^T \tilde{\nu}]
+\nel
+& \equiv &
+        -\psi^T_{\chi}C (F + G\gd{5}) \psi_e
+                    \cc{\tilde{\nu}}
+       + \overline{\psi}_e (F^\hc - G^\hc \gd{5})
+                 C^{-1}\overline{\psi}_{\chi}^T \tilde{\nu}.
+\ee
+
+Here
+\be
+F = \frac{g}{2}\Vc^\chi_{e1L},
+\quad 
+G  =  \frac{g}{2}\Ac^\chi_{e1L}
+.
+\ee
+
+Under the approximation 
+\be
+\abs{Y_{i2}\frac{m_e}{\sqrt{2} m_W \cos\beta}}
+\le \frac{m_e}{\sqrt{2} m_W \cos\beta} \approx 0
+\ee
+
+($\abs{Y_{i2}} \le 1$ as an element of the unitary matrix $Y$), 
+the coefficients $F$ and $G$ become
+\bel{chargeFandG1}
+F \approx -{g \over 2} X_{11}^\hc,
+\quad
+G  \approx {g \over 2} X_{11}^\hc
+\ee
+
+\P
+The expressions for
+$X_{11}^\hc$, $\abs{X_{11}}^2$ and $\abs{Y_{11}}^2$ are given by~\rf{lagXandY}, 
+\bel{chargeFandG2}
+X_{11}^\hc = \cos\theta_X, 
+\quad 
+\abs{X_{11}}^2 = \cos^2\theta_X,
+\quad 
+\abs{Y_{11}}^2 = \cos^2\theta_Y
+,
+\ee
+
+\P
+With this notations $L_{int}$ becomes
+
+\bel{charge-useful-form-for-L}
+L_{int} = \sum_{k = \gamma, Z} (L_e^k + L_\chi^k) 
+            + L_{\tilde\nu} + L_{\tilde\nu}^\hc,
+\ee
+
+where I set
+\beml{charge-useful-form-for-L-2}
+L_e^k & = & 
+\overline{\psi}_{e}\gu{\rho}(a_k - b_k \gu5)\psi_{e}D^k_\rho
+,
+\nel
+L_\chi^k & = & 
+\overline{\psi}_{\chi}\gu{\rho}(A_k - B_k \gu5)\psi_{\chi}D^k_\rho
+,
+\nel 
+L_{\tilde\nu} & = &  \overline{\psi}_e (F^\hc - G^\hc \gd{5})
+                 C^{-1}\overline{\psi}_{\chi}^T \tilde{\nu}
+,                 
+\nel
+L_{\tilde\nu}^\hc & = & -\psi^T_{\chi}C (F + G\gd{5}) \psi_e \tilde{\nu}^\hc
+.
+\ee
+
+
+\section{Production Amplitude}
+
+According to~\cite{SMTextBook} the tree-level transition amplitude 
+for the process \rf{charginoProdProc}
+is given by the second-order $S$-matrix element, 
+
+\bem
+\lefteqn{
+S_2(e^+e^- \rightarrow \chi^+\chi^-) = 
+\frac{(-i)^2}{2!} \int d^4\!x\, d^4\!x' 
+}
+\nel &&{} \times 
+\bra{\chi^+(\ppa, \rpa), \chi^-(\ppb, \rpb)}
+  \Torder\lbrace 
+    \Norder[L_{int}(x)] \Norder[L_{int}(x')]\rbrace
+\ket{e^+(\pa, \ra), e^-(\pb, \rb)}
+.
+\ee
+
+Here $\pa$, $\ra$, $\pb$, $\rb$ denote the initial momentum and polarization
+state for the positron and electron fields, 
+$\ppa$, $\rpa$, $\ppb$, $\rpb$ are used
+for the final states of antichargino and chargino.
+The functional $\Torder$ gives 
+the time ordered product of its arguments
+and $\Norder[L_{int}]$ stands for the normal-ordered form 
+of the interaction Lagrangian. 
+ 
+\P
+
+I must note here that there is an ambiguity in the definition of
+a multi-fermion state. 
+For example, for any two fermions $f_1$, $f_2$
+one can take either 
+\bel{charge-multi-fermion-state-is}
+\ket{f_1, f_2} 
+    = (2\pi)^{3\over 2} c^\hc(f_1) (2\pi)^{3\over 2} c^\hc(f_2)\ket{0} 
+    = (2\pi)^3 c^\hc(f_1) c^\hc(f_2)\ket{0} 
+    
+\ee
+
+or
+\be
+\ket{f_1, f_2} 
+    = (2\pi)^{3\over 2} c^\hc(f_2) (2\pi)^{3\over 2} c^\hc(f_1)\ket{0} 
+    = -(2\pi)^3 c^\hc(f_1)c^\hc(f_2)\ket{0}.
+\ee
+where the factor $(2\pi)^{3\over 2}$ reflects the unit volume normalization of 
+the states.
+
+\P
+This causes an uncertainty in the sign of the S matrix for processes 
+with more than one fermion in the initial or final state
+although measurable quantities do not have this ambiguity.
+Nevertheless, from the computational point of view the sign should be fixed
+somehow. Thus I choose the first possibility~\rf{charge-multi-fermion-state-is} and
+
+\bem
+\bra{f_1, f_2} & \equiv & \left(\ket{f_1, f_2}\right)^\hc 
+    = \left((2\pi)^3 c^\hc(f_1)c^\hc(f_2)\ket{0}\right)^\hc 
+\nel & = &
+    (2\pi)^3 \bra{0}c(f_2)c(f_1)
+\ee
+
+\P
+I may write now for the initial and final states of 
+the process~\rf{charginoProdProc},
+\bem
+\bra{\chi^+(\ppa, \rpa), \chi^-(\ppb, \rpb)}
+&=& 
+(2\pi)^3 \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa),
+\nel
+\ket{e^+(\pa, \ra), e^-(\pb, \rb)} 
+&= &
+(2\pi)^3 d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0},
+\ee
+
+where $c$ and $d$ are fermion and antifermion annihilation operators 
+and $c^\hc$ and $d^\hc$ are creation operators. 
+
+\P
+The explicit form~\rf{charge-useful-form-for-L} of $L_{int}$ 
+and the commutational and anticommutational properties of different fields
+it depends on give
+
+\bem
+\lefteqn{
+S_2 = \frac{(-i)^2}{2!} \int d^4\!x\, d^4\!x' 
+    \bra{\chi^+(\ppa, \rpa), \chi^-(\ppb, \rpb)}
+}
+\nel
+&& {} \times
+\Torder\Bigl\lbrace 
+  \sum_{k = \gamma, Z} \bigl( 
+    \Norder[L_e^k(x)]\Norder[L_\chi^k(x)(x')] 
+    +  \Norder[L_\chi^k(x)(x)]\Norder[L_e^k(x')] \bigr)
+\nel && \qquad \qquad {}
++ \Norder[L_{\tilde\nu}(x)]\Norder[L_{\tilde\nu}^\hc(x')] 
++ \Norder[L_{\tilde\nu}^\hc(x)]\Norder[L_{\tilde\nu}(x')] 
+ \Bigr\rbrace
+\nel && \times
+\ket{e^+(\pa, \ra), e^-(\pb, \rb)}
+
+
+\nel
+& = & -\int d^4\!x\, d^4\!x' 
+\bra{\chi^+(\ppa, \rpa), \chi^-(\ppb, \rpb)}
+\nel && {} \times
+  \Torder\Bigl\{ 
+  \sum_{k = \gamma, Z} \Norder[L_e^k(x)]\Norder[L_\chi^k(x)(x')]
+    + \Norder[L_{\tilde\nu}^\hc(x)]\Norder[L_{\tilde\nu}(x')]
+ \Bigr\}
+\nel && \times
+\ket{e^+(\pa, \ra), e^-(\pb, \rb)}
+,
+\ee
+
+where I have taken into account that 
+the terms like $\Norder[L(x)]$ here contains an even number (two)
+of fermion fields so I can freely move them to any position 
+in the $\Torder$-product. Thus if I simply rename $x \leftrightarrow x'$
+and change the integration order, I find, for example, 
+\bem
+\int\! d^4\!x\, d^4\!x' 
+  \Torder\Bigl\lbrace 
+     \Norder[L_\chi^k(x)(x)]\Norder[L_e^k(x')]
+\Bigr\rbrace
+& = &
+\int\! d^4\!x\, d^4\!x' 
+  \Torder\Bigl\lbrace 
+     \Norder[L_e^k(x')]\Norder[L_\chi^k(x)(x)]
+\Bigr\rbrace
+\nel
+& = &
+\int\! d^4\!x'\, d^4\!x
+  \Torder\Bigl\lbrace 
+     \Norder[L_e^k(x)]\Norder[L_\chi^k(x')(x)]
+ \Bigr\rbrace
+\nel
+& = &
+\int\! d^4\!x\, d^4\!x'
+  \Torder\Bigl\lbrace 
+     \Norder[L_e^k(x)]\Norder[L_\chi^k(x')(x)]
+ \Bigr\rbrace
+, 
+\ee
+
+and in the same way
+\bem
+\int d^4\!x\, d^4\!x' 
+    \Norder[L_{\tilde\nu}(x)]\Norder[L_{\tilde\nu}^\hc(x')] 
+& = &
+\int d^4\!x\, d^4\!x' 
+    \Norder[L_{\tilde\nu}^\hc(x)]\Norder[L_{\tilde\nu}(x')] 
+.
+\ee
+
+At this stage 
+I can represent $S_2$ according to~\rf{charge-useful-form-for-L-2} 
+and~\rf{charge-multi-fermion-state-is} as, 
+
+\bel{charge-S2-as-two-term}
+S_2 = \sum_{k = \gamma, Z} S_k + S_{\tilde\nu},
+\ee
+
+with
+\beml{charge-S-D-k-is}
+S_k & = & -(2\pi)^6 \int d^4\!x\, d^4\!x' 
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel && \times
+    \Torder\Bigl\lbrace 
+        \Norder[\overline\psi_{\chi} 
+                \gu{\rho}(A_k - B_k\gd{5})
+                \psi_{\chi}
+                D_\rho]_{x}
+        \Norder[\overline\psi_e 
+                \gu{\sigma}(a_k - b_k\gd{5})
+                \psi_e
+                D_\sigma]_{x'}
+    \Bigr\rbrace 
+\nel && \times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+,
+\ee
+
+and
+\beml{charge-S-nu-is}
+S_{\tilde\nu} & = & (2\pi)^6 \int d^4\!x\, d^4\!x' 
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel && \times
+    \Torder\Bigl\lbrace 
+        \Norder[\psi^T_{\chi}C(F + G\gd{5})
+                \psi_{e}\cc{\tilde\nu}]_x
+        \Norder[\overline{\psi}_e (F^\hc - G^\hc\gd{5})
+                C^{-1}\overline{\psi}_{\chi}^T{\tilde\nu}]_{x'} 
+    \Bigr\rbrace 
+\nel && \times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+.
+\ee
+
+
+\P
+I follow the usual approach and calculate $S_2$ by the means of
+Wick's theorem. According to~\rf{gammaFermionField} I have,
+\bem
+\lefteqn{
+\psi(x) \; = \; \posPart\psi(x) + \negPart\psi(x)
+}
+\nel & = &
+\sum_{r = +, -}\int d^3p \left(\frac{m}{(2\pi)^3 E_p}\right)^{\frac{1}{2}}
+    [ u_r(p)c_r(p) e^{-ipx} + v_r(p)d_r^\hc(p) e^{ipx} ] ,
+\nel
+\lefteqn{
+\overline{\psi}(x) \; = \;  
+\overline{\posPart\psi}(x) + \overline{\negPart\psi}(x)
+}
+\nel & = &
+\sum_{r = +, -}\int d^3p \left(\frac{m}{(2\pi)^3 E_p}\right)^{\frac{1}{2}}
+    [ \ub_r(p)c_r^\hc(p) e^{ipx} + \vb_r(p)d_r(p) e^{-ipx} ]
+    ,
+\ee
+
+where $u_r(p) = u_r(p/m)$ and $v_r(p) = v_r(p/m)$.
+
+\P
+Thus I obtain for first term $S_k$ in \rf{charge-S2-as-two-term} 
+(I suppress here the index $k$) :
+\beml{charge-ref11}
+S_k & = & -(2\pi)^6\int d^4\!x\, d^4\!x'
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel &&{} \qquad\times 
+\Torder\Bigl\lbrace 
+            \Norder[\overline\psi_{\chi} 
+                    \gu{\rho}(A - B\gd{5})
+                    \psi_{\chi}
+                    D_\rho]_{x}
+            \Norder[\overline\psi_e 
+                    \gu{\sigma}(a - b\gd{5})
+                    \psi_e
+                    D_\sigma]_{x'}
+        \Bigr\rbrace
+\nel &&{} \qquad\times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+\nel & = & 
+-(2\pi)^6 \int d^4\!x\, d^4\!x'
+    \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel &&{} \qquad\times 
+        \Torder\Bigl\lbrace 
+            [\overline{\posPart\psi}_{\chi} 
+                    \gu{\rho}(A - B\gd{5})
+                    \negPart\psi_{\chi}
+                    D_\rho]_{x}
+            [\overline{\negPart\psi}_e 
+                    \gu{\sigma}(a - b\gd{5})
+                    \posPart\psi_e
+                    D_\sigma]_{x'}
+        \Bigr\rbrace
+\nel &&{} \qquad\times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+\nel
+& = & 
+-(2\pi)^6 \int d^4\!x\, d^4\!x'
+    \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel &&{} \qquad\times 
+        \Norder\Bigl\lbrace 
+            [\overline{\posPart\psi}_{\chi} 
+                    \gu{\rho}(A - B\gd{5})
+                    \negPart\psi_{\chi}]_{x}
+            [\overline{\negPart\psi}_e 
+                    \gu{\sigma}(a - b\gd{5})
+                    \posPart\psi_e]_{x'}
+        \Bigr\rbrace    
+            iD_{\rho\sigma}(x' - x)
+\nel &&{} \qquad\times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0},
+\ee
+
+where $D_{\rho\sigma}(x' - x)$ stands for $\gamma$ or $Z^0$
+propagator. Normal ordering of the fermion operators in~\rf{charge-ref11} 
+gives 
+
+\beml{charge-ref11-a}
+S_k
+& = & 
+-(2\pi)^6 \int d^4\!x\, d^4\!x'
+    \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel &&{} \qquad\times 
+        [\overline{\negPart\psi}_e 
+                \gu{\sigma}(a - b\gd{5})
+                \posPart\psi_e]_{x'}
+        [\overline{\posPart\psi}_{\chi} 
+                \gu{\rho}(A - B\gd{5})
+                \negPart\psi_{\chi}]_{x}
+        iD_{\rho\sigma}(x' - x)
+\nel &&{} \qquad\times 
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0} .
+\ee
+
+From the anticommutational relations between fermion operators 
+and~\rf{gammaFermionField} I obtain for the scalar product in~\rf{charge-ref13}:
+\beml{charge-ref12}
+\lefteqn{
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+[\overline{\negPart\psi}_e\dots \posPart\psi_e]_{x'} \}
+[\overline{\posPart\psi}_{\chi} ... \negPart\psi_{\chi}]_{x}
+d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+} \;
+\nel & = &
+-
+\left(\frac{m_e^2}{\Ea\Eb}\right)^{\frac{1}{2}} 
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa) 
+[\overline{\posPart\psi}_{\chi} ... \negPart\psi_{\chi}]_{x} \ket{0}
+\nel && \qquad \times
+[\vb_{\ra}(\pa)e^{-i\pa x'} \dots u_{\rb}(\pb)e^{-i\pb x'}] 
+
+\nel & = & 
+-
+\left(\frac{m_e^2 m_\chi^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\dirProd{0}{0}
+\nel && \quad \times
+[\ub_{\rpb}(\ppb)e^{i\ppb x} \dots v_{\rpa}(\ppa)e^{i\ppa x}]
+[\vb_{\ra}(\pa)e^{-i\pa x'} \dots u_{\rb}(\pb)e^{-i\pb x'}] 
+,
+\ee
+
+where $\Ea$ and $\Eb$ are the energies of the incoming particles and 
+$\Epa$ and $\Epb$ are the energies of the outgoing ones. In the 
+center-of-mass frame one will have $\Ea = \Eb$ and $\Epa = \Epb$.
+
+\P
+Thus from the equations~\rf{charge-ref12} I find
+
+\beml{charge-S2-boson-tmp1}
+S_k 
+& = & 
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\int d^4\!x\, d^4\!x'
+    \dirProd{0}{0}
+\nel & & \qquad \times \,
+    [\ub_{\rpb}(\ppb)e^{i\ppb x}
+        \gu{\rho}(A - B\gd{5})
+         v_{\rpa}(\ppa)e^{i\ppa x}]
+\nel & & \qquad \times  \,
+    [\vb_{\ra}(\pa)e^{-i\pa x'}
+        \gu{\sigma}(a - b\gd{5})
+        u_{\rb}(\pb)e^{-i\pb x'}]
+    iD_{\rho\sigma}(x' - x) 
+.
+\ee
+
+To calculate the integral in~\rf{charge-S2-boson-tmp1} 
+I use the Fourier transformation to write
+\be
+iD_{\rho\sigma}(x' - x) = (2\pi)^{-4}
+\int  d^4\!k\, e^{-ik(x' - x)} iD_{\rho\sigma}(k) 
+.
+\ee
+
+It gives for~\rf{charge-S2-boson-tmp1}
+\beml{charge-boson-S-is}
+S_k & = & 
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+(2\pi)^{-4}
+\int d^4\!x\, d^4\!x' d^4\!k\,
+    e^{ix(\ppa + \ppb)}e^{-ix'(\pa + \pb)}e^{-ik(x' - x)}
+    iD_{\rho\sigma}(k) 
+\nel & & \times\,
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gu{\sigma}(a - b\gd{5})u_{\rb}(\pb)]
+\nel
+& = & 
+(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\int d^4\!k\,
+    \delta^4(k + \ppa + \ppb)\delta^4(k + \pa + \pb)
+    iD_{\rho\sigma}(k) 
+\nel & & \times\,
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gu{\sigma}(a - b\gd{5})u_{\rb}(\pb)]
+\nel
+& = & 
+(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\delta^4(\ppa + \ppb - \pa - \pb) 
+\left. iD_{\rho\sigma}(k) \right|_{k = - \pa - \pb =  - \ppa - \ppb} 
+\nel & & \times\,
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gu{\sigma}(a - b\gd{5})u_{\rb}(\pb)]
+    .
+\ee
+
+\P
+Handling of the $S_{\tilde\nu}$ term 
+in~\rf{charge-S2-as-two-term} is slightly
+different due to the presence of the charge conjugation operation.
+ 
+\beml{charge-ref13}
+S_{\tilde\nu} & = & (2\pi)^6 \int d^4\!x\, d^4\!x'
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel&&\qquad {} \times
+       \Torder\Bigl\lbrace 
+            \Norder[\psi^T_{\chi}C(F + G\gd{5})
+                    \psi_{e}{\tilde\nu}^\hc]_x
+            \Norder[\overline{\psi}_e (\cc{F} - \cc{G}\gd{5})
+                    C^{-1}\overline{\psi}_{\chi}^T\tilde{\nu}]_{x'} 
+        \Bigr\rbrace
+\nel&&\qquad {} \times
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+\nel
+& = & 
+(2\pi)^6\int d^4\!x\, d^4\!x'
+    \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel&&\qquad {} \times
+        \Torder\Bigl\lbrace 
+            [(\negPart{\psi})^T_{\chi}C(F + G\gd{5})
+                    \posPart{\psi}_{e}\cc{\tilde{\nu}}]_x
+            [\overline{\negPart{\psi}}_e (\cc{F} - \cc{G}\gd{5})
+                    C^{-1}(\overline{\posPart{\psi}}_{\chi})^T\tilde{\nu}]_{x'} 
+        \Bigr\rbrace
+\nel & & \qquad \times \,
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+\nel
+& = & 
+(2\pi)^6 \int d^4\!x\, d^4\!x'
+    \bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel&&\qquad {} \times
+        \Norder\Bigl\lbrace 
+            [(\negPart{\psi})^T_{\chi}C(F + G\gd{5})
+                    \posPart{\psi}_{e}]_x
+            [\overline{\negPart{\psi}}_e (\cc{F} - \cc{G}\gd{5})
+                    C^{-1}(\overline{\posPart{\psi}}_{\chi})^T]_{x'} 
+        \Bigr\rbrace
+\nel&&\qquad {} \times
+        i\Delta_{\tilde{\nu}}(x' - x)
+    d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0},
+\ee
+
+where $\Delta_{\tilde\nu}$ is the sneutrino propagator that has the usual
+form of the propagator for a scalar particle. If I take into account 
+that $\psi_\chi$ anticommutes with $\psi_e$ 
+I will find from~\rf{gammaFermionField} in a way similar to~\rf{charge-ref12} 
+that
+\bem
+\lefteqn{
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\Norder\Bigl\lbrace 
+  [(\negPart{\psi})^T_{\chi} \dots \posPart{\psi}_{e}]_x
+  [\overline{\negPart{\psi}}_e \dots (\overline{\posPart{\psi}}_{\chi})^T]_{x'}
+\Bigr\rbrace
+d^\hc_e(\pa,\ra)c^\hc_e(\pb,\rb)\ket{0}
+}
+\nel
+& = &
+-
+\left(\frac{m_e}{\Ea}\right)^{\frac{1}{2}}
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel && \qquad{}\times
+\Norder\Bigl\lbrace 
+  [(\negPart{\psi})^T_{\chi} \dots \posPart{\psi}_{e}]_x
+  e^{-i\pa x'}[\vb_{\ra}(\pa) \dots (\overline{\posPart{\psi}}_{\chi})^T]_{x'}
+\Bigr\rbrace
+c^\hc_e(\pb,\rb)\ket{0}
+\nel
+& = &
+\left(\frac{m_e^2}{\Ea\Eb}\right)^{\frac{1}{2}}
+\bra{0}c_{\chi}(\ppb,\rpb)d_{\chi}(\ppa, \rpa)
+\nel && \qquad{}\times
+\Norder\Bigl\lbrace 
+  [(\negPart{\psi})^T_{\chi} \dots u_{\rb}(\pb)]_xe^{-i\pb x}
+  e^{-i\pa x'}[\vb_{\ra}(\pa) \dots (\overline{\posPart{\psi}}_{\chi})^T]_{x'}
+\Bigr\rbrace
+\ket{0}
+\nel
+& = &
+\left(\frac{m_e^2 m_\chi^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}}
+\dirProd{0}{0}
+\nel && \qquad{}\times
+e^{i\ppa x}[v^T(\ppa, \rpa) \dots u_{\rb}(\pb)]e^{-i\pb x}
+  e^{-i\pa x'}[\vb_{\ra}(\pa) \dots \ub^T(\ppb, \rpb)]e^{i\ppb x'}
+.
+\ee
+
+Thus~\rf{charge-ref13} gives
+
+\bem
+S_{\tilde\nu} & = & 
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\int d^4\!x\, d^4\!x'
+    \dirProd{0}{0}  i\Delta_{\tilde{\nu}}(x' - x)
+\nel & & {}\times 
+    e^{i\ppa x}e^{-i\pb x}
+    [{v^T(\ppa, \rpa)}C(F + G\gd{5})u_{\rb}(\pb)]
+\nel & & {}\times 
+    e^{-i\pa x'}e^{i\ppb x'}
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})
+                    C^{-1}\ub^T(\ppb, \rpb)] 
+.                    
+\ee
+
+The Fourier transformation of $i\Delta_{\tilde{\nu}}(x' - x)$ leads to
+\bem
+S_{\tilde\nu}
+& = &
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+(2\pi)^{-4}
+\int d^4\!x\, d^4\!x' d^4\!k\,
+    e^{ix(\ppa - \pb)}e^{ix'(\ppb - \pa)}e^{-ik(x' - x)}
+    i\Delta_{\tilde{\nu}}(k)
+\nel & & \qquad \times\,
+    [{v^T(\ppa, \rpa)}C(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})
+        C^{-1}\ub^T(\ppb, \rpb)]
+\nel
+& = & 
+(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\int d^4\!k\,
+    \delta^4(\ppa - \pb + k)\delta^4(\ppb - \pa - k)
+    i\Delta_{\tilde{\nu}}(k)
+\nel & & \qquad \times\,
+    [{v^T(\ppa, \rpa)}C(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})
+        C^{-1}\ub^T(\ppb, \rpb)]
+\nel
+& = & 
+(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\delta^4(\ppa + \ppb - \pa - \pb) 
+\left. i\Delta_{\tilde{\nu}}(k) \right|_{k = \pb - \ppa =  \ppb - \pa} 
+\nel & & \qquad \times\,
+    [{v^T(\ppa, \rpa)}C(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})
+        C^{-1}\ub^T(\ppb, \rpb)]
+.
+\ee
+
+Now, if I use~\rf{gammaSpinorRelation}, I will obtain
+$v^T(p, s) C = - \ub$, $C^{-1}\ub^T = v$,
+\bem
+S_{\tilde\nu} & = & 
+-(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\delta(\ppa + \ppb - \pa - \pb) 
+\left. i\Delta_{\tilde{\nu}}(k) \right|_{k = \pb - \ppa =  \ppb - \pa} 
+\nel & & \quad \times\,
+    [{\ub_{\rpa}(\ppa)}(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})v_{\rpb}(\ppb)]
+.
+\ee
+
+So the whole amplitude can be represented in the standard form,
+\beml{charginoProductionAmpl}
+\lefteqn{
+S_2(e^+e^- \rightarrow \chi^+\chi^-) \; = \;
+\sum_{k = \gamma, Z} S_k + S_{\tilde\nu}
+}
+\nel
+& = &
+i(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\delta(\ppa + \ppb - \pa - \pb) 
+\nel & & {}\times
+\Bigl\lbrace 
+
+\sum_{k = \gamma, Z}  
+D^k_{\rho\sigma}(\pa + \pb)  
+\nel & & {}\qquad\qquad \times
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gu{\sigma}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+
+\nel & & \quad {}
+
+-
+\Delta_{\tilde{\nu}}(\pb - \ppa)
+    [\ub_{\rpa}(\ppa)(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})v_{\rpb}(\ppb)]
+\Bigr\rbrace
+
+\nel 
+& \equiv & -i(2\pi)^{4}
+\left(\frac{m_e^2m_{\chi}^2}{\Ea\Eb\Epa\Epb}\right)^{\frac{1}{2}} 
+\delta(\ppa + \ppb - \pa - \pb)M_{e\chi},
+\ee
+
+where I set
+\beml{charge-M-is}
+M_{e\chi} & = & \sum_{k = \gamma, Z} M_k + M_{\tilde\nu},
+\ee
+
+and
+\beml{charge-M-channels-is}
+M_k & = &
+-D^k_{\rho\sigma}(\pa + \pb)  
+\nel&&{} \quad\times
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gu{\sigma}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+    ,
+\nel
+M_{\tilde\nu}
+&= &\Delta_{\tilde{\nu}}(\pb - \ppa)
+    [\ub_{\rpa}(\ppa)(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})v_{\rpb}(\ppb)]
+    .
+\nel    
+\ee
+
+
+In the unitary gauge the photon and $Z$ propagators have the 
+form~\cite{SMTextBook}
+\bel{photonPropogator}
+D^\gamma_{\rho\sigma}(k) 
+= - {g_{\rho\sigma}\over k^2} 
+= (-g_{\rho\sigma} + \omega_\gamma k_\rho k_\sigma ) \Delta_\gamma(k^2),
+\ee
+\be
+\omega_\gamma = 0, 
+\qquad \Delta_\gamma(k^2) = {1 \over k^2},
+\ee
+
+\be
+D^Z_{\rho\sigma}(k) = 
+{(-g_{\rho\sigma} + k_\rho k_\sigma/\mB^2)\over
+k^2 - \mB^2 + i\mB\Gamma_Z}
+= (-g_{\rho\sigma} + \omega_Z k_\rho k_\sigma ) \Delta_Z(k^2),
+\ee
+
+\bel{ZPropogator}
+\omega_Z = {1 \over \mB^2}, 
+\qquad \Delta_Z(k^2) = {1 \over k^2 - \mB^2 + i\mB\Gamma_Z},
+\ee
+
+where $\mB$ is the mass of $Z$ and $\Gamma_\B$ is its decay rate, 
+it reflects the instability of $Z$.
+
+I also include the decay term to the sneutrino propagator,
+\bel{chargeSneutrinoDelta}
+\Delta_{\tilde{\nu}}(k) = 
+\Delta_{\tilde{\nu}}(k^2) = 
+{1 \over k^2 - m_{\tilde{\nu}}^2 + im_{\tilde{\nu}}\Gamma_{\tilde{\nu}}}
+.
+\ee
+
+The delta function in \rf{charginoProductionAmpl} implies
+the usual conservation law $\pa + \pb = \ppa + \ppb$.
+
+\P
+Now with the help of \rf{gammaPOnSpinors}, $\pc u = m u$ and $\pc v = -m v$,
+I find from $k = \pa + \pb$ applied to the electron current
+\bem
+\lefteqn{
+k_\sigma [\vb_{\ra}(\pa)\gu{\sigma}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+\; = \; [\vb_{\ra}(\pa)\slsh{k}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+}
+\nel & = &
+[\vb_{\ra}(\pa)\pca(a_k - b_k\gd{5})u_{\rb}(\pb)]
++
+[\vb_{\ra}(\pa)\pcb(a_k - b_k\gd{5})u_{\rb}(\pb)] 
+\nel & = &
+[\vb_{\ra}(\pa)\pca(a_k - b_k\gd{5})u_{\rb}(\pb)]
++
+[\vb_{\ra}(\pa)(a_k + b_k\gd{5})\pcb u_{\rb}(\pb)] 
+\nel & = &
+-[\vb_{\ra}(\pa)\ma(a_k - b_k\gd{5})u_{\rb}(\pb)]
++
+[\vb_{\ra}(\pa)(a_k + b_k\gd{5}) \mb u_{\rb}(\pb)] 
+\nel & = &
+2m_eb_k[\vb_{\ra}(\pa)\gd{5}u_{\rb}(\pb)]
+.
+\ee
+
+In the same way from $k = \ppa + \ppb$ I have 
+\bem
+\lefteqn{
+k_\rho [\ub_{\rpb}(\ppb)\gu{\rho}(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+}
+\nel & = &
+[\ub_{\rpb}(\ppb)\mpb(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+-
+[\ub_{\rpb}(\ppb)(A_k + B_k\gd{5})\mpa v_{\rpa}(\ppa)]
+\nel & = &
+-2m_\chi B_k[\ub_{\rpb}(\ppb)\gd{5}v_{\rpa}(\ppa)] 
+.
+\ee
+
+Thus
+
+\beml{chargeMBoson}
+M_k & = &
+\Delta_k(s)\bigl\{  
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gd{\rho}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+\nel &&
+{} + 4m_e m_\chi \omega_k b_k B_k 
+  [\ub_{\rpb}(\ppb)\gd{5}v_{\rpa}(\ppa)][\vb_{\ra}(\pa)\gd{5}u_{\rb}(\pb)] 
+  \bigr\}
+  ,  
+\ee
+
+and 
+\beml{chargeMTriple}
+M_{\tilde\nu}  &=& \Delta_{\tilde{\nu}}(t)
+    [\ub_{\rpa}(\ppa)(F + G\gd{5})u_{\rb}(\pb)]
+    [\vb_{\ra}(\pa)(\cc{F} - \cc{G}\gd{5})v_{\rpb}(\ppb)]
+    ,
+\ee
+
+with
+\be
+s = (\pa + \pb)^2 = (\ppa + \ppb)^2, 
+\qquad
+t = (\ppb - \pa)^2 = (\pb - \ppa)^2
+.
+\ee
+
+It is expected that the lightest chargino mass would not exceed
+the order of some TeV. So I may use the approximation 
+\be
+m_e m_\chi \omega_Z = {m_e m_\chi \over \mB^2} \ll 1
+.
+\ee
+
+At the same time I have from \rf{gammaProj} that the spinors $u$, $v$
+do not depend on masses. Thus under the approximation
+\be
+{m_e m_\chi \over \mB^2} \approx 0
+\ee
+I may write, 
+
+\bel{chargeMBosonApprox}
+M_k \approx
+\Delta_k(s)  
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A_k - B_k\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gd{\rho}(a_k - b_k\gd{5})u_{\rb}(\pb)]
+    .
+\ee
+
+\section{Cross section}
+
+From the usual form of \rf{charginoProductionAmpl} 
+according to appendix \rf{CrossSectionApp}
+I may express the center-of-mass differential and 
+total cross sections for the process \rf{charginoProdProc}
+through $X_{e\chi}$ that reads
+\beml{chargeFullX}
+X_{e\chi}
+&=&  {1 \over 4}\sum_\ra\sum_\rb\sum_\rpa\sum_\rpb
+   M_{e\chi}^\hc M_{e\chi}
+= \frac{1}{4}\sum_{\ra, \rb, \rpa, \rpb}
+\abs{\sum_{k = \gamma, Z} M_k + M_{\tilde\nu}}^2
+\nel
+&=& 
+\sum_{k, k' = \gamma, Z} X_{kk'} + X_{\tilde\nu\tilde\nu}
+ + 2\sum_{k = \gamma, Z} X_{k\tilde\nu}
+.
+\ee
+
+Here the contribution from boson ($\gamma$ and $Z^0$) reaction 
+channels is given by
+\beml{charge-boson-X-definition}
+X_{kk'} & = &
+\frac{1}{4}\sum_{\ra, \rb, \rpa, \rpb} \Re(M_k M_{k'}^\hc).
+\ee
+
+and similarly the $\tilde\nu$ channel is given by
+\beml{charge-sneutrino-X-definition}
+X_{\tilde\nu\tilde\nu} & = &
+\frac{1}{4}\sum_{\ra, \rb, \rpa, \rpb} M_{\tilde\nu} M_{\tilde\nu}^{\hc}
+.
+\ee
+
+The interference term between boson and sneutrino channels has the form
+\beml{charge-interference-X-definition}
+X_{k\tilde\nu} & = &
+\frac{1}{4}\sum_{\ra, \rb, \rpa, \rpb} \Re(M_k M_{\tilde\nu}^{\hc}) .
+\ee
+
+\P
+
+To represent the calculations of the terms in \rf{chargeFullX}
+in a compact form I suppress the index $k$ in 
+the expressions~\rf{chargeMTriple} and \rf{chargeMBosonApprox},
+
+\bel{charge-M-k-form}
+M_k = \Delta_k(s)  
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gd{\rho}(a - b\gd{5})u_{\rb}(\pb)].
+\ee
+
+So $M_{k'}^\hc$ is given by
+\bem
+M_{k'}^\hc  &=& \Delta_{k'}^\hc (s)  
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A' - B'\gd{5})v_{\rpa}(\ppa)]^\hc
+    [\vb_{\ra}(\pa)\gd{\rho}(a' - b'\gd{5})u_{\rb}(\pb)]^\hc
+\nel & = &     
+\Delta_{k'}^\hc (s)  
+    [\vb_{\rpa}(\ppa)(A' + B'\gd{5})\gu{\sigma}u_{\rpb}(\ppb)]
+    [\ub_{\rb}(\pb)(a' + b'\gd{5})\gd{\sigma}v_{\ra}(\pa)], 
+\ee
+
+In the same way I find $M_{\tilde\nu}^{\hc}$
+
+\beml{chargeMShortExp}
+M_{\tilde\nu}^{\hc}
+&=& \Delta_{\tilde{\nu}}^\hc(t)
+    [\ub_{\rpa}(\ppa)(F + G\gd{5})u_{\rb}(\pb)]^\hc
+    [\vb_{\ra}(\pa)(F^\hc - G^\hc\gd{5})v_{\rpb}(\ppb)]^\hc   
+\nel & = &
+ \Delta_{\tilde{\nu}}^\hc(t)
+    [\ub_{\rb}(\pb)(F^\hc - G^\hc\gd{5})u_{\rpa}(\ppa)]
+    [\vb_{\rpb}(\ppb)(F + G\gd{5})v_{\ra}(\pa)]
+,
+\ee
+
+where I used \rf{gammaBProperties} to calculate the hermitian conjugated 
+expression.
+
+\subsection{Contribution from boson channels}
+
+By using the spin polarization sum formulae  \rf{gammaSpinPolarization},
+\beml{SpinSums}
+\sum_r {\v_k}(p, r){\vb_l}(p, r) & = & 
+ \frac{1}{2m}(\slsh{p} - m)_{kl} 
+    = \frac{1}{2}(\slsh{q} - 1)_{kl},
+\nel
+\sum_r {\u_k}(p, r){\ub_l}(p, r) & = & 
+\frac{1}{2m}(\slsh{p} + m)_{kl} 
+   = \frac{1}{2}(\slsh{q} + 1)_{kl},
+\quad q \equiv p/m,
+\ee
+
+where $k$ and $l$ denote spinor indices , I have
+
+\bel{charge-X-boson-1}
+X_{kk'} = 
+\frac{1}{4}\Re\left[\sum_{\ra, \rb, \rpa, \rpb}
+M_k M_{k'}^\hc \right]
+\approx
+\frac{1}{4}\Re[\Delta_k(s)\Delta_{k'}^\hc(s)
+L^{\rho\sigma} N_{\rho\sigma}],
+\ee
+
+with ``electron'' ($L^{\rho\sigma}$) and ``chargino'' 
+($N_{\rho\sigma}$) tensors given by   
+\bem
+L^{\rho\sigma} & = & \sum_{\rpa, \rpb}
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\rpa}(\ppa)(A' + B'\gd{5})\gu{\sigma}u_{\rpb}(\ppb)]
+\nel 
+& = &     
+{1 \over 4} 
+    \Tr\Bigl[(\qcpb + 1)\gu\rho(A - B\gd5)
+             (\qcpa - 1)(A' + B'\gd5)\gu\sigma\Bigr] ,
+\ee
+
+and
+\bem
+N_{\rho\sigma} & = & \sum_{\ra, \rb}
+    [\vb_{\ra}(\pa)\gd{\rho}(a - b\gd{5})u_{\rb}(\pb)]
+    [\ub_{\rb}(\pb)(a' + b'\gd{5})\gd{\sigma}v_{\ra}(\pa)]
+\nel
+& = &     
+{1 \over 4} 
+\Tr\Bigl[(\qca - 1)\gu\rho(a - b\gd5)(\qcb + 1)(a' + b'\gd5)\gu\sigma\Bigr]
+.
+\ee
+
+The chargino tensor $N_{\rho\sigma}$ 
+can be expressed through $L^{\rho\sigma}(A, A', B, B', \qpa, \qpb)$ via 
+\bel{NthroughL}
+N_{\rho\sigma} 
+   = L_{\rho\sigma}(A\rightarrow a, A'\rightarrow a', 
+                   B \rightarrow b, B' \rightarrow b', 
+                   \qpa \rightarrow -\qb, \qpb \rightarrow -\qa) 
+.
+\ee
+Thus it is necessary to calculate only one quantity.
+
+\P
+
+Applying properties of $\gamma$-matrices one finds for $L^{\rho\sigma}$
+\bem
+L^{\rho\sigma} & = &
+\frac{1}{4}
+    \Tr\Bigl[
+        \qcpb\gu\rho(A - B\gd5)\qcpa(A' + B'\gd5)\gu\sigma
+        - \gu\rho(A - B\gd5)(A' + B'\gd5)\gu\sigma\Bigr]
+\nel & = &
+\frac{1}{4}
+    \Tr\Bigl[
+        \qcpb\gu\rho(A - B\gd5)(A' - B'\gd5)\qcpa\gu\sigma
+        - \gu\rho(A - B\gd5)(A' + B'\gd5)\gu\sigma\Bigr]
+\nel & = &
+\frac{1}{4}
+    \Tr\Bigl[
+        \qcpb\gu\rho\lbrace 
+            AA' + BB' - \gd5(AB' + BA')
+        \rbrace \qcpa\gu\sigma
+\nel & & \qquad{}
+        - \gu\rho\lbrace
+            AA' - BB' + \gd5(AB' - BA')
+        \rbrace \gu\sigma\Bigr]
+\nel & = &
+\frac{1}{4}
+    \Tr\Bigl[
+        \qcpb\gu\rho\lbrace 
+            AA' + BB' - \gd5(AB' + BA')
+        \rbrace \qcpa\gu\sigma
+        - \gu\rho(AA' - BB')\gu\sigma\Bigr]
+\nel & = &
+\frac{1}{4}\Bigl[
+    (AA' + BB')\Tr(\qcpb\gu\rho\qcpa\gu\sigma)
+    -(AB' + BA')\Tr(\qcpb\gu\rho\qcpa\gu\sigma\gd5)
+\nel & & \qquad {}
+    -(AA' - BB')\Tr(\gu\rho\gu\sigma)
+    \Bigr]
+    .
+\ee
+
+I calculate the traces with the help of \rf{gammaTraces}, 
+
+\bem
+L^{\rho\sigma} & = &
+    (AA' + BB')
+        [\qpb^\rho \qpa^\sigma + \qpb^\sigma \qpa^\rho 
+        - 
+        (\qpb\cdot\qpa)g^{\rho\sigma}]
+\nel & & {} + 
+    i(AB' + BA')
+        \varepsilon^{\mu\rho\nu\sigma}\qpb_\mu \qpa_\nu
+    -(AA' - BB')g^{\rho\sigma}
+\nel 
+ & = & L_S^{\rho\sigma} + L_A^{\rho\sigma},
+\ee
+
+where
+\bem
+L_S^{\rho\sigma}  & = & 
+    (AA' + BB')[2\qpb^{(\rho} \qpa^{\sigma)}  
+     - (\qpb\cdot\qpa)g^{\rho\sigma}]
+    -(AA' - BB')g^{\rho\sigma}
+,
+\nel
+
+L_A^{\rho\sigma}  & = & 
+    i(AB' + BA')
+        \varepsilon^{\mu\rho\nu\sigma}\qpb_\mu \qpa_\nu
+\ee
+
+In the last expression I explicitly write the symmetric part 
+$L_S^{\rho\sigma}=L_S^{(\sigma\rho)}$ and the asymmetric one 
+$L_A^{\rho\sigma}=L_A^{[\sigma\rho]}$.
+
+\P
+From~\rf{NthroughL} I have for the chargino tensor $N_{\rho\sigma}$,
+\bem
+N_{\rho\sigma} & = & {N_S}_{\rho\sigma} + {N_A}_{\rho\sigma},
+\nel
+{N_S}_{\rho\sigma} & =  & 
+    (aa' + bb')[2\qa_{(\rho} \qb_{\sigma)} 
+     - (\qb\cdot\qa)g_{\rho\sigma}]
+    -(aa' - bb')g_{\rho\sigma}
+,
+\nel 
+{N_A}_{\rho\sigma} & =  & 
+    i(ab' + ba')
+        \varepsilon_{\eta\rho\theta\sigma}\qa^\eta \qb^\theta
+        .
+\ee
+
+Two products will be required. I first consider the symmetric parts:
+
+\bem
+L_S^{\rho\sigma} {N_S}_{\rho\sigma}
+& =  &
+\{
+    (AA' + BB')[2\qpb^{(\rho} \qpa^{\sigma)}  
+     - (\qpb\cdot\qpa)g^{\rho\sigma}]
+    -(AA' - BB')g^{\rho\sigma}
+\}
+\nel && {} \times
+\{
+    (aa' + bb')[2\qa_{(\rho} \qb_{\sigma)} 
+     - (\qb\cdot\qa)g_{\rho\sigma}]
+    -(aa' - bb')g_{\rho\sigma}
+\}
+
+\nel
+& = & 
+(aa' + bb')(AA' + BB')
+\nel && \qquad {} \times 
+[2\qpb^{(\rho} \qpa^{\sigma)} - (\qpb\cdot\qpa)g^{\rho\sigma}]
+[2\qa_{\rho} \qb_{\sigma} - (\qb\cdot\qa)g_{\rho\sigma}]
+\nel 
+&& {}
+- (aa' - bb')(AA' + BB')[2(\qpb \cdot \qpa) - 4(\qpb\cdot\qpa)]
+\nel && {}
+- (aa' + bb')(AA' - BB')[2(\qb \cdot \qa) - 4(\qb\cdot\qa)]
+\nel 
+&& {}
++ 4(aa' - bb')(AA' - BB')
+\nel
+& = & 
+(aa' + bb')(AA' + BB')
+[2(\qpb \cdot \qa) (\qpa \cdot \qb) + 2(\qpb \cdot \qb) (\qpa \cdot \qa)
+\nel
+&& \qquad {}
+- 2 (\qb\cdot\qa) (\qpb \cdot \qpa) - 2 (\qb\cdot\qa) (\qpb \cdot \qpa)
+ + 4 (\qb\cdot\qa) (\qpb \cdot \qpa)]
+\nel
+&& {}
++ 2(aa' - bb')(AA' + BB')(\qpb\cdot\qpa)
+\nel
+&& {}
++ 2(aa' + bb')(AA' - BB')(\qb\cdot\qa)
++ 4(aa' - bb')(AA' - BB')
+\nel
+& = & 
+2(aa' + bb')(AA' + BB')
+[(\qpb \cdot \qa) (\qpa \cdot \qb) + (\qpb \cdot \qb) (\qpa \cdot \qa)]
+\nel
+&& {}
++ 2(aa' - bb')(AA' + BB')(\qpb\cdot\qpa)
+\nel
+&& {}
++ 2(aa' + bb')(AA' - BB')(\qb\cdot\qa)
++ 4(aa' - bb')(AA' - BB')
+.
+\ee
+
+To calculate $L_A^{\rho\sigma} {N_A}_{\rho\sigma}$ I use the identity
+\be
+\varepsilon^{\mu\rho\nu\sigma} \varepsilon_{\eta\rho\theta\sigma}
+= -2
+(\delta^\mu_\eta \delta^\nu_\theta - \delta^\mu_\theta \delta^\nu_\eta)
+.
+\ee
+
+Thus
+\bem
+L_A^{\rho\sigma} {N_A}_{\rho\sigma}
+& = & 
+-(ab' + ba')(AB' + BA')
+        \varepsilon^{\mu\rho\nu\sigma}\qpb_\mu \qpa_\nu
+        \varepsilon_{\eta\rho\theta\sigma}\qa^\eta \qb^\theta
+\nel
+& = & 
+2(ab' + ba')(AB' + BA')
+(\delta^\mu_\eta \delta^\nu_\theta - \delta^\mu_\theta \delta^\nu_\eta)
+\qpb_\mu \qpa_\nu
+\qa^\eta \qb^\theta
+
+\nel
+& = & 
+2(ab' + ba')(AB' + BA')
+[(\qpb \cdot \qa) (\qpa \cdot \qb) - (\qpb \cdot \qb) (\qpa \cdot \qa)]
+.
+\ee
+
+Now I use~\rf{contractionWithSymAnti} to simplify the product 
+$L^{\rho\sigma} N_{\rho\sigma}$,
+\beml{chargeLMIs}
+\lefteqn{
+L^{\rho\sigma} N_{\rho\sigma}
+= 
+(L_S^{\rho\sigma} + L_A^{\rho\sigma})({N_S}_{\rho\sigma} + {N_A}_{\rho\sigma})
+= L_S^{\rho\sigma} {N_S}_{\rho\sigma} + L_A^{\rho\sigma} {N_A}_{\rho\sigma}
+}
+\nel
+& = & 
+2(aa' + bb')(AA' + BB')
+[(\qpb \cdot \qa) (\qpa \cdot \qb) + (\qpb \cdot \qb) (\qpa \cdot \qa)]
+\nel
+&& {} 
++ 2(ab' + ba')(AB' + BA')
+[(\qpb \cdot \qa) (\qpa \cdot \qb) - (\qpb \cdot \qb) (\qpa \cdot \qa)]
+\nel
+&& {}
++ 2(aa' - bb')(AA' + BB')(\qpb\cdot\qpa)
+\nel
+&& {}
++ 2(aa' + bb')(AA' - BB')(\qb\cdot\qa)
+\nel
+&& {}
++ 4(aa' - bb')(AA' - BB')
+.
+\ee
+
+\P
+Under the approximations $m_\chi \gg m_e$, $s \gg 4m_e$
+I may use the formula~\rf{cs-q-scalar-products}
+where $m = m_e$, $m' = m_\chi$,
+to calculate the kinematic quantities in \rf{chargeLMIs}, 
+\bem
+(\qpb \cdot \qa)(\qpa \cdot \qb) + (\qpb \cdot \qb) (\qpa \cdot \qa)
+&\approx& {1 \over 4m_e^2 m_\chi^2}[2(m_\chi^2 - t)^2 + s(s + 2t - 2m_\chi^2)],
+\nel
+(\qpb \cdot \qa)(\qpa \cdot \qb) - (\qpb \cdot \qb) (\qpa \cdot \qa)
+&\approx& {s \over 4 m_e^2 m_\chi^2}(s + 2t - 2m_\chi^2),
+\nel
+(\qb\cdot\qa) &\approx& {s \over 2 m_e^2}
+,
+\ee
+
+\be
+t = (\ppa - \pa)^2 = (\pb - \ppb)^2
+.
+\ee
+
+I also may neglect $2(aa' - bb')(AA' + BB')(\qpb\cdot\qpa)$ and
+$4(aa' - bb')(AA' - BB')$ under 
+the same approximation because they do not contain $m_e^{-2}$. Thus
+\bem
+\lefteqn{
+L^{\rho\sigma} N_{\rho\sigma}
+}
+\nel
+& \approx  & 
+{1 \over 2m_e^2 m_\chi^2} \bigl\{
+(aa' + bb')(AA' + BB')[2(m_\chi^2 - t)^2 + s(s + 2t - 2m_\chi^2)]
+\nel && \qquad {}
++ (ab' + ba')(AB' + BA')s(s + 2t - 2m_\chi^2) \bigr\}
+\nel
+&& {}
++ {s \over m_e^2}(aa' + bb')(AA' - BB')
+
+\nel
+& = & 
+{(m_\chi^2 - t)^2 \over m_e^2 m_\chi^2} (aa' + bb')(AA' + BB')
+\nel && {}
++
+{s(s + 2t - 2m_\chi^2) \over 2m_e^2 m_\chi^2}
+[(ab' + ba')(AB' + BA') + (aa' + bb')(AA' + BB')]
+\nel
+&& {}
++ {s \over m_e^2}(aa' + bb')(AA' - BB')
+,
+\ee
+
+which is a real quantity so $X_{kk'}$ of the equation~\rf{charge-X-boson-1}
+is given by
+
+\beml{charge-X1}
+\lefteqn{
+X_{kk'} \approx \Re[\Delta_k(s)\Delta_{k'}^\hc(s)]
+}
+\nel
+& \times & \Bigl\{
+{(m_\chi^2 - t)^2 \over 4m_e^2 m_\chi^2} 
+(a_{k}a_{k'} + b_{k}b_{k'})(A_{k}A_{k'} + B_{k}B_{k'})
+\nel
+&& {}
++
+{s(s + 2t - 2m_\chi^2) \over 8m_e^2 m_\chi^2}
+\nel
+&& \quad{}\times
+[(a_{k}b_{k'} + b_{k}a_{k'})(A_{k}B_{k'} + B_{k}A_{k'}) 
+    + (a_{k}a_{k'} + b_{k}b_{k'})(A_{k'}A_{k'} + B_{k}B_{k'})]
+\nel
+&& {}
++ {s \over 4m_e^2}(a_{k}a_{k'} + b_{k}b_{k'})(A_{k}A_{k'} - B_{k}B_{k'})
+\Bigr\}
+.
+\ee
+
+
+\subsection{Contribution from the scalar neutrino channel}
+
+
+The calculation of $X_{\tilde\nu\tilde\nu}$ 
+(see~\rf{charge-sneutrino-X-definition}) 
+follows the same pattern as for $X_{kk'}$,
+
+
+\be
+X_{\tilde\nu\tilde\nu} = 
+\frac{1}{4}\Re\left[\sum_{\ra, \rb, \rpa, \rpb}
+M_{\tilde\nu} M_{\tilde\nu}^{\hc}\right]
+=
+\frac{1}{4}\abs{\Delta_{\tilde\nu}(t)}^2\Re[L N],
+\ee
+
+where $L$ and $N$ come from~\rf{chargeMTriple} and~\rf{chargeMShortExp}, 
+\bem
+L & = & \sum_{\rpa, \rb}
+    [\ub_{\rpa}(\ppa)(F + G\gd{5})u_{\rb}(\pb)]
+    [\ub_{\rb}(\pb)(F^\hc - G^\hc\gd{5})u_{\rpa}(\ppa)]
+\nel
+& = & 
+\frac{1}{4} \Tr
+\Bigl[(\qcpa + 1)(F + G\gd{5})
+      (\qcb + 1)(F^\hc - G^\hc\gd{5})\Bigr]
+,
+\ee
+
+and
+\beml{charge-N-tmp23}
+N & = &  \sum_{\ra, \rpb}  
+    [\vb_{\ra}(\pa)(F^\hc - G^\hc\gd{5})v_{\rpb}(\ppb)]
+    [\vb_{\rpb}(\ppb)(F + G\gd{5})v_{\ra}(\pa)]
+\nel
+& = & 
+\frac{1}{4}\Tr
+\Bigl[(\qca - 1)(F^\hc - G^\hc\gd{5})
+      (\qcpb - 1)(F + G\gd{5})\Bigr]
+\nel & = &
+L(\qpa \rightarrow -\qpb, \qb \rightarrow -\qa).
+\ee
+
+Now I simplify $L$:
+\bem
+L 
+& = &
+\frac{1}{4} \Tr
+\Bigl[\qcpa(F + G\gd{5})\qcb(\cc{F} - \cc{G}\gd{5})
+      + (F + G\gd{5})(\cc{F} - \cc{G}\gd{5})
+\Bigr]
+
+\nel & = &
+\frac{1}{4} \Tr
+\Bigl[\qcpa\qcb(F - G\gd{5})(\cc{F} - \cc{G}\gd{5})
+      + \abs{F}^2 - \abs{G}^2
+\Bigr]
+
+\nel & = &
+\frac{1}{4} \Tr
+\Bigl[\qcpa\qcb(\abs{F}^2 + \abs{G}^2)
+      + \abs{F}^2 - \abs{G}^2
+\Bigr]
+
+\nel & = &
+(\abs{F}^2 + \abs{G}^2)(\qpa \cdot \qb) + \abs{F}^2 - \abs{G}^2.
+\ee
+
+The relation~\rf{charge-N-tmp23} gives for $N$
+\bem
+N 
+& = &
+(\abs{F}^2 + \abs{G}^2)(\qpb \cdot \qa) + \abs{F}^2 - \abs{G}^2
+\; = \; L 
+.
+\ee
+
+Thus I have
+\bem
+X_{\tilde\nu\tilde\nu} & = & 
+
+\frac{1}{4}\abs{\Delta_{\tilde\nu}(t)}^2\Re\left\{
+[(\abs{F}^2 + \abs{G}^2)(\qpa \cdot \qb) + \abs{F}^2 - \abs{G}^2]^2
+\right\}
+
+\nel  
+& = & 
+\frac{1}{4}\abs{\Delta_{\tilde\nu}(t)}^2
+[(\abs{F}^2 + \abs{G}^2)(\qpa \cdot \qb) + \abs{F}^2 - \abs{G}^2]^2
+
+\nel & \approx & 
+\frac{1}{4}\abs{\Delta_{\tilde\nu}(t)}^2
+(\abs{F}^2 + \abs{G}^2)^2(\qpa \cdot \qb)^2 
+,
+\ee
+
+or
+
+\bel{charge-X2}
+X_{\tilde\nu\tilde\nu} \approx 
+\abs{\Delta_{\tilde\nu}(t)}^2{(s + t - m_\chi^2)^2 \over 16 m_e^2 m_\chi^2}
+(\abs{F}^2 + \abs{G}^2)^2
+,
+\ee
+
+where I used \rf{csKinApproximation} in the last step.
+
+\subsection{Interference contribution.}
+
+
+To find $X_{k\tilde\nu}$ I write for it according to~\rf{chargeMShortExp}, 
+\be
+X_{k\tilde\nu} \approx
+\frac{1}{4}\Re\left[\sum_{\ra, \rb, \rpa, \rpb}
+M_k M_{\tilde\nu}^{\hc}\right]
+=
+\frac{1}{4}\Re[\Delta_k(s)\Delta_{\tilde\nu}^\hc(t) K]
+,
+\ee
+
+with $K$ given by
+\bem
+K  
+& = & \sum_{\ra, \rb, \rpa, \rpb}
+    [\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+    [\vb_{\ra}(\pa)\gd{\rho}(a - b\gd{5})u_{\rb}(\pb)]
+\nel && \qquad
+{} \times 
+    [\ub_{\rb}(\pb)(F^\hc - G^\hc\gd{5})u_{\rpa}(\ppa)]
+    [\vb_{\rpb}(\ppb)(F + G\gd{5})v_{\ra}(\pa)]
+.
+\ee
+
+I transform $K$ to the form necessary to calculate the spin
+polarization sums with the 
+help of~\rf{gammaCProperties} and~\rf{gammaSpinorRelation}, 
+
+\beml{charge-before-spin-sums-1}
+[\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]
+& = &
+[\ub_{\rpb}(\ppb)\gu{\rho}(A - B\gd{5})v_{\rpa}(\ppa)]^T
+\nel & = &
+[v_{\rpa}^T(\ppa)(A - B\gd{5}^T)\gu{\rho}^T\ub_{\rpb}^T(\ppb)]
+\nel & = &
+[v_{\rpa}^T(\ppa)CC^{-1}(A - B\gd{5}^T)\gu{\rho}^TCC^{-1}\ub_{\rpb}^T(\ppb)]
+\nel & = &
+-[\ub_{\rpa}(\ppa)(A - B C^{-1}\gd{5}^T C)C^{-1}\gu{\rho}^TC v_{\rpb}(\ppb)]
+\nel & = &
+[\ub_{\rpa}(\ppa)(A - B \gd{5})\gu{\rho} v_{\rpb}(\ppb)]
+.
+\ee
+    
+Now I can represent $K$ as a trace
+\bem
+K  
+& = & \sum_{\ra, \rb, \rpa, \rpb}
+    [\ub_{\rpa}(\ppa)(A - B \gd{5})\gu{\rho} v_{\rpb}(\ppb)]
+    [\vb_{\ra}(\pa)\gd{\rho}(a - b\gd{5})u_{\rb}(\pb)]
+\nel && \qquad
+{} \times 
+    [\ub_{\rb}(\pb)(F^\hc - G^\hc\gd{5})u_{\rpa}(\ppa)]
+    [\vb_{\rpb}(\ppb)(F + G\gd{5})v_{\ra}(\pa)]
+\nel
+& = & \sum_{\ra, \rb, \rpa, \rpb}
+    [\ub_{\rpa}(\ppa)(A - B \gd{5})\gu{\rho} v_{\rpb}(\ppb)]
+    [\vb_{\rpb}(\ppb)(F + G\gd{5})v_{\ra}(\pa)]
+\nel && \qquad
+{} \times 
+    [\vb_{\ra}(\pa)\gd{\rho}(a - b\gd{5})u_{\rb}(\pb)]
+    [\ub_{\rb}(\pb)(F^\hc - G^\hc\gd{5})u_{\rpa}(\ppa)]
+\nel
+& = & {1 \over 16} \Tr \Bigl[
+    (\qcpa + 1)(A - B \gd{5})\gu{\rho} (\qcpb - 1)(F + G\gd{5})
+\nel && \qquad
+{} \times 
+    (\qca - 1) \gd{\rho}(a - b\gd{5}) (\qcb + 1)(F^\hc - G^\hc\gd{5})
+    \Bigr]
+.
+\ee
+
+\P
+
+To simplify $K$ I use $m_\chi \gg m_e$, thus I can omit terms without 
+$m_e^{-2}$ that come from $\qca = \pca/m_e$, $\qcb = \pcb/m_e$. I also 
+keep only terms with an even number of Dirac matrices, 
+\bem
+K  
+& \approx & 
+{1 \over 16} \Tr [
+    \qcpa(A - B \gd{5})\gu{\rho}\qcpb(F + G\gd{5})
+    \qca \gd{\rho}(a - b\gd{5}) \qcb(F^\hc - G^\hc\gd{5})
+    ]
+\nel && {} 
+-
+{1 \over 16} \Tr [
+    (A - B \gd{5})\gu{\rho}(F + G\gd{5})
+    \qca \gd{\rho}(a - b\gd{5}) \qcb(F^\hc - G^\hc\gd{5})
+    ]
+\nel& = &
+{1 \over 16} (K_1 - K_2),
+\ee
+
+where $K_1$ and $K_2$ are given by
+\bem
+K_1 & = & 
+\Tr [\qcpa(A - B \gd{5})\gu{\rho}\qcpb(F + G\gd{5})
+    \qca \gd{\rho}(a - b\gd{5}) \qcb(F^\hc - G^\hc\gd{5})]
+\nel & = & 
+\Tr [\qcpa\gu{\rho}\qcpb(A - B \gd{5})(F + G\gd{5})
+    \qca \gd{\rho}\qcb (a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+\nel & = & 
+\Tr [\qcpa\gu{\rho}\qcpb\qca \gd{\rho}\qcb
+     (A + B \gd{5})(F - G\gd{5})
+     (a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+,
+\ee
+
+\bem
+K_2 & = &
+\Tr [(A - B \gd{5})\gu{\rho}(F + G\gd{5})
+    \qca \gd{\rho}(a - b\gd{5}) \qcb(F^\hc - G^\hc\gd{5})]
+\nel & = &
+\Tr [\gu{\rho}(A + B \gd{5})(F + G\gd{5})
+    \qca \gd{\rho}\qcb(a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+\nel & = &
+\Tr [\gu{\rho}\qca \gd{\rho}\qcb(A - B \gd{5})(F - G\gd{5})
+    (a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+.
+\ee
+
+To find the sandwich-like products $\gu{\rho} \dots \gd{\rho}$ I use 
+the basic properties \rf{gammaAlgebra} of the Dirac algebra,
+
+\be
+\gu{\rho}\qca \gd{\rho} = -\gu{\rho}\gd{\rho}\qca + 2\gu{\rho} \qa_\rho
+= -4\qca + 2\qca = - 2\qca, 
+\ee
+
+and
+\be
+\gu{\rho}\qcpb\qca \gd{\rho}
+= 
+-\gu{\rho}\qcpb\gd{\rho}\qca + 2 \gu{\rho}\qcpb \qa_\rho 
+= 2\qcpb \qca + 2 \qca \qcpb = 2\{\qcpb, \qca\} = 4 (\qpb \cdot \qa)
+.
+\ee
+
+It gives for $K_1$ and $K_2$ 
+
+\bem
+K_1 & = & 4 (\qpb \cdot \qa) \Tr [\qcpa\qcb
+     (A + B \gd{5})(F - G\gd{5})
+     (a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+\nel & = &
+4 (\qpb \cdot \qa) \Tr [\qcpa\qcb
+\nel && \qquad {} \times
+     \{AF - BG +\gd5(BF - AG)\}
+     \{aF^\hc - bG^\hc +\gd5(bF^\hc - aG^\hc)\}]
+\nel & = &
+4 (\qpb \cdot \qa) \Tr [\qcpa\qcb
+     \{(AF - BG)(aF^\hc - bG^\hc) + (BF - AG)(bF^\hc - aG^\hc) \} ]
+
+\nel & = &
+16 (\qpb \cdot \qa)(\qpa \cdot \qb)
+[(AF - BG)(aF^\hc - bG^\hc) + (BF - AG)(bF^\hc - aG^\hc)]
+\nel & = &
+16 (\qpb \cdot \qa)(\qpa \cdot \qb)
+[(aA + bB)\abs{F}^2  + (aA + bB)\abs{G}^2
+\nel & & \quad {}
+- GF^\hc(bA + aB) - FG^\hc(bA + aB)]
+\nel & = &
+16 (\qpb \cdot \qa)(\qpa \cdot \qb)
+[(aA + bB)(\abs{F}^2  + \abs{G}^2) - 2\Re(FG^\hc)(bA + aB)]
+,
+\ee
+
+and
+\bem
+K_2 & = &
+-2 \Tr [\qca\qcb(A - B \gd{5})(F - G\gd{5})
+    (a + b\gd{5}) (F^\hc - G^\hc\gd{5})]
+\nel & = &
+-2 \Tr [\qca\qcb
+     \{AF + BG - \gd5(BF + AG)\}
+     \{aF^\hc - bG^\hc +\gd5(bF^\hc - aG^\hc)\}]
+\nel & = &
+-2 \Tr [\qca\qcb
+     \{(AF + BG)(aF^\hc - bG^\hc) + (BF + AG)(aG^\hc - bF^\hc)\}]
+\nel & = &
+-8(\qb \cdot \qa) 
+[(AF + BG)(aF^\hc - bG^\hc) + (BF + AG)(aG^\hc - bF^\hc)]
+\nel & = &
+-8(\qb \cdot \qa) 
+[(aA -bB)\abs{F}^2 + (aA - bB)\abs{G}^2 
+\nel & & \quad {}
++ GF^\hc(aB - bA) + FG^\hc(aB - bA)]
+\nel & = &
+-8(\qb \cdot \qa) 
+[(aA - bB)(\abs{F}^2  + \abs{G}^2) + 2\Re(FG^\hc)(aB - bA)]
+,
+\ee
+
+where I used~\rf{gammaTraces} and~\rf{gammaZeroTraces} 
+together with $\gd5^2 = 1$. Thus
+
+\bem
+K & \approx & 
+{1 \over 16} (K_1 - K_2)
+\nel
+& = & 
+(\qpb \cdot \qa)(\qpa \cdot \qb)
+[(aA + bB)(\abs{F}^2  + \abs{G}^2) - 2\Re(FG^\hc)(bA + aB)]
+\nel && {} + 
+{1 \over 2} (\qb \cdot \qa) 
+[(aA - bB)(\abs{F}^2 + \abs{G}^2) - 2\Re(FG^\hc)(bA - aB)]
+\nel & \approx & 
+{(s + t - m_\chi^2)^2 \over 4 m_e^2 m_\chi^2}
+[(aA + bB)(\abs{F}^2  + \abs{G}^2) - 2\Re(FG^\hc)(bA + aB)]
+\nel && {} + 
+{s \over 4m_e^2}
+[(aA - bB)(\abs{F}^2 + \abs{G}^2) - 2\Re(FG^\hc)(bA - aB)]
+\ee
+
+from~\rf{csKinApproximation}. 
+
+\P
+Now I have for the interference contribution $X_{k\tilde\nu}$ 
+
+\beml{charge-X3}
+X_{k\tilde\nu} & \approx & 
+\frac{1}{4}\Re[\Delta_k(s)\Delta_{\tilde\nu}^\hc(t) K]
+\nel & \approx & 
+{(s + t - m_\chi^2)^2 \over 16 m_e^2 m_\chi^2}
+\Re[\Delta_k(s) \Delta_{\tilde{\nu}}^\hc(t)]
+\nel && \qquad {} \times
+[(a_k A_k + b_kB_k)(\abs{F}^2  + \abs{G}^2) - 2\Re(FG^\hc)(b_k A_k + a_k B_k)]
+\nel && {} + 
+{s \over 16 m_e^2}
+\Re[\Delta_k(s) \Delta_{\tilde{\nu}}^\hc(t)] 
+\nel && \qquad {} \times
+[(a_k A_k - b_k B_k)(\abs{F}^2 + \abs{G}^2) - 2\Re(FG^\hc)(b_k A_k - a_k B_k)]
+.
+\ee
+
+\subsection{Differential cross section}
+
+According to~\rf{chargeFullX} and~\rf{csDifApproximation} 
+the differential cross section for the chargino production process
+is given by
+
+\be
+\left({d\sigma \over d\Omega }\right)_{\rm c.m.}
+\approx {m_e^2 m_\chi^2  \over 4\pi^2 s} \sqrt{1 - 4\rho}X_{e\chi}(s, t),
+\ee
+
+where
+\be
+\rho = {m_\chi^2 \over s},
+\ee
+
+and
+\bel{charge-differential-as-a-sum}
+X_{e\chi}(s, t)
+= X_{\gamma\gamma} + X_{ZZ} + 2X_{\gamma Z} + X_{\tilde\nu\tilde\nu} 
++ 2X_{\gamma\tilde\nu} + 2X_{Z\tilde\nu}
+.
+\ee
+
+The first three terms in~\rf{charge-differential-as-a-sum} are given 
+by~\rf{charge-X1},
+
+\beml{charge-d-gamma-gamma}
+X_{\gamma\gamma} & \approx & { \Delta_\gamma^2(s) \over 4m_e^2 m_\chi^2 }
+\Bigl\{
+(m_\chi^2 - t)^2 a_\gamma^2 A_\gamma^2
++ {1 \over 2} s(s + 2t - 2m_\chi^2) a_\gamma^2 A_\gamma^2
++ s m_\chi^2 a_\gamma^2 A_\gamma^2 \Bigr\}
+\nel
+& = &
+{e^4 \over 4s^2m_e^2 m_\chi^2 }
+[(m_\chi^2 - t)^2  + s m_\chi^2
++ {1 \over 2} s(s + 2t - 2m_\chi^2)
+],
+\ee
+
+where I use~\rf{chargeGabIs}, \rf{chargeGABIs} and~\rf{photonPropogator},
+\be
+-a_\gamma = A_\gamma = e, \quad b_\gamma = B_\gamma = 0,
+\quad \Delta_\gamma(s) = {1 \over s}.
+\ee
+
+The explicit form of $X_{ZZ}$ is
+\bem
+X_{ZZ} & \approx & {\abs{\Delta_Z(s)}^2 \over  4m_e^2 m_\chi^2 }
+\Bigl\{
+(m_\chi^2 - t)^2 (a_Z^2 + b_Z^2)(A_Z^2 + B_Z^2)
+\nel
+&& {}
++
+{1 \over 2} s(s + 2t - 2m_\chi^2) 
+[(2a_Z b_Z)(2A_Z B_Z) + (a_Z^2 + b_Z^2)(A_Z^2 + B_Z^2)]
+\nel
+&& {}
++ sm_\chi^2(a_Z^2 + b_Z^2)(A_Z^2 - B_Z^2)
+\Bigr\}.
+\ee
+
+I find for the coefficients in the last expressions
+
+\bem
+a_Z^2 + b_Z^2 & = &
+{g^2 \over 16\cos^2\theta_W}[(1 - 4\sin^2\theta_W)^2 + 1]
+\nel &=& {g^2 \over 8\cos^2\theta_W}(1 - 4\sin^2\theta_W + 8\sin^4\theta_W)
+\quad (\mbox{from \rf{chargeZabIs}})
+,
+\ee
+
+and
+\be
+a_Z b_Z = 
+{g^2 \over 16\cos^2\theta_W}(1 - 4\sin^2\theta_W)
+.
+\ee
+
+The definitions~\rf{chargeZABIs} lead to
+\bem
+A_Z^2 \pm B_Z^2 &= &
+{g^2 \over 16\cos^2\theta_W}
+\{
+[2\cos (2\theta_W) + \abs{Y_{11}}^2 + \abs{X_{11}}^2]^2
+\pm [\abs{Y_{11}}^2 - \abs{X_{11}}^2]^2
+\}
+,
+\nel
+A_Z B_Z &= &
+-{g^2 \over 16\cos^2\theta_W}
+[2\cos (2\theta_W) + \abs{Y_{11}}^2 + \abs{X_{11}}^2]
+[\abs{Y_{11}}^2 - \abs{X_{11}}^2]
+.
+\ee
+
+Thus
+\beml{charge-d-Z-Z}
+X_{ZZ} & \approx & {a_Z^2 + b_Z^2 \over 4m_e^2 m_\chi^2}\abs{\Delta_Z(s)}^2
+[
+(m_\chi^2 - t)^2 (A_Z^2 + B_Z^2) + s m_\chi^2 (A_Z^2 - B_Z^2)
+]
+\nel &&{} +
+{s(s + 2t - 2m_\chi^2) \over 8m_e^2 m_\chi^2} \abs{\Delta_Z(s)}^2
+[4 a_Z b_Z A_Z B_Z + (a_Z^2 + b_Z^2)(A_Z^2 + B_Z^2)] .
+\nel
+\ee
+
+\P
+The interference between the $\gamma$ and $Z^0$ channels reads,
+according to the equation~\rf{charge-X1}
+\beml{charge-d-gamma-Z}
+\lefteqn{
+X_{\gamma Z}
+}
+\nel & \approx & {\Delta_\gamma(s)\Re(\Delta_Z^\hc(s)) \over 4m_e^2 m_\chi^2}
+\Bigl\{
+(m_\chi^2 - t)^2(a_\gamma a_Z)(A_\gamma A_Z)
+\nel
+&& {}
++
+{1\over 2} s(s + 2t - 2m_\chi^2)
+[(a_\gamma b_Z)(A_\gamma B_Z) + (a_\gamma a_Z)(A_\gamma A_Z)]
+\nel
+&& {}
++ s m_\chi^2(a_\gamma a_Z)(A_\gamma A_Z)
+\Bigr\}
+\nel
+& = &
+-{e^2 a_Z A_Z \over 4sm_e^2 m_\chi^2} \Re(\Delta_Z(s))
+\nel&& {} \quad \times
+\Biggl[
+(m_\chi^2 - t)^2 
++
+{1 \over 2}s(s + 2t - 2m_\chi^2) 
+\left( {b_Z B_Z\over a_Z A_Z} + 1\right)
++ sm_\chi^2
+\Biggr]
+.
+%\nel
+\ee
+
+\P
+The expression for $X_{\tilde\nu\tilde\nu}$ is given by~\rf{charge-X2}.
+If I substitute there the definitions~\rf{chargeFandG1} and~\rf{chargeFandG2},
+then
+\be
+\abs{F}^2 + \abs{G}^2 \approx {g^2 \over 2}\cos^2\theta_X, 
+\quad
+2\Re(FG^\hc) \approx {g^2 \over 2}\cos^2\theta_X,
+\ee
+
+where according to~\rf{lagrangian-theta-X-and-Y} 
+and~\rf{lagrangian-eta-X-and-Y}
+\be
+\cos^2\theta_X = {1 \over 2 + 2 \eta_X^2 - 2\sqrt{1 + \eta_X^2}}, 
+\quad 
+\eta_X = 
+   \frac{m_{\tilde\Lambda}^2 - \abs{\mu}^2 + 2m_W^2\cos(2\beta)}
+        {2\sqrt{2}m_W\abs{m_{\tilde\Lambda}\sin\beta + \mu^* \cos\beta}}
+        .
+\ee
+
+
+Thus
+\beml{charge-d-nu-nu}
+X_{\tilde\nu\tilde\nu} &\approx &
+\abs{\Delta_{\tilde\nu}(t)}^2{(s + t - m_\chi^2)^2 \over 16 m_e^2 m_\chi^2}
+(\abs{F}^2 + \abs{G}^2)^2
+\nel
+& = &
+g^4 \cos^4\theta_X
+\abs{\Delta_{\tilde\nu}(t)}^2{(s + t - m_\chi^2)^2 \over 64 m_e^2 m_\chi^2}
+.
+\ee
+
+Now I use~\rf{charge-X3} to write the photon--$\tilde\nu$ 
+interference term $X_{\gamma\tilde\nu}$
+
+\beml{charge-d-gamma-nu}
+X_{\gamma\tilde\nu} & \approx & 
+{(s + t - m_\chi^2)^2 \over 16 m_e^2 m_\chi^2}
+\Delta_\gamma(s) \Re[\Delta_{\tilde{\nu}}^\hc(t)]
+\nel && \qquad {} \times
+[(a_\gamma A_\gamma)(\abs{F}^2  + \abs{G}^2)]
+\nel && {} + 
+{s \over 16 m_e^2}
+\Delta_\gamma(s)\Re[\Delta_{\tilde{\nu}}^\hc(t)] 
+[(a_\gamma A_\gamma)(\abs{F}^2 + \abs{G}^2)]
+
+\nel & = &
+-{e^2 (\abs{F}^2 + \abs{G}^2) \over 16s m_e^2 m_\chi^2}
+\Re[\Delta_{\tilde{\nu}}(t)]
+\left[(s + t - m_\chi^2)^2 + s m_\chi^2\right]
+
+\nel & = &
+-{e^2 g^2 \cos^2\theta_X \over 32 s m_e^2 m_\chi^2}
+\Re[\Delta_{\tilde{\nu}}(t)]
+\left[(s + t - m_\chi^2)^2 + s^2\rho \right]
+.
+\ee
+
+In a similar way $X_{Z\tilde\nu}$ becomes
+\beml{charge-d-gamma-nu1}
+X_{Z\tilde\nu} & \approx & 
+{(s + t - m_\chi^2)^2 \over 16 m_e^2 m_\chi^2}
+\Re[\Delta_Z(s) \Delta_{\tilde{\nu}}^\hc(t)]
+\nel && \qquad {} \times
+[(a_Z A_Z + b_Z B_Z)(\abs{F}^2  + \abs{G}^2) - 2\Re(FG^\hc)(b_Z A_Z + a_Z B_Z)]
+\nel && {} + 
+{s \over 16 m_e^2}
+\Re[\Delta_Z(s) \Delta_{\tilde{\nu}}^\hc(t)] 
+\nel && \qquad {} \times
+[(a_Z A_Z - b_Z B_Z)(\abs{F}^2 + \abs{G}^2) - 2\Re(FG^\hc)(b_Z A_Z - a_Z B_Z)]
+\nel
+& = &
+{1 \over 16 m_e^2 m_\chi^2 } \Re[\Delta_Z(s) \Delta_{\tilde{\nu}}^\hc(t)]
+\nel && {}\times
+{g^2 \cos^2\theta_X \over 2}
+\Bigl[
+(s + t - m_\chi^2)^2(a_Z A_Z + b_Z B_Z - b_Z A_Z - a_Z B_Z)
+\nel && {}\qquad
++
+sm_\chi^2(a_Z A_Z - b_Z B_Z - b_Z A_Z + a_Z B_Z)
+\Bigr]
+\nel
+& = &
+{a_Z - b_Z \over 16 m_e^2 m_\chi^2 } \Re[\Delta_Z(s) \Delta_{\tilde{\nu}}^\hc(t)]
+\nel && {}\times
+{g^2 \cos^2\theta_X \over 2}
+\Bigl[
+(s + t - m_\chi^2)^2(A_Z - B_Z)
++
+sm_\chi^2(A_Z + B_Z)
+\Bigr]
+.
+\ee
+
+From~\rf{chargeZabIs} and~\rf{chargeZABIs} I have
+\be
+a_Z - b_Z  =  {g \sin^2 \theta_W \over \cos \theta_W},
+\ee
+
+and
+\bem
+A_Z + B_Z &= &
+{g \over 4\cos\theta_W}
+\{[2\cos (2\theta_W) + \abs{Y_{11}}^2 + \abs{X_{11}}^2] 
+- [\abs{Y_{11}}^2 - \abs{X_{11}}^2]\}
+\nel
+& = &
+{g \over 2\cos\theta_W}[\cos(2\theta_W) + \abs{X_{11}}^2]
+= 
+{g \over 2\cos\theta_W}[\cos(2\theta_W) + \cos^2\theta_X]
+,
+\nel
+A_Z - B_Z & = &
+{g \over 2\cos\theta_W}[\cos(2\theta_W) + \abs{Y_{11}}^2]
+= 
+{g \over 2\cos\theta_W}[\cos(2\theta_W) + \cos^2\theta_Y],
+\ee
+
+Thus
+\beml{charge-d-Z-nu}
+X_{Z\tilde\nu} & \approx & 
+{g^4 \tan^2 \theta_W \cos^2\theta_X \over 64 m_e^2 m_\chi^2}
+ \Re[\Delta_Z(s) \Delta_{\tilde{\nu}}^\hc(t)]
+\nel && {} \times
+\Bigl[
+(s + t - m_\chi^2)^2(\cos(2\theta_W) + \cos^2\theta_Y)
++
+sm_\chi^2(\cos(2\theta_W) + \cos^2\theta_X)
+\Bigr]
+\nel
+.
+\ee
+
+
+\subsection{Total cross section}
+
+I have for the total cross-section from~\rf{csTotalApproximation},
+\bel{chargeCross}
+\sigma^T_{e\chi}(s)  
+= {m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} 
+X_{e\chi}(s, t) \, dt
+= \sigma^T_{\gamma\gamma} 
++ \sigma^T_{ZZ} 
++ 2\sigma^T_{\gamma Z} 
++ \sigma^T_{\tilde{\nu}\tilde{\nu}} 
++ 2\sigma^T_{\gamma \tilde{\nu}} 
++ 2\sigma^T_{Z \tilde{\nu}}
+,
+\ee
+
+with the limits of integration
+\bel{charge-t-plus-minus-is}
+t_{\pm} \approx {s \over 2} (2\rho - 1 \pm \sqrt{1 - 4\rho})
+.
+\ee
+
+I use \rf{csInt1}--\rf{csInt65} to calculate the integrals  
+in~\rf{chargeCross} together with the 
+expressions~\rf{chargeSneutrinoDelta} and~\rf{ZPropogator} for 
+$\Delta_Z(s)$ and $\Delta_{\tilde{\nu}}(t)$,
+\be
+\Delta_Z(s) 
+= {1 \over s - \mB^2 + i\mB\Gamma_Z} 
+= {s - \mB^2 - i\mB\Gamma_Z \over (s - \mB^2)^2 + \mB^2\Gamma_Z^2},
+\ee
+
+\bel{charge-x-is}
+\Delta_{\tilde{\nu}}(t) = {1 \over t - x} ,
+\quad x =  m_{\tilde{\nu}}^2 - im_{\tilde{\nu}}\Gamma_{\tilde{\nu}}
+.
+\ee
+
+I obtain for the photon-channel contribution from~\rf{charge-d-gamma-gamma}  
+
+\bem
+\sigma^T_{\gamma\gamma} & = & 
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{\gamma\gamma} dt
+\nel
+&\approx&
+{e^4 \over 4\pi s^4 }
+\int_{t_-}^{t_+}[(m_\chi^2 - t)^2  + s m_\chi^2 
++ {1 \over 2} s(s + 2t - 2m_\chi^2)]dt
+\nel&=&
+ {e^4 \over 4\pi s^4 }
+[{s^3 \over 3} (1 - \rho)\sqrt{1 - 4\rho} + s^2 \rho(t_+ - t_-) + 0]
+\nel&=&
+{e^4 \over 4\pi s^4 }
+[{s^3 \over 3} (1 - \rho)\sqrt{1 - 4\rho} + s^3 \rho\sqrt{1 - 4\rho}]
+,
+\ee
+
+where the integration was carried out with the help 
+of~\rf{csInt2} and~\rf{csInt1}. So I find
+
+\bel{charge-total-gamma-gamma}
+\sigma^T_{\gamma\gamma}(s) = 
+{e^4 \over 4\pi s} \sqrt{1 - 4\rho}{1 + 2\rho \over 3}
+.
+\ee
+
+Similarly for the $Z^0$-channel contribution, the equation~\rf{charge-d-Z-Z}
+yields
+\bem
+\sigma^T_{ZZ} & = & 
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{ZZ} dt
+\nel
+& \approx & {a_Z^2 + b_Z^2 \over 4\pi s^2}\abs{\Delta_Z(s)}^2
+\int_{t_-}^{t_+}[
+(m_\chi^2 - t)^2 (A_Z^2 + B_Z^2) + s m_\chi^2 (A_Z^2 - B_Z^2)
+]dt + 0
+,
+\ee
+
+where again the term in $X_{ZZ}$ proportional to $(s + 2t - 2m_\chi^2)$
+does not contribute to the integral. Thus,
+\bem
+\sigma^T_{ZZ} & = & 
+{a_Z^2 + b_Z^2 \over 4\pi s^2}\abs{\Delta_Z(s)}^2
+\biggl[{s^3 \over 3} (1 - \rho)\sqrt{1 - 4\rho}(A_Z^2 + B_Z^2)
+\nel&& {} \qquad
+  + s^3\rho \sqrt{1 - 4\rho}(A_Z^2 - B_Z^2)
+\biggr]
+\nel
+& = & 
+{a_Z^2 + b_Z^2 \over 4\pi} s\abs{\Delta_Z(s)}^2
+\left[{1 \over 3} (1 - \rho)(A_Z^2 + B_Z^2)
+  + \rho (A_Z^2 - B_Z^2)
+\right]\sqrt{1 - 4\rho},
+\ee
+
+so
+\bel{charge-total-Z-Z}
+\sigma^T_{ZZ}(s) = 
+{a_Z^2 + b_Z^2 \over 4\pi} s\abs{\Delta_Z(s)}^2\sqrt{1 - 4\rho}
+\left[A_Z^2{1 + 2\rho \over 3} + B_Z^2{1 - 4\rho \over 3}\right].
+\ee
+
+The calculation of $\sigma^T_{\gamma Z}$ is also straightforward. 
+I obtain from~\rf{charge-d-gamma-Z}
+\bem
+\sigma^T_{\gamma Z}(s) & = &
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{Z\gamma} dt
+\nel
+&\approx&
+-{e^2 a_Z A_Z \over 4\pi s^3} \Re(\Delta_Z(s))
+\int_{t_-}^{t_+}[(m_\chi^2 - t)^2 + sm_\chi^2]dt 
+\nel&=&
+-{e^2 a_Z A_Z \over 4\pi s^3} \Re(\Delta_Z(s))
+\left[{s^3 \over 3} (1 - \rho)\sqrt{1 - 4\rho} 
+   + s^3 \rho\sqrt{1 - 4\rho}\right],
+\ee
+
+or
+\bel{charge-total-gamma-Z}
+\sigma^T_{\gamma Z}(s)
+=
+-{e^2 a_Z A_Z \over 4\pi} \Re(\Delta_Z(s))
+\sqrt{1 - 4\rho}{1 + 2\rho \over 3}
+.
+\ee
+
+\P
+Calculations of the terms in~\rf{chargeCross} that involve scalar neutrinos
+is more complicated due to the integrations over $\Delta_{\tilde\nu}(t)$-like
+terms. By the equation~\rf{charge-d-nu-nu}
+
+\bem
+\sigma^T_{\tilde{\nu}\tilde{\nu}} & = &
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{\tilde\nu\tilde\nu} dt
+\nel
+&\approx &
+
+{g^4 \cos^4\theta_X\over 64 \pi s^2}
+\int_{t_-}^{t_+} \abs{\Delta_{\tilde\nu}(t)}^2(s + t - m_\chi^2)^2 dt
+\nel
+& = &
+{g^4 \cos^4\theta_X\over 64 \pi s^2}
+\int_{t_-}^{t_+} 
+{1 \over \abs{t - x}^2}[t - s(\rho - 1)]^2
+dt.
+\ee
+
+According to~\rf{csInt65} and from the definition~\rf{charge-x-is} of $x$ I get
+\beml{charge-total-nu-nu}
+\sigma^T_{\tilde{\nu}\tilde{\nu}} & \approx  &
+{g^4 \cos^4\theta_X\over 64 \pi s^2}
+\Biggl\{
+{[\Re(x) + s(1 - \rho)]^2 - \Im(x)^2 \over \Im(x)}
+\phi(x)
+\nel&&
+\qquad{}
++ 2[\Re(x) + s(1 - \rho)]\ln\abs{t_+ - x \over t_- - x}
++ s\sqrt{1 - 4\rho}
+\Biggr\}
+\nel & \equiv  &
+{g^4 \cos^4\theta_X\over 64 \pi s^2}
+\Biggl\{
+-{[m_{\tilde{\nu}}^2 + s(1 - \rho)]^2 
+    - m_{\tilde{\nu}}^2\Gamma_{\tilde{\nu}}^2 
+  \over m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}}
+\phi(x)
+\nel&&
+\qquad{}
++ 2[m_{\tilde{\nu}}^2 + s(1 - \rho)]\ln\abs{t_+ - x \over t_- - x}
++ s\sqrt{1 - 4\rho}
+\Biggr\}
+,
+\ee
+
+where $\phi(x)$ is defined in~\rf{csImLog}. In this case it becomes
+\bem
+\phi(x) & = & \arctg{s\sqrt{1 - 4\rho}\Im(x)
+         \over m_\chi^4 + \abs{x}^2 - s(2\rho - 1)\Re(x)}
+\nel
+& \equiv &          
+-
+\arctg{s\sqrt{1 - 4\rho}\, m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}
+         \over s^2 \rho^2 
+            + m_{\tilde{\nu}}^2[m_{\tilde{\nu}}^2 + \Gamma_{\tilde{\nu}}^2
+             + s(1 - 2\rho)]}
+.
+\ee
+
+\P
+Finally I consider the interference between the bosons and sneutrino channels.
+To find $\sigma^T_{\gamma\tilde{\nu}}$ from~\rf{charge-d-gamma-nu} 
+I apply~\rf{csInt3} and~\rf{csInt4} 
+in the case when $z = 1$, so
+\bem
+\sigma^T_{\gamma\tilde{\nu}}
+& = &
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{\gamma\tilde\nu} dt
+\nel
+& \approx &
+-{e^2 g^2 \cos^2\theta_X \over 32\pi s^3 }
+\int_{t_-}^{t_+} 
+\Re[\Delta_{\tilde{\nu}}(t)]
+\left[(s + t - m_\chi^2)^2 + s m_\chi^2\right]
+dt
+\nel
+& = &
+-{e^2 g^2 \cos^2\theta_X \over 32\pi s^3 }
+\int_{t_-}^{t_+} 
+\Re\left({ 1 \over t - x}\right)
+\left\{[t - s(\rho - 1)]^2 + s m_\chi^2\right\}
+dt
+\nel
+& = &
+-
+{e^2 g^2 \cos^2\theta_X \over 32\pi s^3 }
+\Biggl\{
+\Re[(x - s(\rho - 1))^2] \ln\abs{t_+ - x \over t_- - x}
+\nel
+&&\qquad{}
++ \Im[((x - s(\rho - 1))^2] \phi(x)
+\nel
+&&\qquad{}
++ s\sqrt{1 - 4\rho}[\Re(x) - 2s(\rho - 1) - s(1 - 2\rho)/2]
++ s^2\rho\ln\abs{t_+ - x \over t_- - x}
+\Biggr\}
+,
+\ee
+
+Thus
+from~\rf{csReImForSub} I have,
+
+\beml{charge-total-gamma-nu}
+\sigma^T_{\gamma\tilde{\nu}} & \approx  &
+-{e^2 g^2 \cos^2\theta_X \over 32\pi s^3 }
+\Biggl\{
+[(\Re(x) + s(1 - \rho))^2 - \Im(x)^2 + s^2\rho] 
+\ln\abs{t_+ - x \over t_- - x}
+\nel
+&&\qquad{}
+- 2\Im(x)[\Re(x) + s(1 - \rho)] \phi(x)
+
++ s\sqrt{1 - 4\rho}[\Re(x) - s\rho + {3 \over 2}s]
+\Biggr\}
+\nel
+& \equiv &
+-{e^2 g^2 \cos^2\theta_X \over 32\pi s^3 }
+\Biggl\{
+[(m_{\tilde\nu}^2 + s(1 - \rho))^2 
+- m_{\tilde\nu}^2\Gamma_{\tilde\nu}^2 + s^2\rho] 
+\ln\abs{t_+ - x \over t_- - x}
+\nel
+&&\qquad{}
++ 2m_{\tilde\nu}\Gamma_{\tilde\nu}[m_{\tilde\nu}^2 + s(1 - \rho)] \phi(x)
+
++ s\sqrt{1 - 4\rho}[m_{\tilde\nu}^2 - s\rho + {3 \over 2}s]
+\Biggr\}
+.
+\ee
+
+To calculate $\sigma^T_{Z\tilde{\nu}}$ I rewrite it from~\rf{charge-d-Z-nu} as
+\beml{charge-total-Z-nu}
+\sigma^T_{Z\tilde{\nu}} & = & 
+{m_e^2 m_\chi^2 \over \pi s^2} \int_{t_-}^{t_+} X_{Z\tilde\nu} dt
+\nel
+& \approx &
+{g^4 \tan^2 \theta_W \cos^2\theta_X \over 64 \pi s^2}
+\int_{t_-}^{t_+} \Re\left[\Delta_Z^\hc(s) { 1 \over t - x}\right]
+\nel &&{}\times
+\Bigl\{
+[t - s(\rho - 1)]^2[\cos(2\theta_W) + \cos^2\theta_Y]
++
+s^2\rho[\cos(2\theta_W) + \cos^2\theta_X]
+\Bigr\}
+dt
+\nel
+& = &
+{g^4 \tan^2 \theta_W \cos^2\theta_X \over 64 \pi}
+\{f_1[\cos(2\theta_W) + \cos^2\theta_Y]
+    + f_2[\cos(2\theta_W) + \cos^2\theta_X]\}
+.
+\nel
+\ee
+
+The formulas~\rf{csInt3} and~\rf{csInt4} give for $f_1$ and $f_2$,
+
+
+\bem
+f_1 & = & {1 \over s^2}\int_{t_-}^{t_+}
+ \Re\left[\Delta_Z^\hc(s){ 1 \over t - x}\right][t - s(\rho - 1)]^2 dt
+\nel
+& = &
+\Re\{z[x/s + 1 - \rho]^2\} \ln\abs{t_+ - x \over t_- - x}
+-\Im\{z[x/s + 1 - \rho]\} \phi(x)
+\nel
+&&{}
++ {1 \over s}
+  \sqrt{1 - 4\rho}\{\Re(zx) - \Re(z)[2s(\rho - 1) + s(1 - 2\rho)/2]\}
+\nel
+& = &
+\Re\{z[x/s + 1 - \rho]^2\} \ln\abs{t_+ - x \over t_- - x}
+-\Im\{z[x/s + 1 - \rho]^2\} \phi(x)
+\nel
+&&{}
++ \sqrt{1 - 4\rho}[\Re(zx/s) + ({3\over 2} - \rho)\Re(z)]
+,
+\nel
+f_2 & = & \rho \int_{t_-}^{t_+} 
+ \Re\left[\Delta_Z^\hc(s){ 1 \over t - x}\right] dt
+=
+\rho\left[\Re(z)\ln\abs{t_+ - x \over t_- - x}
+- \Im(z) \phi(x)\right],
+\ee
+
+where  
+\be
+z = \Delta_Z^\hc(s) = {1 \over s - \mB^2 - i\mB\Gamma_Z}
+.
+\ee

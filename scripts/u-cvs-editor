@@ -1,0 +1,35 @@
+#!/bin/sh
+
+if test "$INSIDE_EMACS_CLIENT" != "true"; then
+  editor=$(which emacsclient 2>/dev/null)
+  if test "$?" -eq 0; then
+    export INSIDE_EMACS_CLIENT=true
+
+    # If are already in Emacs frame, then do not try to open a new Emacs
+    # frame with the given terminal. Under Emacs either EMACS environment
+    # variable is set (we are run from the shell under emacs) or at TERM
+    # is dumb (we are run directly as a command).
+    if test -n "$EMACS" -o "$TERM" = dumb; then
+      exec "$editor" -a "$0" "$@"
+    fi
+    exec "$editor" -a "$0" -t "$@"
+  fi
+fi
+
+# We are invoked recursively or emacsclient is not found.
+# Fallback to other editors.
+
+editor=$(which jmacs 2>/dev/null)
+if test -z "$editor"; then
+  editor=$(which joe 2>/dev/null)
+fi
+if test "$editor"; then
+  exec "$editor" "$@"
+fi
+
+editor=$(which nano 2>/dev/null)
+if test "$editor"; then
+  exec "$editor" --nowrap "$@"
+fi
+
+exec vi "$@"

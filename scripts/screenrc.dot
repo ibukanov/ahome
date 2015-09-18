@@ -1,0 +1,4 @@
+defutf8 on
+escape ^Ll
+vbell off
+bell_msg ""

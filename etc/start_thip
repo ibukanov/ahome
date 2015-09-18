@@ -1,0 +1,4 @@
+#!/bin/bash
+
+virsh net-start default
+virsh start thip

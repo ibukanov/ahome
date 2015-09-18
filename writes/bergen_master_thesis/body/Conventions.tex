@@ -1,0 +1,168 @@
+\chapter{Conventions and useful relations}
+\label{Conventions}
+
+\begin{itemize}
+
+\item 
+$A^\dag$, $A^T$, $A^*$ denote respectively
+the hermitian conjugation, matrix transposition and complex conjugation of $A$.
+For a scalar quantity $a$, $a^T = a$ and $a^\dag = a^*$.
+
+\item 
+Lower-case Greek letters are used for Lorentz indices
+and two-component spinor indices. In most cases the letters
+$\mu$, $\nu$, $\rho$, $\sigma$ are Lorentz indices, whereas 
+$\alpha$ and $\beta$ are two-component spinor indices. Lower-case Roman letters
+are used to index four-component spinors. The index $r$ is often used 
+to denote "+" or "-" polarization states. 
+
+\item 
+The Cartesian metric tensor $\eta_{\mu\nu}$ is given by
+\bel{convCartesianMetric}
+\eta_{\mu\nu} = \left\{ \matrix{1  & \mbox{if} \quad \mu = \nu = 0 \cr
+                                -1 & \mbox{if} \quad \mu = \nu \ne 0 \cr
+                                0  & \mbox{otherwise} } \right. .
+\ee
+
+\item
+$g_{\mu\nu}$ stands for an arbitrary symmetric matrix with signature -2, i.e.
+the difference between the number of positive and negative eigenvalues of 
+$g_{\mu\nu}$ should be -2.
+
+\P
+These requirements mean
+that one can find a non-singular real matrix $L$ such that 
+
+\bel{gamma-metric-transformation}
+\eta_{\mu\nu} = L_{\mu}{}^\rho L_{\nu}{}^\sigma g_{\rho\sigma}
+\quad \mbox{or} \quad 
+g_{\rho\sigma} = (L^{-1})_\rho{}^\mu (L^{-1})_\sigma{}^\nu \eta^{\mu\nu}
+.
+\ee  
+
+Another useful form of~\rf{gamma-metric-transformation} is
+\bel{gamma-metric-transformation2}
+\eta^{\mu\nu} = (L^{-1})_\rho{}^\mu (L^{-1})_\sigma{}^\nu g^{\rho\sigma}
+\quad \mbox{or} \quad 
+g^{\rho\sigma}= L_{\mu}{}^\rho L_{\nu}{}^\sigma\eta^{\mu\nu}
+.
+\ee
+
+In most cases $g$ is used to denote the determinant of $g_{\mu\nu}$, 
+\be
+g = \det g < 0.
+\ee
+
+\item 
+I use $p$ mostly for particle 4-momenta such that 
+\be
+p^2  \equiv p_\mu p^\mu = g_{\mu\nu}p^\mu p^\mu = m^2 > 0
+\ee
+with some
+mass $m$. I also use $q$ to denote the normalized momenta, 
+\bel{convQPRelation}
+q \equiv p/m, \quad q^2 = 1.  
+\ee  
+
+\item 
+$(a \cdot b)$ and $\slsh{a}$ represent 
+the index-less notations for scalar products, 
+\be
+(a \cdot b) \equiv a_\mu b^\mu, \quad \slsh{a} = a_\mu \gu\mu.
+\ee
+
+\item 
+$A_{(\mu_1 \dots \mu_k)}$ and $A_{[\mu_1 \dots \mu_k]}$ 
+denote the symmetric and antisymmetric parts of $A_{\mu_1 \dots \mu_k}$,
+
+\beml{convention-symmetry-anti-symmetry}
+A_{(\mu_1 \dots \mu_k)} & = &
+\frac{1}{k!}\sum_{\sigma}
+A_{\mu_{\sigma(1)} \dots \mu_{\sigma(k)}},
+
+\nel
+A_{[\mu_1 \dots \mu_k]} & = &
+\frac{1}{k!}\sum_{\sigma}
+\sign(\sigma) A_{\mu_{\sigma(1)} \dots \mu_{\sigma(k)}},
+\ee
+
+where the sum is taken over the permutation group of the set 
+$\{ 1, \dots, k \}$, $\sigma(n)$ gives the result of
+the permutation $\sigma$ for the number $n$ and 
+$\sign(\sigma)$ is $1$
+if $\sigma$ forms an even permutation of $\{ 1, \dots, k \}$
+ and $-1$ otherwise. (A permutation 
+is even if it is obtained by an even number of simple permutations 
+and the simple permutation is the exchange
+of two neighboring indices.)
+
+\P 
+It is easy to check that
+\beml{contractionWithSymAnti}
+&
+A_{(\mu_1 \dots \mu_k)}B^{(\mu_1 \dots \mu_k)} = 
+A_{\mu_1 \dots \mu_k}B^{(\mu_1 \dots \mu_k)} = 
+A_{(\mu_1 \dots \mu_k)}B^{\mu_1 \dots \mu_k} ,
+
+\nel &
+A_{[\mu_1 \dots \mu_k]}B^{[\mu_1 \dots \mu_k]} = 
+A_{\mu_1 \dots \mu_k}B^{[\mu_1 \dots \mu_k]} = 
+A_{[\mu_1 \dots \mu_k]}B^{\mu_1 \dots \mu_k} ,
+
+\nel &
+A_{[\mu_1 \dots \mu_k]}B^{(\mu_1 \dots \mu_k)} = 0 .
+
+\ee
+
+\item
+
+$\varepsilon^{\mu\nu\rho\sigma}$ is the fully
+antisymmetric 4-dimensional tensor defined by
+
+\bel{convEpsilonUpIs}
+\varepsilon^{\mu\nu\rho\sigma} = \varepsilon^{[\mu\nu\rho\sigma]} = 
+   \frac{1}{\sqrt{-g}} e^{\mu\nu\rho\sigma},
+\quad
+e^{\mu\nu\rho\sigma} = e^{[\mu\nu\rho\sigma]}, 
+\quad 
+e^{0123} = 1,
+\ee
+
+The pseudo-tensor $e^{\mu\nu\rho\sigma}$ satisfies for any $A^\mu{}_\nu$
+\bel{convDetIs}
+A^\mu{}_{\mu'}A^\nu{}_{\nu'}A^\rho{}_{\rho'}A^\sigma{}_{\sigma'}
+                        e^{\mu'\nu'\rho'\sigma'} 
+= \det(A) \, e^{\mu\nu\rho\sigma}
+\ee
+
+By the definition $e_{\mu\nu\rho\sigma} = e^{\mu\nu\rho\sigma}$ and 
+for the covariant version of $\varepsilon^{\mu\nu\rho\sigma}$ 
+one can find
+
+\beml{convEpsilonDownIs}
+\varepsilon_{\mu\nu\rho\sigma} 
+& = & g_{\mu\mu'}g_{\nu\nu'}g_{\sigma\sigma'}g_{\rho\rho'}
+        \varepsilon^{\mu'\nu'\sigma'\rho'} 
+
+\nel 
+&  = & \frac{1}{\sqrt{-g}} g_{\mu\mu'}g_{\nu\nu'}g_{\sigma\sigma'}g_{\rho\rho'}
+                        e^{\mu'\nu'\sigma'\rho'}   
+= \frac{1}{\sqrt{-g}} g e_{\mu\nu\rho\sigma},
+\nel
+\varepsilon_{\mu\nu\rho\sigma} & = & -\sqrt{-g} \, e_{\mu\nu\rho\sigma}
+\ee
+
+\P
+In the case when $g_{\mu\nu}$ equals the Cartesian 
+metric~\rf{convCartesianMetric}
+, $g = -1$ and $\varepsilon^{\mu\nu\rho\sigma}$ is given by
+\be
+\varepsilon^{\mu\nu\rho\sigma} = e^{\mu\nu\rho\sigma},
+\quad
+\varepsilon^{0123} = 1,
+\quad
+\varepsilon_{0123} = -e_{0123} = -e^{0123} = -1.
+\ee
+
+
+\end{itemize}

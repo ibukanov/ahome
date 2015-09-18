@@ -1,0 +1,93 @@
+#!/bin/sh
+
+file="$1"
+
+show_dir()
+{
+  exec ls -aFl "$file" 2>/dev/null  
+}
+
+show_man_compressed()
+{
+  troff_test=`(gzip -dc "$file" | file - | grep troff) 2>/dev/null`
+  if [ "$troff_test" ]; then
+  # groff src
+    (exec gzip -dc "$file" | groff -s -p -t -e -Tascii -mandoc -) 2>/dev/null
+  fi 
+}
+
+show_man()
+{
+  troff_test=`(file -L "$file" | grep troff) 2>/dev/null`
+  if [ "$troff_test" ]; then
+    exec groff -s -p -t -e -Tascii -mandoc "$file" 2>/dev/null
+  fi 
+}
+
+show_tar()
+{
+  exec tar tvvf "$file" 2>/dev/null
+}
+
+show_tar_piped()
+{
+  (exec "$@" | tar tvvf -) 2>/dev/null
+}
+
+show_tar_compressed()
+{
+  show_tar_piped gzip -dc "$file"
+}
+
+show_tar_bzipped()
+{
+  show_tar_piped bzip2 -dc "$file"
+}
+
+show_rpm()
+{
+  exec rpm -qpivRl "$file" 2>/dev/null
+}
+
+show_compressed()
+{
+  exec gzip -dc "$file" 2>/dev/null
+}
+
+show_bzipped()
+{
+  exec bzip2 -dc "$file" 2>/dev/null
+}
+
+show_zipped()
+{
+  exec unzip -l "$file" 2>/dev/null
+}
+
+if [ -d "$file" ]; then 
+# View directory context
+  show_dir
+else
+  case "$file" in
+  # View contents of various tar'd files
+    *.[tT][aA][rR]) show_tar;; 
+    *.[tT][gG][zZ]) show_tar_compressed;;
+    *.tar.bz2) show_tar_bzipped;;
+    *.tar.bz) show_tar_bzipped;;
+    *.tar.gz) show_tar_compressed;;
+    *.tar.[zZ]) show_tar_compressed;;
+  # View contents of .rpm files
+    *.rpm) show_rpm;;
+  # View man file as formated manpage  
+    *.[123456789n].gz|*.man.gz) show_man_compressed;;
+    *.[123456789n]|*.[123456789]x|*.man)  show_man;;
+  # View compressed files correctly
+    *.bz2) show_bzipped;; 
+    *.bz) show_bzipped;; 
+    *.[Zz]) show_compressed;;
+    *.gz) show_compressed;;
+    *.[zZ][iI][pP])  show_zipped;;
+    *.jar) show_zipped;;
+    *.war) show_zipped;;
+    esac
+fi

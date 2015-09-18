@@ -1,0 +1,25 @@
+[diff]
+git = 1
+showfunc = true
+nodates = 1
+#unified = 8
+
+[ui]
+username = Igor Bukanov <igor@mir2.org>
+editor = u-cvs-editor
+merge = internal:merge
+
+[alias]
+diff = diff -p -g -U9
+qdiff = qdiff -p -g -U9
+unknown = status -nu
+
+#[pager]
+#pager=l
+
+[extensions]
+hgext.mq =
+hgext.bookmarks =
+hgext.rebase =
+#hgext.bisect =
+#pager =

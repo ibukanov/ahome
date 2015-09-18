@@ -1,0 +1,147 @@
+#!/bin/bash
+
+fail() {
+  echo "$@" 1>&2 
+  exit 1
+}
+
+test $# -ge 2 || fail "Usage: $0 dir build_type [make_args]"
+
+dir="$1"
+build_type="$2"
+
+source_root="$HOME/m"
+build_root="$HOME/b/js"
+
+source_tree="$source_root/$dir"
+test -d "$source_tree" || fail "Cannot locate '$dir' in $source_root"
+
+word="$build_type"
+single_threaded=""
+debug=""
+bit32=""
+
+case "$word" in
+    *st )  single_threaded=1 ; word="${word%st}" ;;
+esac
+
+case "$word" in
+    *32 )  bit32=32 ; word="${word%32}" ;;
+    *64 )  word="${word%64}" ;;
+esac
+
+if test $(uname -m) != x86_64 -a -n "$bit32"; then
+    fail "Explicit 32 bit executable on the current platform is not supported."
+fi
+
+case "$word" in
+    dbg ) debug=1 ;;
+    opt ) ;;
+    * ) fail "Missing dbg/opt selector: '$word'"
+esac
+
+shift 2
+
+build_dir="$build_root/$dir$build_type"
+
+export CC=gcc
+export CXX=g++
+if test -n "$bit32"; then
+    export PKG_CONFIG_PATH=/usr/lib/pkgconfig
+    export PKG_CONFIG_LIBDIR=/usr/share/pkgconfig
+    CC="gcc -m32"
+    CXX="g++ -m32"
+    export AR=ar
+fi
+
+if which ccache >/dev/null 2>&1; then
+  CC="ccache $CC"
+  CXX="ccache $CXX"
+fi
+
+run_configure=""
+
+source_dir="$source_tree/js/src"
+configure_cmd="$source_dir/configure"
+if test ! -f "$configure_cmd" -o "$configure_cmd" -ot "$source_dir/configure.in"; then
+    run_configure=1
+    autoconf="$(which autoconf-2.13 2>/dev/null)"
+    test -z "$autoconf" && autoconf=autoconf2.13
+     (cd "$source_dir" && $autoconf) || fail "Failed to run $autoconf in $source_dir"
+fi
+
+config_output="$build_dir/config.log"
+test ! -f "$config_output" -o "$config_output" -ot "$0" && run_configure=1
+
+if test -n "$run_configure"; then
+    mkdir -p "$build_dir" || exit 1
+
+    cmd_args=()
+    ac_add_options() {
+	cmd_args=( "${cmd_args[@]}" "$@" )
+    }
+       
+    if test -z "$single_threaded"; then
+	nspr_install="$build_root/../ff/mcopt$bit32/dist"
+        nspr_include="$nspr_install/include/nspr"
+	test -d "$nspr_include" || { echo "$nspr_include is not a directory" 1>&2 ; exit 1 ; }
+	nspr_lib="$nspr_install/sdk/lib"
+	test -d "$nspr_lib" || { echo "$nspr_lib is not a directory" 1>&2 ; exit 1 ; }
+	ac_add_options --enable-threadsafe
+	ac_add_options --with-nspr-cflags=-I$(dirname $nspr_include)
+	ac_add_options --with-nspr-libs="-L$nspr_libs -lplds4 -lplc4 -lnspr4 -lpthread -ldl"
+    fi
+    if test -n "$bit32"; then
+	ac_add_options  --x-libraries=/usr/lib --target=i686-pc-linux
+    fi
+
+    if which valgrind > /dev/null 2>&1; then
+	ac_add_options --enable-valgrind
+	ac_add_options --enable-callgrind
+    fi
+    
+    if test -n "$debug"; then
+	ac_add_options --enable-debug
+	ac_add_options --enable-optimize=-O0
+	#ac_add_options --enable-optimize=-O3
+	ac_add_options --enable-js-diagnostics
+	#ac_add_options --enable-gctimer
+	ac_add_options --disable-gctestpilot
+    else
+	ac_add_options --disable-js-diagnostics
+	ac_add_options --disable-gctestpilot
+    fi
+    ac_add_options --enable-js-leak-report
+
+    echo "Running in $build_dir : $configure_cmd ${cmd_args[@]}"
+    (cd "$build_dir" && $configure_cmd "${cmd_args[@]}") || \
+        { echo "Failed to run configure in $source_dir" 1>&2; exit 1; }
+fi
+
+parallel=()
+#Avoid parallel build when testing
+if test $# -eq 0 -o "$1" != check; then 
+    memtotal="$(grep '^MemTotal:\s*[0-9]\+\s*kB\s*$' /proc/meminfo | tr -cd 0123456789)"
+    if test -z "$memtotal"; then
+	echo "*FAILED* to determine the amount of physical memory"
+	memtotal=0
+    fi
+    if test $memtotal -ne 0 -a $memtotal -le $((2 * 1024 * 1024)); then
+	echo "parallel: none - too little system memory ($(($memtotal / 1024)) mB)"
+    else
+	case "$(uname)" in
+	    Darwin ) cpu_count=$(sysctl -n hw.ncpu) ;;
+	    Linux ) cpu_count=$(cat /proc/cpuinfo | grep '^processor' | wc -l) ;;
+	    * ) cpu_count=2 ;;
+	esac
+	load_factor="$(echo "scale=1; $cpu_count * 1.2" | bc)"
+	parallel=( -j $(($cpu_count * 3 / 2)) -l $load_factor )
+	echo "parallel: ${parallel[@]}"
+    fi
+fi
+
+extra_options=()
+extra_options=( -s )
+
+export MALLOC_CHECK_=2
+time make -C "$build_dir" "${parallel[@]}" "${extra_options[@]}"  "$@"

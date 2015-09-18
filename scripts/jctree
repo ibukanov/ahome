@@ -1,0 +1,27 @@
+#!/bin/sh
+options=()
+dirs=()
+for i in "$@"; do
+  case "$i" in
+    -O | -g | -deprecation | -Xstdout )
+      options=("${options[@]}" "$i")
+    ;;
+    * )
+      dir="$i"
+      if [ -f "$dir" ]; then dir=$(dirname "$dir"); fi
+      dirs=("${dirs[@]}" "$dir")
+    ;;
+  esac
+done
+
+if [ 0 = ${#dirs[@]} ]; then dirs=( . ) ; fi
+
+# print empty line to see errors easily
+echo
+exec find "${dirs[@]}" -follow \
+  -type d \( -name CVS -or -name classes \) -prune , \
+  \( \
+  -type d -name resources -prune \
+  -or \
+  -type f \( -name '[a-zA-Z0-9_]*.java' -or -name res.lst \) \
+  \) -print0 | xargs -0 --max-chars=100000 jc "${options[@]}"

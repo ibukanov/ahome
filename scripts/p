@@ -1,0 +1,29 @@
+#!/bin/sh
+
+if test ! -e "/tmp/emacs$(id -u)/server"; then
+    exec l "$@"
+fi
+
+arg=""
+if test $# -eq 0; then
+    emacs_pipe="$(mktemp -u emacs_pipe.XXXXXXXXXXXXXXXXXXXX)"
+    mkfifo "$emacs_pipe"
+    if test $? -ne 0; then
+	echo "Failed to create named pipe $emacs_pipe" 1>&2
+	exit 1
+    fi
+    rm_pipe() {
+	rm "$emacs_pipe";
+    }  
+    trap rm_pipe EXIT
+    arg="(my-dir-paged-process \"$PWD/\"  \"cat\" \"$emacs_pipe\")"
+    emacsclient -e "$arg" > /dev/null
+    cat > "$emacs_pipe"
+else
+    for i in "$@"; do
+	arg="$arg \"$i\""
+    done
+    arg="(my-dir-paged-process \"$PWD/\"$arg)"
+    exec emacsclient -e "$arg" > /dev/null
+fi
+

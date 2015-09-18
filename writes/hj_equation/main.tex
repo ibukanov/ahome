@@ -1,0 +1,681 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\usepackage{igor_macros}
+
+%%No paragraph break on emty lines
+\catcode10=10   \catcode13=10
+
+%\def\ee{\end{equation}}
+
+\title {Deduction of Hamilton-Jakoby equation}
+\author {Igor Bukanov}
+\date { 08 February 1999 }
+
+\begin{document}
+
+\begin{abstract}
+I present strict deduction of Hamilton-Jakoby eqution and corresponding
+approach for solving equation of motion. I decided to write this due to
+uneasy feeling that Landau-Lifshic Mechanics left to me. In any case it 
+was  useful exercise.
+\end{abstract}
+
+\maketitle
+
+\section{Definitions and deduction}
+Consider the standard expression for the action of a classical system
+given by
+\eqgl{
+\l{S-def}
+S = \int_0^T L[\vec{\dot{q}}(t), \vec{q}(t), t] dt, \\
+\l{init-cond}
+\vec{q}(0) = \vec{q_0}, \, \vec{q}(T) = \vec{q_1},  \\
+\vec{q} \equiv q_1 \dots q_N, \notag
+}
+where $N$ stands for the number of degree of freedom.
+
+The corresponding Lagrange equations of motion are
+\eqnl{L-eqn}{
+\frac{\partial L}{\partial q^i}
+    = \frac{d}{dt}\frac{\partial L}{\partial \dot{q}^i}
+}
+
+A solution of (\ref{L-eqn}) that satisfy the initial conditions 
+\rf{init-cond} maybe formally written in the following form,
+\eqgl{
+\vec{q} = \vec{q}(t, T, \vec{q}_0, \vec{q}_1), \, \notag \\
+\vec{q}(0, T, \vec{q}_0, \vec{q}_1) = \vec{q}_0, \, \l{formal-solution} \\
+\vec{q}(T, T, \vec{q}_0, \vec{q}_1) = \vec{q}_1 . \notag
+}
+
+The form \rf{formal-solution} provides minimal or at least extremal action,
+that is a function of initial conditions \rf{init-cond} and time interval $T$,
+
+\eqnl{S-min-def}{
+S_{min} \equiv S_{min}(T, \vec{q_0}, \vec{q_1})
+    = \int_0^T L[\vec{\dot{q}}(t, T, \vec{q}_0, \vec{q}_1), 
+                 \vec{q}(t, T, \vec{q}_0, \vec{q}_1), t] dt
+}
+
+With \rf{S-min-def} in hands I can start deduction of a equation for $S_{min}$
+itself. In the following I assume $S \equiv S_{min}$.
+
+\par
+I calculate time derivative for it as a derivative of parametric
+integral ,
+\eqnl{der-S-a}{
+\frac{\partial S}{\partial T} 
+    = \left.L[\vec{\dot{q}}, \vec{q}, t)\right|_{t=T}
+    + \int_0^T \frac{\partial}{\partial T} L[\vec{\dot{q}}, \vec{q}, t] dt .
+}
+
+To father transform \rf{der-S-a} I consider a general expression of the form
+\eqn{
+F(a) =
+\int_0^T dt 
+    \frac{\partial}{\partial a} L[\vec{\dot{q}}(t, a), \vec{q}(t, a), t]
+}
+with some arbitrary parameter $a$. I have
+\eqn{
+F(a) = 
+\int_0^T dt \left\lbrace
+\frac{\partial L}{\partial\vec{\dot{q}}}\frac{\partial\vec{\dot{q}}}{\partial a}
++ \frac{\partial L}{\partial\vec{q}}\frac{\partial\vec{q}}{\partial a}
+\right\rbrace .
+}
+
+But 
+\eqn{
+\frac{\partial\vec{\dot{q}}}{\partial a} 
+    \equiv \frac{\partial}{\partial a}\frac{\partial}{\partial t}\vec{q}(t, a) 
+    = \frac{\partial}{\partial t}\frac{\partial}{\partial a}\vec{q}(t, a) 
+}
+under the assumtion that $\vec{q}(t, a)$ is smoth enough to permit interchange
+of the differention order. This gives
+\eqn{
+\begin{split}
+F(a) &= 
+\int_0^T dt \left\lbrace
+\frac{\partial L}{\partial\vec{\dot{q}}}\frac{\partial}{\partial t}
+\frac{\partial\vec{q}}{\partial a}
++ \frac{\partial L}{\partial\vec{q}}\frac{\partial\vec{q}}{\partial a}
+\right\rbrace . \\
+&= 
+\int_0^T dt \left\lbrace
+\frac{\partial}{\partial t}\left[
+\frac{\partial L}{\partial\vec{\dot{q}}}
+\frac{\partial\vec{q}}{\partial a}\right]
++ \frac{\partial L}{\partial\vec{q}}\frac{\partial\vec{q}}{\partial a}
+- \frac{\partial}{\partial t}\frac{\partial L}{\partial\vec{\dot{q}}}
+    \frac{\partial\vec{q}}{\partial a}
+\right\rbrace . \\
+&= 
+\left.
+\frac{\partial L}{\partial\vec{\dot{q}}}
+\frac{\partial\vec{q}}{\partial a}\right|_{t=0}^T
++
+\int_0^T dt \frac{\partial\vec{q}}{\partial a} \left\lbrace
+\frac{\partial L}{\partial\vec{q}}
+- \frac{\partial}{\partial t}\frac{\partial L}{\partial\vec{\dot{q}}}
+\right\rbrace . \\
+\end{split}
+}
+
+Assuming now that $\vec{q}$ satisfies the Lagrange equations \rf{L-eqn},
+the second term in the last expression gives 0 and I have
+\eqgl{
+\l{param-derivative}
+\int_0^T \frac{\partial}{\partial a} L[\vec{\dot{q}}(t, a), \vec{q}(t, a), t] dt
+= 
+\left.
+\frac{\partial L}{\partial\vec{\dot{q}}}
+\frac{\partial\vec{q}}{\partial a}\right|_{t=0}^T ,
+\\
+\vec{\dot{q}}(t, a) \equiv 
+\left.\frac{\partial\vec{q}}{\partial t}\right|_a \notag
+}
+
+When $a \equiv T$ the last equation gives for \rf{der-S-a}
+\eqn{
+\int_0^T dt 
+    \frac{\partial}{\partial T} L[\vec{\dot{q}}(t, T), \vec{q}(t, T), t]
+= 
+\left.
+\frac{\partial L}{\partial\vec{\dot{q}}}
+\frac{\partial\vec{q}}{\partial T}\right|_{t=0}^T ,
+}
+and finally I have for \rf{der-S-a}
+\eqnl{der-S-b}{
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial T} 
+    = \left. L[\vec{\dot{q}}, \vec{q}, t]\right|_{t=T}
+    + \left.\frac{\partial L}{\partial\vec{\dot{q}}}
+      \frac{\partial\vec{q}}{\partial T}\right|_{t=0}^T .
+}
+
+Now I take into account that
+\eqnl{L-at-second-edge}{
+\begin{split}
+\left. L[\vec{\dot{q}}, \vec{q}, t]\right|_{t=T}
+&\equiv \left. L[\vec{\dot{q}}(t, T, \vec{q}_0, \vec{q}_1), 
+ \vec{q}(t, T, \vec{q}_0, \vec{q}_1), t]
+\right|_{t=T}
+\\
+&= L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), 
+    \vec{q}(T, T, \vec{q}_0, \vec{q}_1), T]
+\\ 
+&= L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), \vec{q}_1, T]
+\end{split}
+}
+
+from the boundary condition \rf{formal-solution}, 
+$\vec{q}(T, T, \vec{q}_0, \vec{q}_1) = \vec{q}_1$.
+\par
+
+From the same condition it is also follows 
+\eqn{
+\frac{\partial}{\partial T}
+\vec{q}(t=T, T, \vec{q}_0, \vec{q}_1)
+=
+\frac{\partial \vec{q}_1}{\partial T}
+=
+\left.\frac{\partial}{\partial t}
+\vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=T}
++
+\left.\frac{\partial}{\partial T}
+\vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=T} ,
+}
+but $\frac{\partial \vec{q}_1}{\partial T} \equiv 0$ because 
+the boundary conditions themself are not depend on $T$, so
+
+\eqn{
+0 =
+\left.\frac{\partial}{\partial t}
+\vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=T}
++
+\left.\frac{\partial}{\partial T}
+\vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=T} .
+}
+In the same way 
+\eqn{
+0 \equiv \frac{\partial \vec{q}_0}{\partial T} 
+= \frac{\partial}{\partial T}
+\vec{q}(t=0, T, \vec{q}_0, \vec{q}_1)
+=
+\left.\frac{\partial}{\partial T}
+\vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=0} .
+}
+This gives for \rf{der-S-b} 
+\eqnl{der-S-c}{
+\begin{split}
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial T} 
+&= 
+L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), \vec{q}_1, T]
+- \left.\frac{\partial L}{\partial\vec{\dot{q}}}
+  \frac{\partial}{\partial t}
+  \vec{q}(t, T, \vec{q}_0, \vec{q}_1)\right|_{t=T}
+\\ &\equiv
+L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), \vec{q}_1, T]
+- \vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1)
+\frac{\partial }{\partial\vec{\dot{q}}} 
+L[\vec{\dot{q}}, \vec{q}_1, T]
+  
+\end{split}
+}
+
+Now I consider ${\partial S}/{\partial \vec{q}_1}$.
+\eqn{
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial \vec{q}_1}
+ = \int_0^T \frac{\partial}{\partial \vec{q}_1}
+     L[\vec{\dot{q}}(t, T, \vec{q}_0, \vec{q}_1), 
+                 \vec{q}(t, T, \vec{q}_0, \vec{q}_1), t] dt
+ 
+}
+
+From \rf{param-derivative} with $a \equiv \vec{q}_1$ I get
+\eqn{
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial \vec{q}_1}
+=
+\left.\frac{\partial L}{\partial\dot{q^i}}
+\frac{\partial q^i}{\partial \vec{q}_1}\right|_{t=0}^T 
+\equiv
+\left.\frac{\partial L}{\partial\dot{q^i}}
+\frac{\partial}{\partial \vec{q}_1}q^i(t, T, \vec{q}_0, \vec{q}_1)
+\right|_{t=0}^T .
+}
+
+Using the boundary conditions in \rf{formal-solution} one more time I have
+\eqn{
+\left.Y(t)\frac{\partial}{\partial q^j_1}q^i(t, T, \vec{q}_0, \vec{q}_1)
+\right|_{t=0}^T 
+= 
+Y(T)\frac{\partial q^i_1}{\partial q^j_1} 
+    - Y(0)\frac{\partial q^i_0}{\partial q^j_1}
+= 
+Y(T)\delta^i_j - 0 = Y(T)\delta^i_j .
+}
+
+Thus 
+\eqnl{der-S-d}{
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial \vec{q}_1}
+= 
+\left.\frac{\partial L}{\partial\vec{\dot{q}}}\right|_{t=T} ,
+}
+
+Equations \rf{der-S-c} and \rf{der-S-d} together form a closed system
+\eqnl{S-der-system}{
+\left\lbrace
+\begin{split}
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial T} 
+&= 
+L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), \vec{q}_1, T]
+- \dot{q^i}(T, T, \vec{q}_0, \vec{q}_1)
+    \frac{\partial }{\partial\dot{q^i}} 
+    L[\vec{\dot{q}}, \vec{q}_1, T]
+
+\\
+\frac{\partial S(T, \vec{q}_0, \vec{q}_1)}{\partial \vec{q}_1}
+&= \frac{\partial}{\partial\vec{\dot{q}}}
+    L[\vec{\dot{q}}(T, T, \vec{q}_0, \vec{q}_1), \vec{q}_0, \vec{q}_1)]
+\end{split}
+\right.
+}
+
+or simply
+\eqnl{S-der-system-b}{
+\left\lbrace
+\begin{split}
+\frac{\partial S(T, \vec{q}_1)}{\partial T} 
+&= 
+L[\vec{\dot{q}}, \vec{q}_1, T]
+- \dot{q}^i \partial_{\dot{q}^i}L [\vec{\dot{q}}, \vec{q}_1, T]
+\\
+\frac{\partial S(T, \vec{q}_1)}{\partial q^i_1}
+&= 
+\partial_{\dot{q}^i}L[\vec{\dot{q}}, \vec{q}_1, T]
+\end{split}
+\right. ,
+}
+where I skiped a dependence of $S$ on $\vec{q}_0$, which reflects the fact
+that a general solution of \rf{S-der-system-b} will include some constants
+$C_\alpha$, that assume dependence on $\vec{q}_0$
+
+From a pure algebraic point of view I can use the second equation 
+in \rf{S-der-system-b} to expres $\vec{\dot{q}}$ as a function of
+$\vec{q}_1$, $T$ and $\frac{\partial S}{\partial \vec{q}_1}$:
+\eqn{
+\vec{\dot{q}} = 
+    \vec{\dot{q}}(\vec{q}_1, T, \frac{\partial S}{\partial \vec{q}_1})
+}
+
+[ Note: I skipped completely the issue about the existence of such solution.]
+
+This gives from \rf{S-der-system-b} the single partial differencal equation 
+for $S$ as a function of $\vec{q}_1$ and $T$,
+\eqnl{S-eqn}{
+\begin{split}
+\frac{\partial S(T, \vec{q}_1)}{\partial T}
+= &   
+L[\vec{\dot{q}}(\vec{q}_1, T, 
+    \frac{\partial S(T, \vec{q}_1)}{\partial \vec{q}_1}), 
+    \vec{q}_1, T]
+\\
+& - \dot{q}^i(\vec{q}_1, T, 
+        \frac{\partial S(T, \vec{q}_1)}{\partial \vec{q}_1})
+ \frac{\partial S(T, \vec{q}_1)}{\partial q^i_1}
+\end{split}
+}
+
+The equation \rf{S-eqn} is called Hamilton-Jakoby equation. 
+It is the first order partial non-linear differential equation. 
+In short I can write it as 
+\eqnl{JH-eqn}{
+\frac{\partial S(T, \vec{q})}{\partial T}
+=    
+L[\vec{\dot{q}}, \vec{q}, T]
+ - \frac{\partial S(T, \vec{q})}{\partial q^i} \dot{q}^i
+}
+
+where $\vec{\dot{q}} = \vec{\dot{q}}(\partial_{\vec{q}}S, T, q)$ 
+can be considered as a symbol representing a function
+ obtained from the solution of the algebraic system
+\eqnl{JH-qdot}{
+\frac{\partial S(T, \vec{q})}{\partial q^i}
+= 
+\partial_{\dot{q}^i}L[\vec{\dot{q}}, \vec{q}, T]
+}
+
+\par 
+
+Now comes technically more difficult in my opinion part to 
+deduce the solution of the equation of motion \rf{L-eqn} from 
+the solution of the JH-equation \rf{JH-eqn}.
+
+\par
+
+As for a first-oder partial differncial equation for $S$ in $N+1$ space, 
+the general solution of \rf{JH-eqn} can be written as function
+of $T$, $\vec{q}$ and $N + 1$ constants $\vec{\alpha}$ and $\alpha_0$:
+\eqn{
+    S = \tilde{S}(T, \vec{q}, \vec{\alpha}) + \alpha_0,
+}
+where $\alpha_0$ is written explicitly as additive constant. 
+It is possible because $S$ is present in \rf{JH-eqn} only via
+its patial derivatives $\partial_T S$ and $\partial_{\vec{q}} S$.
+
+\par
+In the following the value of $\alpha_0$ is not important and for 
+this reason I simply assume that
+\eqnl{S-is-T-q-alpha}{
+    S = S(T, \vec{q}, \vec{\alpha}).
+}
+
+I define 
+\eqnl{beta-definition}{
+    \vec{\beta}(T, \vec{q}, \vec{\alpha}) = \frac{\partial S}{\partial \alpha}.
+}
+
+This definition also can be seen as introduction of new coordinates 
+$T$, $\vec{\beta}$, $\vec{\alpha}$ instead of the set 
+$T$, $\vec{q}$, $\vec{\alpha}$. I will assume in the following that 
+\rf{beta-definition} can be resolved with respect to $\vec{q}$. 
+[Warning: under what condition this can be true?] I.e. I can assume
+that 
+\eqn{
+    \vec{q} = \vec{q}(T, \vec{\beta}, \vec{\alpha})
+        \equiv \vec{q}(T, \frac{\partial S}{\partial \alpha}, \vec{\alpha}).
+}
+
+With this definitions/assumesiones in hands I differenciate \rf{JH-eqn}
+with respect to $\alpha$,
+\eqn{
+\begin{split}
+\frac{\partial^2 S}{\partial \vec{\alpha} \partial T}
+ & = \frac{\partial^2 S}{\partial T \partial \vec{\alpha}}
+\\ & 
+\equiv \frac{\partial \vec{\beta}}{\partial T}
+= \frac{\partial}{\partial \vec{\alpha}}
+    L[\vec{\dot{q}}(\partial_{\vec{q}}S(T, \vec{q}, \vec{\alpha}), T, q), 
+        \vec{q}, T]
+-
+\frac{\partial}{\partial \vec{\alpha}}\left\lbrace 
+ \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i} \dot{q}^i
+\right\rbrace
+\\ & 
+= \frac{\partial L}{\partial \dot{q}^i}
+\frac{\partial \dot{q^i}}{\partial \vec{\alpha}}
+-\frac{\partial^2 S}{\partial \vec{\alpha} \partial q^i}\dot{q}^i
+-\frac{\partial S}{\partial q^i} 
+    \frac{\partial \dot{q}^i}{\partial \vec{\alpha}}
+
+= 
+\frac{\partial S}{\partial q^i} 
+    \frac{\partial \dot{q}^i}{\partial \vec{\alpha}}
+-\frac{\partial^2 S}{\partial \vec{\alpha} \partial q^i}\dot{q}^i
+-\frac{\partial S}{\partial q^i} 
+    \frac{\partial \dot{q}^i}{\partial \vec{\alpha}}
+\end{split},
+}
+or 
+\eqnl{beta-over-T}{
+\left.\frac{\partial \vec{\beta}}{\partial T}\right|_{\alpha\vec{q}}
+\; = \; -\frac{\partial^2 S}{\partial \vec{\alpha} \partial q^i}\dot{q}^i
+\; = \; 
+-\left.\frac{\partial\vec\beta}{\partial q^i}
+  \right|_{\alpha T}\dot{q}^i 
+}
+
+where I used \rf{JH-qdot} to replace 
+$\partial_{\dot{q}^i}L[\vec{\dot{q}}, \vec{q}, T]$ by 
+$\partial_{q^i}S$.
+
+\par
+
+I must note here that $\dot{\vec{q}}$ in \rf{beta-over-T} is just a symbol
+that denote a function defined as the solution of 
+\rf{JH-qdot}, i.e. it just represents some function of $T$, $\beta$,
+$\alpha$:
+\eqn{
+\vec{\dot{q}}
+ = 
+\vec{\dot{q}}(\partial_{\vec{q}}S(\vec{q}, T, \vec{\alpha}), T, q)
+=
+\vec{\dot{q}}(\partial_{\vec{q}}S(\vec{q}(T, \vec{\beta}, \vec{\alpha}), 
+  T, \vec{\alpha}), T, q(T, \vec{\beta}, \vec{\alpha}))
+}
+
+\par
+Now I return to the interpretation of \rf{beta-definition} as a non-explicit
+definition of function $\vec{q}(\vec{\beta}, T, \vec{\alpha})$. I will show 
+that with fixed $\vec{\beta}$, $\vec{\alpha}$ this function $\vec{q}$ as
+function of $T$ satisfies the equation of motion \rf{L-eqn}. Indeed, I have
+for 
+\eqn{
+\left.\frac{\partial{q}}{\partial{T}}\right|_{\beta\alpha} 
+\; \equiv \;
+\vec{q}_T
+}
+from $\vec{\beta} = \vec{\beta}(\vec{q}, T, \vec{\alpha})$:
+
+\eqnl{q-dot-q-T-deduction}{
+\begin{split}
+0 & = 
+\left.\frac{\partial\vec{\beta}}{\partial T}
+(\vec{q}, T, \vec{\alpha})\right|_{\alpha\beta}
+\; = \;
+\left.\frac{\partial\vec{\beta}}{\partial q^i}\right|_{\alpha T}
+\left.\frac{\partial q^i}{\partial T}\right|_{\alpha\beta} 
++ 
+\left.\frac{\partial\vec{\beta}}{\partial T}
+\right|_{\alpha\vec{q}}
+\\ & =
+\left.\frac{\partial\vec{\beta}}{\partial q^i}\right|_{\alpha T}
+q^i_T
++ 
+\left.\frac{\partial\vec{\beta}}{\partial T}
+\right|_{\alpha\vec{q}}
+\; = \;
+\left.\frac{\partial\vec{\beta}}{\partial q^i}\right|_{\alpha T}
+q^i_T
+-\left.\frac{\partial\vec\beta}{\partial q^i}
+  \right|_{\alpha T}q^i_T\dot{q}^i 
+\\ & =
+\left.\frac{\partial\vec{\beta}}{\partial q^i}\right|_{\alpha T}
+\left(q^i_T - \dot{q}^i\right)
+\end{split}
+}
+
+\par
+Assuming that the matrix
+$\frac{\partial\vec{\beta}}{\partial q^i} 
+\equiv \frac{\partial\beta^j}{\partial q^i}$ has non-zero determinant
+[ I need to refer to a proper mathematics for exact reasons ]
+I multiply \rf{q-dot-q-T-deduction} by 
+$\left(\frac{\partial\beta^j}{\partial q^i}\right)^{-1}$ which gives
+\eqnl{q-dot-is-q-T}{
+\dot{q}^i = q^i_T 
+\equiv \left.\frac{\partial{q^i}}{\partial{T}}\right|_{\alpha\beta} .
+} 
+
+That is, an abstract symbol $\dot{\vec{q}}$ is equal to the partial derivative
+$\vec{q}_T$. This in turns means from \rf{JH-qdot} that $\vec{q}_T$ satisfies
+\eqnl{JH-qdot-alpha}{
+\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+= 
+\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T].
+}
+
+I differenciate the last equation over T to get
+\eqn{
+\begin{split}
+\frac{d}{d T}\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T]
+& \equiv  
+\left.\frac{\partial}{\partial T}\right|_{\alpha \vec{\beta}}
+\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T]
+\; = \;
+ \left.\frac{\partial}{\partial T}\right|_{\alpha\vec{\beta}} 
+  \left.\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+    \right|_{\alpha T}
+\\
+& = \left.\frac{\partial}{\partial T}\right|_{\alpha\vec{q}} 
+  \left.\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+    \right|_{\alpha T}
++ 	
+\left.\frac{\partial}{\partial q^j}\right|_{\alpha T} 
+  \left.\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+    \right|_{\alpha T}
+  \left.\frac{\partial q^j}{\partial T}\right|_{\alpha \vec{\beta}} 		
+\\
+& =  \left.\frac{\partial}{\partial q^i}\right|_{\alpha T}
+  \left\{L[\vec{\dot{q}}, \vec{q}, T]
+ - \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j} \dot{q}^j
+    \right\} 
+\\
+& \phantom{ = }
++
+\left.\frac{\partial}{\partial q^j}\right|_{\alpha T} 
+  \left.\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+    \right|_{\alpha T}
+  q^j_T
+\end{split}
+}
+
+due to \rf{JH-eqn}, thus
+
+\eqn{
+\begin{split}
+\frac{d}{d T}\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T]
+& =  \left.\frac{\partial}{\partial q^i}\right|_{\alpha T}
+  \left\{L[\vec{q_T}, \vec{q}, T]
+ - \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j} q_T^j
+    \right\} 
+\\
+& \phantom{ = }
+
++
+\left.\frac{\partial}{\partial q^j}\right|_{\alpha T} 
+  \left.\frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^i}
+    \right|_{\alpha T}
+  q^j_T
+\\
+& =  \left.\frac{\partial}{\partial q^i}\right|_{\alpha T}
+  L[\vec{q_T}, \vec{q}, T]
+ - \frac{\partial^2 S(T, \vec{q}, \vec{\alpha})}{\partial q^i \partial q^j} 
+    q_T^j
+ -  \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j}   
+    \frac{\partial q_T^j} {\partial q^i }
+\\
+& \phantom{ = }
++
+\frac{\partial^2 S(T, \vec{q}, \vec{\alpha})}{\partial q^j \partial q^i}
+  q^j_T
+
+\\
+& =  \left.\frac{\partial}{\partial q^i}\right|_{\alpha T}
+  L[\vec{q_T}, \vec{q}, T]
+ -  \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j}   
+    \frac{\partial q_T^j} {\partial q^i }
+
+\\
+& =  
+\left.\frac{\partial}{\partial q^i}\right|_{\alpha \vec{q}_T}
+  L[\vec{q_T}, \vec{q}, T]
+
++
+\left.\frac{\partial}{\partial q_T^j}\right|_{\alpha \vec{q}}
+  L[\vec{q_T}, \vec{q}, T] 
+\left.\frac{\partial q_T^j}{\partial q^i}\right|_{\alpha T}
+\\
+& \phantom{ = }
+
+ -  \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j}   
+    \frac{\partial q_T^j} {\partial q^i }.
+
+\end{split}
+}
+
+Using \rf{JH-qdot-alpha} one more time I finally have
+\eqn{
+\begin{split}
+\frac{d}{d T}\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T]
+& =  
+\left.\frac{\partial}{\partial q^i}\right|_{\alpha \vec{q}_T}
+  L[\vec{q_T}, \vec{q}, T]
+
++  \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j}   
+    \frac{\partial q_T^j} {\partial q^i }.
+\\
+& \phantom{ = }
+ -  \frac{\partial S(T, \vec{q}, \vec{\alpha})}{\partial q^j}   
+    \frac{\partial q_T^j} {\partial q^i }.
+
+\end{split}
+}
+
+or simply
+\eqn{
+\frac{d}{d T}\partial_{q_T^i}L[\vec{q}_T, \vec{q}, T]
+\; = \; 
+\frac{\partial}{\partial q^i} L[\vec{q_T}, \vec{q}, T].
+}
+
+Thus $\vec{q}(T, \vec{\beta}, \vec{\alpha})$ defined in inexplicit way
+via \rf{beta-definition} is a solution of equations of motion \rf{L-eqn}
+that depends on $2N$ constants $\alpha_i$, $\beta_i$, $i=1..N$
+
+\par
+
+\section{Bottom line}
+
+In short, I can describe the Hamilton-Jakoby method as following procedure.
+
+\begin{enumerate}
+\item
+Given the Lagrangian $L=L(\dot{\vec{q}}, \vec{q}, T)$ express $\dot{\vec{q}}$
+as a function of $\partial_{\dot{\vec{q}}}L$, $q$ and~$T$:
+\eqn{
+\dot{\vec{q}} = \dot{\vec{q}}
+    (\frac{\partial L}{\partial \dot{\vec{q}}}, \vec{q}, T)
+}
+
+\item
+Substitude $\partial_{\dot{\vec{q}}}L$ by $\partial_{\vec{q}}S(T, \vec{q})$
+in the expression for $\dot{\vec{q}}$ and find a general solution 
+of the Hamilton-Jakoby equation \rf{JH-eqn} for $S(T, \vec{q})$:
+
+\eqn{
+\partial_T S(T, \vec{q}) =    
+L[\vec{\dot{q}}(\partial_{\vec{q}}S, \vec{q}, T), \vec{q}, T]
+ - \partial_{q^i} S(T, \vec{q}) \dot{q}^i(\partial_{\vec{q}}S, \vec{q}, T).
+}
+
+\item
+Present the general solution in the following form:
+\eqn{
+S = S(T, \vec{q}, \vec{alpha}) + \alpha_0,
+}
+where $\vec{alpha})$ and $\alpha_0$ are $N+1$ arbitrary constants.
+
+\item
+
+From $beta^i \equiv \partial_{\alpha_i} S(T, \vec{q}, \vec{\alpha})$ express
+$\vec{q}$ as a function of $\vec{\alpha}$, $\vec{\beta}$ and~$T$:
+\eqn{
+\vec{q} = \vec{q}(\vec{\alpha}, \vec{\beta}, T).
+}
+
+\item
+
+Use definitions $\vec{q_0} = \vec{q}(\vec{\alpha}, \vec{\beta}, T_0)$, 
+$\vec{v_0} = \partial_T \vec{q}(\vec{\alpha}, \vec{\beta}, T_0)$ to express
+$q$ via initial conditions:
+\eqn{
+\vec{q} = \vec{q}(\vec{q_0}, \vec{v_0}, T).
+}
+
+\end{enumerate}
+
+And that is it.
+
+\end{document}
+

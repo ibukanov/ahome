@@ -1,0 +1,31 @@
+#!/bin/bash
+
+dir="$1"
+
+shift 1
+
+program="firefox-bin"
+
+if test "$1" = "xpcshell"; then
+  program="$1"
+  shift
+else
+  args=("-no-remote" "${args[@]}")
+fi
+
+base="$HOME/b/ff/${dir}/dist"
+
+export LD_LIBRARY_PATH="$base/lib${LD_LIBRARY_PATH+":${LD_LIBRARY_PATH}"}"
+export XAUTHORITY="$HOME/.Xauthority"
+echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
+case $dir in
+  *.32 ) chcon -t texrel_shlib_t "$base/lib/libxul.so" ;;
+esac
+
+#chcon -t texrel_shlib_t $base/dist/lib/libxul.so
+
+cd $base/bin
+export MALLOC_CHECK_=2
+
+test -z "$DISPLAY" && export DISPLAY=:2
+exec "./$program" "${args[@]}" "$@"

@@ -1,0 +1,599 @@
+Thu May  5 01:11:49 CEST 2005  igor@mir2.org
+  * using umask to create socket path with restricted permissions
+Wed May  4 14:11:52 CEST 2005  igor@mir2.org
+  * no password file if SecurityTypes is None
+Wed May  4 12:49:55 CEST 2005  igor@mir2.org
+  * removal of local socket path on exit
+Wed May  4 00:29:44 CEST 2005  igor@mir2.org
+  * no http listener if localSocketMode
+Tue May  3 23:45:23 CEST 2005  igor@mir2.org
+  * listen to local socket
+Tue May  3 16:03:12 CEST 2005  igor@mir2.org
+  tagged import
+Mon May  2 11:40:24 CEST 2005  igor@mir2.org
+  * pipe mode witout extra shell invocation
+Mon May  2 01:23:52 CEST 2005  igor@mir2.org
+  * direct pipe as connection socket
+diff -rN -U3 old-vnc-4.0-unixsrc/network/TcpSocket.cxx new-vnc-4.0-unixsrc-1/network/TcpSocket.cxx
+--- old-vnc-4.0-unixsrc/network/TcpSocket.cxx	2005-05-05 01:13:22.328822595 +0200
++++ new-vnc-4.0-unixsrc-1/network/TcpSocket.cxx	2005-05-04 15:52:12.000000000 +0200
+@@ -26,6 +26,8 @@
+ #define closesocket close
+ #include <sys/types.h>
+ #include <sys/socket.h>
++#include <sys/wait.h>
++#include <sys/un.h>
+ #include <arpa/inet.h>
+ #include <netinet/in.h>
+ #include <netinet/tcp.h>
+@@ -33,6 +35,7 @@
+ #include <unistd.h>
+ #include <errno.h>
+ #include <string.h>
++#include <stdlib.h>
+ #include <signal.h>
+ #include <fcntl.h>
+ #endif
+@@ -54,6 +57,100 @@
+ 
+ static rfb::LogWriter vlog("TcpSocket");
+ 
++class PipeSocket : public Socket {
++public:
++  PipeSocket(char** pipeCommandArgs);
++  virtual ~PipeSocket();
++
++  virtual char* getMyAddress() { return rfb::strDup(command); }
++  virtual int getMyPort() {return -1;}
++  virtual char* getMyEndpoint() { return rfb::strDup(command); }
++
++  virtual char* getPeerAddress() { return rfb::strDup(command); }
++  virtual int getPeerPort() { return -1; }
++  virtual char* getPeerEndpoint() { return rfb::strDup(command); }
++  virtual bool sameMachine() { return true; }
++
++  virtual void shutdown();
++private:
++  pid_t child_pid;
++  char *command;
++};
++
++static void 
++do_child(int socket_fd, char** pipeCommandArgs)
++{
++  // Redirect stdin 
++  if (dup2(socket_fd, 0) < 0) {
++    perror("dup2 stdin");
++    return;
++  }
++  // Redirect stdout: use the same socket 
++  if (dup2(socket_fd, 1) < 0) {
++    perror("dup2 stdout");
++    return;
++  }
++  close(socket_fd);
++  execvp(pipeCommandArgs[0], pipeCommandArgs);
++  perror("execvp");
++}
++
++PipeSocket::PipeSocket(char** pipeCommandArgs)
++{
++  int inout[2];
++  
++  /* Uses socket pairs to communicate with the program. */
++  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, inout) < 0) {
++    throw SocketException("Failed socketpair", errno);
++  }
++
++  child_pid = fork();
++  if (child_pid == 0) {
++    // child
++    close(inout[1]);
++    do_child(inout[0], pipeCommandArgs);
++    _exit(1);
++  } else if (child_pid < 0) {
++    throw SocketException("Failed fork", errno);
++  }
++  // parent
++  close(inout[0]);
++  
++  // Create the input and output streams
++  instream = new FdInStream(inout[1]);
++  outstream = new FdOutStream(inout[1]);
++  own_streams = true;
++
++  command = rfb::strDup(pipeCommandArgs[0]);
++}
++
++PipeSocket::~PipeSocket() {
++  rfb::strFree(command);
++  close(getFd());
++  for (;;) {
++    int ret = waitpid(child_pid, NULL, 0);
++    if (ret < 0) {
++      if (errno == EINTR) {
++      	continue;
++      }
++      perror("waitpid");
++    }
++    break;
++  }
++}
++
++void PipeSocket::shutdown() 
++{
++  ::shutdown(getFd(), 2);
++}
++
++Socket *
++network::createPipeSocket(char** pipeCommandArgs)
++{
++    return new PipeSocket(pipeCommandArgs);
++}
++
++
+ /* Tunnelling support. */
+ int network::findFreeTcpPort (void)
+ {
+@@ -267,7 +364,7 @@
+ 
+ 
+ TcpListener::TcpListener(int port, bool localhostOnly, int sock, bool close_)
+-  : closeFd(close_)
++  : closeFd(close_), localSocketPath(NULL)
+ {
+   if (sock != -1) {
+     fd = sock;
+@@ -313,8 +410,112 @@
+   }
+ }
+ 
++struct RemoveOnExitListElem
++{
++    RemoveOnExitListElem *next;
++    char path[1];
++};
++
++static RemoveOnExitListElem *removeOnExitListHead = NULL;
++
++static void runRemoveOnExit()
++{
++    for (;;) {
++        RemoveOnExitListElem *elem = removeOnExitListHead;
++        if (!elem) break;
++        removeOnExitListHead = elem->next;
++        unlink(elem->path);
++        free(elem);
++    }
++}
++
++static void addToRemoveOnExitList(const char *path)
++{
++    static bool handlerWasAdded = false;
++    if (!handlerWasAdded) {
++        handlerWasAdded = true;
++        if (0 != atexit(runRemoveOnExit)) {
++            fprintf(stderr, "TcpSocket: Failed atexit\n");
++            exit(1);
++        }
++    }
++    size_t pathSize = strlen(path) + 1;
++    RemoveOnExitListElem *elem;
++    elem = (RemoveOnExitListElem *)malloc(offsetof(RemoveOnExitListElem, path)
++                                          + pathSize);
++    if (!elem) {
++        fprintf(stderr, "TcpSocket: Failed malloc\n");
++        exit(1);
++    }
++    memcpy(elem->path, path, pathSize);
++    elem->next = removeOnExitListHead;
++    removeOnExitListHead = elem;
++}
++
++static void removeFromRemoveOnExitList(const char *path)
++{
++    RemoveOnExitListElem *elem = removeOnExitListHead;
++    if (!elem) return;
++    RemoveOnExitListElem *prev = NULL;
++    do {
++        if (0 == strcmp(elem->path, path)) {
++            if (!prev) removeOnExitListHead = elem->next;
++            else prev->next = elem->next;
++            free(elem);
++            break;
++        }
++        prev = elem;
++        elem = elem->next;
++    } while (elem);
++}
++
++TcpListener::TcpListener(const char *localSocketPath_, unsigned fileUmask)
++{
++  struct sockaddr_un sock_addr;    
++  size_t name_length = strlen(localSocketPath_);
++  if (name_length > sizeof(sock_addr.sun_path) - 1) {
++      throw SocketException("Length of filename exceeded max limit", ENOMEM);
++  }
++
++  sock_addr.sun_family = AF_LOCAL;
++  memcpy(sock_addr.sun_path, localSocketPath_, name_length);
++  sock_addr.sun_path[name_length] = '\0';
++  size_t sock_addr_size 
++    = offsetof(struct sockaddr_un, sun_path) + name_length + 1;
++
++  fd = socket(PF_LOCAL, SOCK_STREAM, 0);
++  if (fd < 0) {
++    throw SocketException("unable to create listening socket", errorNumber);
++  }
++
++  mode_t old_umask = umask(fileUmask);
++  int bind_status = bind(fd, (struct sockaddr *)&sock_addr, sock_addr_size);
++  umask(old_umask);
++  if (bind_status < 0) {
++    int e = errorNumber;
++    closesocket(fd);
++    throw SocketException("unable to bind listening socket", e);
++  }
++  if (listen(fd, 5) < 0) {
++    int e = errorNumber;
++    closesocket(fd);
++    unlink(localSocketPath_);
++    throw SocketException("unable to set socket to listening mode", e);
++  }
++
++  fcntl(fd, F_SETFD, FD_CLOEXEC);
++  addToRemoveOnExitList(localSocketPath_);
++  localSocketPath = rfb::strDup(localSocketPath_);
++}
++
++
+ TcpListener::~TcpListener() {
+   if (closeFd) closesocket(fd);
++  if (localSocketPath) {
++    removeFromRemoveOnExitList(localSocketPath);
++    unlink(localSocketPath);
++    free(localSocketPath);
++  }
+ }
+ 
+ void TcpListener::shutdown()
+@@ -340,13 +541,15 @@
+   fcntl(new_sock, F_SETFD, FD_CLOEXEC);
+ #endif
+ 
+-  // Disable Nagle's algorithm
+-  int one = 1;
+-  if (setsockopt(new_sock, IPPROTO_TCP, TCP_NODELAY,
+-   (char *)&one, sizeof(one)) < 0) {
+-    int e = errorNumber;
+-    closesocket(new_sock);
+-    throw SocketException("unable to setsockopt TCP_NODELAY", e);
++  if (!localSocketPath) {
++    // Disable Nagle's algorithm
++    int one = 1;
++    if (setsockopt(new_sock, IPPROTO_TCP, TCP_NODELAY,
++     (char *)&one, sizeof(one)) < 0) {
++      int e = errorNumber;
++      closesocket(new_sock);
++      throw SocketException("unable to setsockopt TCP_NODELAY", e);
++    }
+   }
+ 
+   // Create the socket object & check connection is allowed
+@@ -373,6 +576,7 @@
+ }
+ 
+ int TcpListener::getMyPort() {
++  if (localSocketPath) return 0;
+   return TcpSocket::getSockPort(getFd());
+ }
+ 
+diff -rN -U3 old-vnc-4.0-unixsrc/network/TcpSocket.h new-vnc-4.0-unixsrc-1/network/TcpSocket.h
+--- old-vnc-4.0-unixsrc/network/TcpSocket.h	2005-05-05 01:13:22.329822402 +0200
++++ new-vnc-4.0-unixsrc-1/network/TcpSocket.h	2005-05-04 15:51:43.000000000 +0200
+@@ -39,6 +39,8 @@
+ 
+   /* Tunnelling support. */
+   int findFreeTcpPort (void);
++  
++  Socket *createPipeSocket(char** pipeCommandArgs);
+ 
+   class TcpSocket : public Socket {
+   public:
+@@ -70,6 +72,7 @@
+   public:
+     TcpListener(int port, bool localhostOnly=false, int sock=-1,
+                 bool close=true);
++    TcpListener(const char *localSocketPath, unsigned fileUmask);
+     virtual ~TcpListener();
+ 
+     virtual void shutdown();
+@@ -80,6 +83,7 @@
+ 
+   private:
+     bool closeFd;
++    char *localSocketPath;
+   };
+ 
+   class TcpFilter : public ConnectionFilter {
+diff -rN -U3 old-vnc-4.0-unixsrc/vncserver new-vnc-4.0-unixsrc-1/vncserver
+--- old-vnc-4.0-unixsrc/vncserver	2005-05-05 01:13:22.264834893 +0200
++++ new-vnc-4.0-unixsrc-1/vncserver	2005-05-04 14:03:42.000000000 +0200
+@@ -39,6 +39,8 @@
+                  ((-d "/usr/local/vnc/classes") && "/usr/local/vnc/classes"));
+ $vncUserDir = "$ENV{HOME}/.vnc";
+ $xauthorityFile = "$ENV{XAUTHORITY}" || "$ENV{HOME}/.Xauthority";
++$localSocketMode = 0;
++$SecurityTypes = "";
+ 
+ $defaultXStartup
+     = ("#!/bin/sh\n\n".
+@@ -58,12 +60,20 @@
+ # Check command line options
+ 
+ &ParseOptions("-geometry",1,"-depth",1,"-pixelformat",1,"-name",1,"-kill",1,
++              "-localSocketMode",0,"-SecurityTypes",1,
+ 	      "-help",0,"-h",0,"--help",0);
+ 
+ &Usage() if ($opt{'-help'} || $opt{'-h'} || $opt{'--help'});
+ 
+ &Kill() if ($opt{'-kill'});
+ 
++if ($opt{'-localSocketMode'}) {
++    $localSocketMode = 1;
++}
++if ($opt{'-SecurityTypes'}) {
++    $SecurityTypes = $opt{'-SecurityTypes'};
++}
++
+ # Uncomment this line if you want default geometry, depth and pixelformat
+ # to match the current X display:
+ # &GetXDisplayDefaults();
+@@ -90,16 +100,17 @@
+     }
+ }
+     
+-# Make sure the user has a password.
+-
+-($z,$z,$mode) = stat("$vncUserDir/passwd");
+-if (!(-e "$vncUserDir/passwd") || ($mode & 077)) {
+-    warn "\nYou will require a password to access your desktops.\n\n";
+-    system("vncpasswd -q $vncUserDir/passwd"); 
+-    if (($? >> 8) != 0) {
+-	exit 1;
+-    }
+-}
++# Make sure the user has a password unless $SecurityTypes is None.
++if ($SecurityTypes ne "None") {
++  ($z,$z,$mode) = stat("$vncUserDir/passwd");
++  if (!(-e "$vncUserDir/passwd") || ($mode & 077)) {
++      warn "\nYou will require a password to access your desktops.\n\n";
++      system("vncpasswd -q $vncUserDir/passwd"); 
++      if (($? >> 8) != 0) {
++	  exit 1;
++      }
++  }
++}  
+ 
+ # Find display number.
+ 
+@@ -115,7 +126,11 @@
+     $displayNumber = &GetDisplayNumber();
+ }
+ 
+-$vncPort = 5900 + $displayNumber;
++if ($localSocketMode) {
++  $localSocketPath = "$vncUserDir/sock$displayNumber"
++} else {
++  $vncPort = 5900 + $displayNumber;
++}
+ 
+ $desktopLog = "$vncUserDir/$host:$displayNumber.log";
+ unlink($desktopLog);
+@@ -135,14 +150,19 @@
+ 
+ $cmd = "Xvnc :$displayNumber";
+ $cmd .= " -desktop " . &quotedString($desktopName);
+-$cmd .= " -httpd $vncJavaFiles" if ($vncJavaFiles);
++$cmd .= " -httpd $vncJavaFiles" if ($vncJavaFiles && !localSocketMode);
+ $cmd .= " -auth $xauthorityFile";
+ $cmd .= " -geometry $geometry" if ($geometry);
+ $cmd .= " -depth $depth" if ($depth);
+ $cmd .= " -pixelformat $pixelformat" if ($pixelformat);
+ $cmd .= " -rfbwait 30000";
+ $cmd .= " -rfbauth $vncUserDir/passwd";
+-$cmd .= " -rfbport $vncPort";
++if ($localSocketMode) {
++  $cmd .= " -localSocket $localSocketPath";
++} else {
++  $cmd .= " -rfbport $vncPort";
++}
++$cmd .= " -SecurityTypes $SecurityTypes" if ($SecurityTypes);
+ $cmd .= " -pn";
+ 
+ # Add font path and color database stuff here, e.g.:
+@@ -269,14 +289,29 @@
+     }
+     close(S);
+ 
+-    socket(S, $AF_INET, $SOCK_STREAM, 0) || die "$prog: socket failed: $!\n";
+-    eval 'setsockopt(S, &SOL_SOCKET, &SO_REUSEADDR, pack("l", 1))';
+-    if (!bind(S, pack('S n x12', $AF_INET, 5900 + $n))) {
+-	close(S);
+-	return 0;
++    if ($localSocketMode) {
++        my $sockPath = "$vncUserDir/sock$n";
++        if (-S $sockPath) {
++            socket(S, $AF_UNIX, $SOCK_STREAM, 0) || die "$prog: socket failed: $!\n";
++            if (!bind(S, sockaddr_un($sockPath))) {
++            	close(S);
++            	return 0;
++            }
++            close(S);
++        } elsif (-e $sockPath) {
++	    warn "\nWarning: $n is taken because of $sock_path exists\n";
++	    warn "and not a socket.\n";
++            return 0;
++        }
++    } else {
++        socket(S, $AF_INET, $SOCK_STREAM, 0) || die "$prog: socket failed: $!\n";
++        eval 'setsockopt(S, &SOL_SOCKET, &SO_REUSEADDR, pack("l", 1))';
++        if (!bind(S, pack('S n x12', $AF_INET, 5900 + $n))) {
++	    close(S);
++	    return 0;
++        }
++        close(S);
+     }
+-    close(S);
+-
+     if (-e "/tmp/.X$n-lock") {
+ 	warn "\nWarning: $host:$n is taken because of /tmp/.X$n-lock\n";
+ 	warn "Remove this file if there is no X server $host:$n\n";
+@@ -557,10 +592,12 @@
+ 	    }
+ 	} else {
+ 	    $AF_INET = &AF_INET;
++	    $AF_UNIX = &AF_UNIX;
+ 	    $SOCK_STREAM = &SOCK_STREAM;
+ 	}
+     } else {
+ 	$AF_INET = &AF_INET;
++	$AF_UNIX = &AF_UNIX;
+ 	$SOCK_STREAM = &SOCK_STREAM;
+     }
+ }
+diff -rN -U3 old-vnc-4.0-unixsrc/vncviewer/CConn.cxx new-vnc-4.0-unixsrc-1/vncviewer/CConn.cxx
+--- old-vnc-4.0-unixsrc/vncviewer/CConn.cxx	2005-05-05 01:13:22.315825093 +0200
++++ new-vnc-4.0-unixsrc-1/vncviewer/CConn.cxx	2005-05-02 10:46:05.000000000 +0200
+@@ -49,7 +49,7 @@
+ StringParameter windowName("name", "The X window name", "");
+ 
+ CConn::CConn(Display* dpy_, int argc_, char** argv_, network::Socket* sock_,
+-             char* vncServerName)
++             char* vncServerName, char** pipeCommandArgs)
+   : dpy(dpy_), argc(argc_),
+     argv(argv_), serverHost(0), serverPort(0), sock(sock_), viewport(0),
+     desktop(0), desktopEventHandler(0),
+@@ -80,6 +80,9 @@
+     char* name = sock->getPeerEndpoint();
+     vlog.info("Accepted connection from %s", name);
+     if (name) free(name);
++  } else if (pipeCommandArgs) {
++      sock = network::createPipeSocket(pipeCommandArgs);
++      vlog.info("connected using %s", pipeCommandArgs[0]);
+   } else {
+     if (vncServerName) {
+       getHostAndPort(vncServerName, &serverHost, &serverPort);
+diff -rN -U3 old-vnc-4.0-unixsrc/vncviewer/CConn.h new-vnc-4.0-unixsrc-1/vncviewer/CConn.h
+--- old-vnc-4.0-unixsrc/vncviewer/CConn.h	2005-05-05 01:13:22.317824708 +0200
++++ new-vnc-4.0-unixsrc-1/vncviewer/CConn.h	2005-05-02 10:45:26.000000000 +0200
+@@ -48,7 +48,7 @@
+ public:
+ 
+   CConn(Display* dpy_, int argc_, char** argv_, network::Socket* sock_,
+-        char* vncServerName);
++        char* vncServerName,  char** pipeCommandArgs);
+   ~CConn();
+ 
+   // TXDeleteWindowCallback methods
+diff -rN -U3 old-vnc-4.0-unixsrc/vncviewer/vncviewer.cxx new-vnc-4.0-unixsrc-1/vncviewer/vncviewer.cxx
+--- old-vnc-4.0-unixsrc/vncviewer/vncviewer.cxx	2005-05-05 01:13:22.318824516 +0200
++++ new-vnc-4.0-unixsrc-1/vncviewer/vncviewer.cxx	2005-05-02 10:54:36.000000000 +0200
+@@ -91,6 +91,10 @@
+ 
+ BoolParameter listenMode("listen", "Listen for connections from VNC servers",
+                          false);
++BoolParameter pipeMode("pipe", 
++                       "Interpret server name as a command to communicate with"
++                       " the server",
++                       false);
+ StringParameter geometry("geometry", "X geometry specification", "");
+ StringParameter displayname("display", "The X display", "");
+ 
+@@ -232,8 +236,9 @@
+   programName = argv[0];
+   char* vncServerName = 0;
+   Display* dpy;
++  int i;
+ 
+-  for (int i = 1; i < argc; i++) {
++  for (i = 1; i < argc && !pipeMode; i++) {
+     if (Configuration::setParam(argv[i]))
+       continue;
+ 
+@@ -249,6 +254,18 @@
+ 
+     vncServerName = argv[i];
+   }
++  char **pipeCommandArgs = NULL;
++  if (pipeMode) {
++    size_t pipeCommandArgsN = argc - i;
++    if (pipeCommandArgsN == 0) 
++      usage();
++    /* 
++     * Move pipe args to consumen '-pipe' to make roome for NULL.
++     */
++    memmove(argv + i - 1, argv + i, sizeof(argv[0]) * pipeCommandArgsN);
++    pipeCommandArgs = argv + i - 1;
++    pipeCommandArgs[pipeCommandArgsN] = NULL;
++  }
+ 
+   try {
+     TcpSocket::initTcpSockets();
+@@ -297,7 +314,7 @@
+ 
+     TXWindow::init(dpy, "Vncviewer");
+     xloginIconifier.iconify(dpy);
+-    CConn cc(dpy, argc, argv, sock, vncServerName);
++    CConn cc(dpy, argc, argv, sock, vncServerName, pipeCommandArgs);
+ 
+     // X events are processed whenever reading from the socket would block.
+ 
+diff -rN -U3 old-vnc-4.0-unixsrc/xc/programs/Xserver/vnc/vncExtInit.cc new-vnc-4.0-unixsrc-1/xc/programs/Xserver/vnc/vncExtInit.cc
+--- old-vnc-4.0-unixsrc/xc/programs/Xserver/vnc/vncExtInit.cc	2005-05-05 01:13:22.262835277 +0200
++++ new-vnc-4.0-unixsrc-1/xc/programs/Xserver/vnc/vncExtInit.cc	2005-05-04 15:53:34.000000000 +0200
+@@ -112,6 +112,7 @@
+ rfb::AliasParameter rfbwait("rfbwait", "Alias for ClientWaitTimeMillis",
+                             &rfb::Server::clientWaitTimeMillis);
+ rfb::IntParameter rfbport("rfbport", "TCP port to listen for RFB protocol",0);
++rfb::StringParameter localSocket("localSocket", "Local socket path to listen","");
+ rfb::StringParameter desktopName("desktop", "Name of VNC desktop","x11");
+ rfb::BoolParameter localhostOnly("localhost",
+                                  "Only allow connections from localhost",
+@@ -162,18 +163,24 @@
+             vlog.info("inetd wait");
+           }
+         } else {
+-          int port = rfbport;
+-          if (port == 0) port = 5900 + atoi(display);
+-          port += 1000 * scr;
+-          listener = new network::TcpListener(port, localhostOnly);
+-          vlog.info("Listening for VNC connections on port %d",port);
+-          CharArray httpDirStr(httpDir.getData());
+-          if (httpDirStr.buf[0]) {
+-            port = httpPort;
+-            if (port == 0) port = 5800 + atoi(display);
++          CharArray localSocketStr(localSocket.getData());
++          if (localSocketStr.buf[0]) {
++            listener = new network::TcpListener(localSocketStr.buf, 0177U);
++            vlog.info("Listening for VNC connections %s", localSocketStr.buf);
++          } else {
++            int port = rfbport;
++            if (port == 0) port = 5900 + atoi(display);
+             port += 1000 * scr;
+-            httpListener = new network::TcpListener(port, localhostOnly);
+-            vlog.info("Listening for HTTP connections on port %d",port);
++            listener = new network::TcpListener(port, localhostOnly);
++            vlog.info("Listening for VNC connections on port %d",port);
++            CharArray httpDirStr(httpDir.getData());
++            if (httpDirStr.buf[0]) {
++              port = httpPort;
++              if (port == 0) port = 5800 + atoi(display);
++              port += 1000 * scr;
++              httpListener = new network::TcpListener(port, localhostOnly);
++              vlog.info("Listening for HTTP connections on port %d",port);
++            }
+           }
+         }
+ 
+

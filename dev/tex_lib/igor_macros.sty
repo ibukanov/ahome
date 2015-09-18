@@ -1,0 +1,29 @@
+
+%%Shortcut for \label
+\def\l#1{\label{#1}}
+
+
+\def\eqn#1{\begin{displaymath}#1\end{displaymath}}
+\def\eqnl#1#2{\begin{equation}\label{#1}#2\end{equation}}
+
+%%  Shortcut for \begin{multline} -- multiline equation
+\def\eqm#1{\begin{multline*}#1\end{multline*}}
+\def\eqml#1#2{\begin{multline}\label{#1}#2\end{multline}}
+
+%%  Shortcut for \begin{gather} -- compact set of eqution lines
+%%  Note: in eqml use \label{xxx} or \notag to mark/unmark equation numbers
+\def\eqg#1{\begin{gather*}#1\end{gather*}}
+\def\eqgl#1{\begin{gather}#1\end{gather}}
+
+\def\splitDo#1{\begin{split}#1\end{split}}
+\def\alignDo#1{\begin{align*}#1\end{align*}}
+
+
+\def\arr#1#2{\begin{array}{#1}#2\end{array}}
+
+
+\def\rf#1{(\ref{#1})}
+
+\def\p{\par}
+
+\def\EQS{\; = \;}

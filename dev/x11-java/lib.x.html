@@ -1,0 +1,251 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+   <TITLE>Pure Java X client </TITLE>
+   <META NAME="keywords" CONTENT="Java X11 Xlib IFC">
+</HEAD>
+
+<BODY>
+
+<H1 ALIGN=CENTER>
+Pure Java X client 
+</H1>
+
+<HR>
+
+<H2 ALIGN=CENTER>
+Preface (or one year later)
+</H2>
+<p>
+At the beginning of February 1997 I decided to write something useful in Java 
+that would give me a feel of the language and its abilities. At that moment 
+it looked like I had got a couple of months to fulfil the wish before my 
+<a href="http://www.fi.uib.no/~boukanov/dipl/">Master thesis</a> deadline at 
+<a href="http://www.fi.uib.no/">The Department of Physics</a> would come too 
+close to do anything else except writing them in TeX. I weighted several 
+ideas and finally chosen to make 
+a <a href="http://www.javasoft.com/">Java</a> implementation of 
+<a href="http://www.opengroup.org/tech/desktop/x/">X11</a> 
+protocol. 
+But the protocol itself is not a big deal - I had to have some client to 
+demonstrate how it would work and an idea came in mind to have 
+a version of <a href="http://home.netscape.com/">Netscape</a>
+<a href="http://developer.netscape.com/library/ifc/">Internet 
+Foundation Classes</a> (IFC) 
+that would use my implementation to do the GUI 
+instead of standard Java AWT. 
+Well, that was a bad idea not only because 
+nowdays Netscape decided to forget about that very nice libarary but mostly 
+due to Netscape code license. It gives access to the source but does not 
+permit me to redistribute modifications - so I can not show that code 
+and that brought usefulness of  my efforts to other people to almost zero. 
+Yes, it was very good training but sometimes it is nice to have something 
+to share with others. For example, it would take just little more time to write
+some pure X Window Manager, i.e. one similar to fvwm.
+</p>
+<p>
+So given that it is quite ironic for me to read the following text that 
+I wrote a year ago when the X+IFC package started to work almost 
+without problems. 
+</p>
+
+<A HREF="http://www.fi.uib.no/~boukanov/">Igor Boukanov</A>,
+1998.04.24
+
+<HR>
+<H2>
+Design 
+</H2>
+
+<P>
+The main goal of the implementation is neither to write the full analog of 
+X library in Java nor to provide an alternative implementation of Java AWT 
+on the base of Java Xlib but to show the ability
+to support rich GUI(Graphic User Interface) framework entirely in Java. 
+Another purpose is to compare the performance of Java applications
+when they use the standard AWT implementation built upon native Xlib 
+in UNIX implementations of Java and when they use my implementation 
+of X11 protocol directly.
+</p>
+<p>
+To simplify the task I decided to take
+<a href="http://developer.netscape.com/library/ifc/">IFC 1.0</a> 
+as a base and to implement only those parts of the X protocol that 
+are necessary to run IFC based applications.
+
+<P>
+There are several points that I gained from this decision.
+<UL>
+<LI> IFC takes not so much from Java AWT. 
+It includes graphics, event handlings
+and frames and it does not need any AWT controls because it draws all controls
+by itself!
+</LI>
+<LI> IFC has a good documentation and its source <strong>is</strong> available.
+</LI>
+<LI> Netscape provides several nice examples that shows
+almost all sides of the IFC library. They were indeed very good tests 
+for my implementation and helped me to find some bugs.
+</LI>
+<LI> IFC provides the <strong>full</strong> GUI support and IFC applications 
+do need to use AWT at all in almost all cases. That is way the library 
+can be treated as a powerful program interface to any particular GUI
+and pure IFC applications can be running under completely new implementation
+<strong>without any modifications or recompilations</strong>. 
+</LI>
+<LI> IFC is quite flexible and for this reason I easily modified it 
+in the way that permits to use both the standard AWT graphics
+and the direct X11 one simultaneously. For example, the decision to use either 
+AWT or X11 is done at run-time that is very helpful during tests. I just need
+to change a command line to alter some arguments that tells haw to draw 
+graphics.
+</LI>
+</UL> 
+</P>
+
+<P>
+And of cause I lost quite significant thing. 
+To obtain the source I signed the 
+<a href="http://developer.netscape.com/library/ifc/downloads/sdk_license.html"
+>license</a>, which in particular does not permit me to distribute 
+modified IFC source or compiled Java classes.  So currently you may not access 
+the part with the modified IFC code.
+</P>
+
+<HR>
+<H2>
+Current limitations 
+</H2>
+
+<P>
+I did not implement features that I am not able to test. 
+This list include the support for gray X server visuals, 
+the program just shows
+(I suppose) everything in the black color on them.
+</P>
+
+<P>
+The current code is not thread safe (IFC does not need that) 
+although it supports the possibility
+for finalize methods to be called from any thread.
+So classes that handle X-resources can always have a chance to free  
+the server ids. I found out that a straightforward approach to thread safeness
+can lead to some performance problems under UNIX Java,
+although it seams a more elaborated one is free from them.
+I will definitely fix this after I will finish my diploma  
+thesis. 
+</P>
+
+<P>
+Due to tight binding of images with the rest part of GUI in AWT 
+I had to write an image support by myself in Java to avoid completely 
+the need in AWT native libraries. Currently it available only for GIFs
+and it is slow (on UNIX a native image code is 10-20 times faster). 
+This AWT-image link is just another
+inconsistency in Java. For example I may want to write a code that do a simple
+image transformations (make black-and-white images from color ones, 
+change color values etc.) and store the results in files or send 
+them to clients through a network. Then to get
+an access to a native code to get image objects in the device independent 
+representation (this code is completely decoupled from the rest 
+of AWT in the Sun Java) I have to (implicitly) initialize the whole AWT 
+which may not be available at all. It is quite often the case 
+for UNIX boxes where server applications may have not an access to 
+a GUI terminal...
+
+
+<HR>
+<H2>
+Copyright
+</H2>
+
+<P>
+
+The code that do not have any explicit copyright notes is covered 
+by the following one.
+<blockquote>
+Copyright &copy; 1997 
+<a href="http://www.fi.uib.no/~boukanov">Igor Boukanov</a>, 
+<a href="mailto:Igor.Boukanov@fi.uib.no">&lt;Igor.Boukanov@fi.uib.no&gt;</a>.
+<br>
+No guarantees or warantees or anything
+are provided or implied in any way whatsoever. Use this code at your
+own risk. Permission to use this code for any purpose is given,
+as long as the copyright is kept intact.
+</blockquote>
+
+<HR>
+<H2>
+Source
+</H2>
+<P>
+
+The main part of the source code is available at 
+<a href="lib.x.current.tgz">lib.x.current.tgz</a> as a tar gzip archive
+or at  <a href="lib.x.current.zip">lib.x.current.zip</a>
+as a zip archive. Important note: It <strong>does</strong> contain
+long file names. You may also just browse the directory 
+<a href="lib/">lib</a> to see may activity.
+</P>
+
+<P>
+Please note that I will probably rewrite some code such as 
+GIF decompression in 
+<a href="http://found.cs.nyu.edu/meyer/jasmin/">Jasmin</a>
+Java assembler. It can really 
+improve the performance. An early example of such activity 
+is present at <a href="lib/x/asm.jas">lib/x/asm.jas</a>, the alternative
+Java source is at <a href="lib/x/asm.java">lib/x/asm.java</a>.
+</P>
+
+<HR>
+<H2>
+How to run test
+</H2>
+<P>
+After you extract the archive to some directory you may want to add
+that directory to your CLASSPATH environment variable. The archive already 
+contains classes necessary to run a very test application 
+<a href="lib/x/XTest.java">lib.x.XTest</a> but you may also 
+compile them from a command line in the installation directory 
+<pre>
+javac -O lib/x/XTest.java     or    javac -O lib\x\XTest.java
+</pre>
+To run this test you have to provide X display name via the property 
+"X.DISPLAY".
+With JDK you can type:
+<pre>
+java -DX.DISPLAY=[InternetHostAddress:0] lib.x.XTest [Gif-URL]
+</pre>
+[Gif-URL] is an optional url that points to any Gif image. 
+(It includes transparent ones.) 
+It may take quite a lot of time to start, so please be patient.
+When and if it runs, you may press F12 to close the program, g to show
+Gif image (please be patient again!), +/- to shrink/scretch the window,
+1-2-3-4 to show some bitmaps etc. 
+This is really just a little feature test. 
+<p>
+<strong>Note:</strong> The current version does not support X authority 
+so switch it off to run the test.
+<HR>
+<H2>
+Bind with IFC
+</H2>
+<P>
+The main code for IFC support is at 
+<a href="netscape/application/ImplementationX.java"
+>netscape/application/ImplementationX.java</a>, which also contains
+a real example of XEvents processing. Due to the mentioned problems I can not 
+give the whole source of the modified IFC 1.0 that permits 
+to run almost all IFC examples at <a href="ifc/examples/">ifc/examples/</a> 
+as pure Java X clients.
+</P>
+
+<HR>
+<P>
+<A HREF="http://www.fi.uib.no/~boukanov/">Igor Boukanov</A>,
+<A HREF="mailto:Igor.Boukanov@fi.uib.no">&lt;Igor.Boukanov@fi.uib.no&gt;</A>
+</P>
+
+</BODY>
+</HTML>

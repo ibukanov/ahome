@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# execute docker shell in a remote container
+
+set -e -u
+
+log() {
+    local i
+    for i in "$@" ; do 
+	printf "%s\n" "$i" 1>&2
+    done
+}
+
+err() {
+    log "$@"
+    exit 1
+}
+
+host=""
+
+while getopts n: OPT; do
+
+    case "$OPT" in
+        n ) host="$OPTARG" ;;
+	* ) err ;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+container="$1"
+shift 1
+
+prefix=()
+if [[ -n "$host" ]]; then
+    prefix=(exec ssh -t "$host")
+fi
+
+"${prefix[@]+${prefix[@]}}" exec docker exec -t -i "$container" \
+			    /usr/bin/env "TERM=$TERM" /bin/bash -l "$@"

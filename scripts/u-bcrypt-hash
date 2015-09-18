@@ -1,0 +1,73 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Crypt::Eksblowfish::Bcrypt qw(bcrypt_hash);
+use MIME::Base64 qw(encode_base64url decode_base64url);
+
+sub read_data {
+    my $buf = '';
+    for (;;) {
+	my $n = sysread *STDIN, $buf, 512, length $buf;
+	die "failed to read STDIN: $!" unless defined $n;
+	last if $n == 0;
+    }
+    return $buf;
+}
+
+sub calc_hash {
+    my ($cost, $salt, $data) = @_;
+
+    return bcrypt_hash({ key_nul => 1, cost => $cost, salt => $salt }, $data);
+}
+
+sub hash_data {
+    my $cost = shift;
+    
+    open(my $rnd, "<", "/dev/urandom")
+	or die "cannot open < /dev/urandom: $!";
+    sysread $rnd, my $salt, 16 or die "failed to read /dev/urandom";
+    close $rnd;
+
+    my $digest = calc_hash($cost, $salt, read_data()); 
+    return join('.', 'bcrypt', $cost, encode_base64url($salt), encode_base64url($digest));
+}
+
+sub check_data($) {
+    my $hash = shift;
+    if ($hash =~ /^bcrypt\.([0-9]{1,2})\.([-_A-Za-z0-9]{22})\.([-_A-Za-z0-9]{31})$/) {
+	my $cost = int($1);
+	my $salt = decode_base64url($2);
+	my $given_digest = decode_base64url($3);
+	my $digest = calc_hash($cost, $salt, read_data());
+	die "cost must be between 1 and 31, was $cost" unless 1 <= $cost && $cost <= 31;
+	return $digest eq $given_digest;
+    }
+    die "Invalid hash format, must match bcrypt.<COST>.<SALT>.<DIGEST> where <SALT> and <DIGEST> are uri-safe base64 encoding of 16-bytes of salt and 23 bytes of digest";
+}
+
+my $bcrypt_cost;
+my $check_mode;
+
+GetOptions('cost=i' => \$bcrypt_cost,
+	   "check|c" => \$check_mode) || exit 1;
+
+if ($check_mode) {
+    die "check mode requires the single hash argument"
+	unless scalar @ARGV == 1;
+    die "--cost was given in check mode\n" if defined $bcrypt_cost;
+    if (!check_data($ARGV[0])) {
+	die "input do not match the hash";
+    }
+} else {
+    if (defined $bcrypt_cost) {
+	die "cost must be an integer between 1 and 31, was $bcrypt_cost\n" 
+	    unless 1 <= $bcrypt_cost && $bcrypt_cost <= 31;
+    } else {
+	$bcrypt_cost = 11;
+    }
+    print hash_data($bcrypt_cost) . "\n";
+}
+

@@ -1,0 +1,25 @@
+#!/bin/sh
+
+classpath=""
+terminator=":"
+has_terminator=""
+for i in "$@"; do
+  shift
+  if test "$i" = "$terminator"; then has_terminator=1; break; fi
+  path="$i"
+  if test "$path" = "::"; then
+    path="$CLASSPATH"
+  fi
+  if test "$path"; then
+    if test -z "$classpath"; then classpath="$path"
+    else classpath="${classpath}:$path"
+    fi
+  fi
+done
+
+if test -z "$has_terminator"; then 
+  echo "Error: No classpath terminator" 1>&2
+  exit 1
+fi
+  
+CLASSPATH="$classpath" exec "$@"

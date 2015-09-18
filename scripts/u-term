@@ -1,0 +1,197 @@
+#!/bin/bash
+
+set -e
+set -u
+
+name="$(basename "$0")"
+cmd=()
+host=""
+declare -i maximize=0
+declare -i fullscreen=0
+width=""
+height=""
+wide=1
+title=""
+permanent_title=""
+host=""
+
+# if [[ $# -ge 1 ]]; then
+#     case "$1" in
+# 	dserver | rwww | tlipi | thip)
+# 	    host="$1"
+# 	    shift
+# 	    cmd=(env TERM=xterm-256color u-mosh "$host")
+# 	    title="$host - mosh"
+# 	    permanent_title=true
+# 	    ;;
+#     esac
+# fi
+
+case "$name" in
+    u-term )
+	title="terminal $(hostname -s)"
+	;;
+    u-root-term )
+	title="local root"
+	cmd+=(sudo sh -c 'cd /root; exec tmux attach')
+	;;
+    u-*-term )
+	host="${name:2:-5}"
+	title="$host"
+
+	# On CoreOS tmux session is teminated the moment ssh exits
+	# unless we tun it as systemd unit. Plus we use a custom tmux
+	# binary that is not on PATH when sh runs. Plus 
+	case "$host" in
+	    kino | thip )
+		what='exec /opt/bin/tmux-attach'
+		;;
+	    * )
+		what='\
+tmux list-sessions > /dev/null 2>&1 || tmux new-session -d
+exec tmux attach'
+		;;
+	esac
+	cmd+=(ssh -t "$host" "$what")
+    ;;
+    * )
+	echo "Unknown base name: $name" 1>&2
+	exit 1
+esac
+
+if [[ -z "$width" ]]; then
+    width=102
+
+    display_width="$(xdpyinfo | grep dimensions | grep -o '[0-9]\+x[0-9]\+ pix' | cut -dx -f1  2>/dev/null)"
+    [[ -n "$display_width" ]] || display_width=1366
+
+    # Guess that 2300 is laptop with a retina dispaly where maximize is wanted
+    if let 'display_width < 1400 || display_width > 2300'; then
+	let maximize=1
+    fi
+    
+    if let wide; then
+	if [[ "$display_width" -le 1366 ]]; then
+	    width=192
+	else
+	    width=203
+	fi
+    fi
+fi
+
+if let maximize; then
+    # Non-Gnome desktops luck a convinient keyboard shortcut to access
+    # panel with time/status information from full screen and their
+    # panels when configured to autohide are not accessible with mouse
+    # from fullscreen either.
+    if [[ "${DESKTOP_SESSION,,}" == gnome ]]; then
+	let fullscreen=1
+    fi
+fi
+
+[[ -n "$height" ]] || height=35
+
+# for debugging
+# exec "${cmd[@]}"
+
+term="$(which Terminal 2>/dev/null || true)"
+[[ -n "$term" ]] || term="$(which xfce4-terminal 2>/dev/null || true)"
+if [[ -n "$term" ]]; then
+    args=(
+	"--working-directory=$HOME"
+	"--title=$title"
+	--hide-menubar
+	--disable-server
+    )
+    if let fullscreen; then
+	args+=(--fullscreen)
+    elif let maximize; then
+	args+=(--maximize)
+    else
+	args+=(--geometry=${width}x${height})
+    fi
+    if [[ ${#cmd[@]} -ne 0 ]]; then
+	args+=(-x "${cmd[@]}")
+    fi
+    exec "$term" "${args[@]}"
+fi
+
+term="$(which lxterminal 2>/dev/null || true)"
+if [[ -n "$term" ]]; then
+    args=(
+	--working-directory="$HOME"
+	--title="$title"
+    )
+    if let maximize; then
+	# lxterm does not have maximized option
+	args+=(--geometry=193x52)
+    else
+	args+=(--geometry${width}x${height})
+    fi
+    if [[ ${#cmd[@]} -ne 0 ]]; then
+	args+=(-e "${cmd[@]}")
+    fi
+    exec "$term" "${args[@]}"
+fi
+
+term="$(which xterm 2>/dev/null || true)"
+if [[ -n "$term" ]]; then
+
+    res=(
+"*.faceName: DejaVu Sans Mono:style=Book:size=9.0"
+"Xft.hintstyle: hintmedium"
+"Xft.hinting: true"
+"Xft.rgba: rgb"
+"Xft.antialias: true"
+
+# Alt-char sends escape sequences
+"*.metaSendsEscape: true"
+
+# Keybindings - for Ctrl-Tab I use codes that Cygwin's mintty sends
+
+"*.vt100.translations: #override \
+  Ctrl Shift <KeyPress> C:  copy-selection(CLIPBOARD) \n\
+  Ctrl Shift <KeyPress> V:  insert-selection(CLIPBOARD) \n\
+  \
+  Ctrl ~Shift <Key>Tab: string(0x1b) string(\"[1;5I\") \n\
+  Ctrl Shift <Key>Tab: string(0x1b) string(\"[1;6I\") \n\
+"
+    )
+    
+    [[ -z "$permanent_title" ]] || res+=("*.vt100.allowTitleOps: false")
+
+    args=()
+    if let maximize; then
+	args+=(-maximized)
+    else 
+	args+=(-geometry ${width}x${height})
+    fi
+    args+=(-title "$title")
+    
+    # disable scrollbar and visual bell
+    args+=(+sb +vb +mb)
+    for i in "${res[@]}"; do args+=("-xrm" "$i"); done
+
+    if [[ ${#cmd[@]} -ne 0 ]]; then
+	args+=(-e "${cmd[@]}")
+    fi
+
+    exec xterm "${args[@]}" 
+fi
+
+args=(
+    --hide-menubar
+    --working-directory="$HOME"
+    --title="$title"
+)
+if let fullscreen; then
+    args+=(--full-screen)
+elif let maximize; then
+    args+=(--maximize)
+else
+    args+=(--geometry ${width}x${height})
+fi
+if [[ ${#cmd[@]} -ne 0 ]]; then
+    args+=(-x "${cmd[@]}")
+fi
+exec gnome-terminal "${args[@]}"

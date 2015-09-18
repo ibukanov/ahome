@@ -1,0 +1,3 @@
+#/bin/sh
+
+virt-install --connect=qemu:///session -n virt1 --ram=512 --arch=i686 --vcpus=1 --location="http://fedora.uib.no/fedora/linux/releases/13/Fedora/i386/os/" -x 'text serial' --os-variant=fedora13 --disk path=/home/igor/ysoft/virt1.img --nographics --network=network=default

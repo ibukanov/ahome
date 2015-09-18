@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Test for bug 324278</title>
+</head>
+<body>
+<pre>
+<script>
+var seconds = Date.now()/1000;
+
+function get_query()
+{
+  var hash = {};
+  var search = window.location.search.substring(1).split('&');
+  for each (var arg in search) {
+    var key, value;
+    var eq = arg.indexOf('=');
+    if (eq >= 0) {
+      key = arg.substring(0, eq);
+      value = arg.substring(eq + 1);
+    } else {
+      key = arg;
+      value = ""; 
+    }
+    hash[key] = value;
+  }
+  return hash;
+}
+
+var start_time = get_query().s;
+
+if (start_time) {
+  var time = (seconds - Number(start_time)).toFixed(3);
+  document.writeln("Startup time: "+time+ " seconds");
+} else {
+  document.writeln("No base time given: missed 's' query argument");
+}
+
+</script>
+</pre>
+</body>
+</html>

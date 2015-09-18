@@ -1,0 +1,57 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="keywords" content="emacs buffer switch pc-bufsw.el">
+<title>pc-bufsw</title><script>
+function email(prefix, suffix)
+{
+	var address = prefix+"@"+suffix;
+	return "<a href='mailto:"+address+"'>"+address+"<"+"/a>";
+}
+
+function write_email(prefix, suffix)
+{
+	document.write(email(prefix, suffix));
+}
+</script><style>
+P { text-align: justify }
+</style></head>
+
+
+
+<body>
+<h2 align="center">pc-bufsw buffer switch for Emacs</h2>
+
+<p>
+A fast way to do a buffer switch in Emacs is to use
+<a href="pc-bufsw.el"><i>pc-bufsw.el</i></a>
+utility. I initially created it in an attempt to model a <b>Ctrl-Tab</b> like
+switch that you can find in Windows applications.
+</p><p>
+To use it make sure that emacs lisp <code>require</code> call will find it and
+put the following lines to your .emacs file:
+</p><pre>(require 'pc-bufsw)
+(pc-bufsw::bind-keys [C-tab] [C-S-tab])
+</pre>
+
+Or, if you use XEmacs, put it like (as suggested by Friedrich Dominicus,
+<script>write_email('Friedrich.Dominicus', 'inka.de')</script>)
+<pre>(require 'pc-bufsw)
+(pc-bufsw::bind-keys [(control tab)] [ (control shift tab) ])
+</pre>
+<p>
+It may be more convenient to bind buffer switching to single keys. In fact, in 
+my own <a href="my-emacs.el">.emacs</a> file I have:
+</p><pre>(pc-bufsw::bind-keys [C-tab] [C-S-tab])
+(pc-bufsw::bind-keys [f12] [f11])
+</pre>
+
+In this way pressing single <b>F12</b> is enough to switch to the previous 
+buffer.
+
+<hr>
+If you have comments or suggestions please email at 
+<script>write_email('igor', 'mir2.org')</script>.
+
+</p>
+
+</body></html>

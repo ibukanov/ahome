@@ -1,0 +1,13 @@
+
+agent="$HOME/.ssh/runitsoft_agent"
+
+echo "Starting ssh agent bound to $agent to expose selected ssh keys to watson"
+
+# kill old agents and cleanup the control paths
+for i in $(ps x | grep "ssh-agent" | grep "$agent"| cut -f1 -d' '); do
+    kill "$i"
+done
+rm -f "$agent"
+
+ssh-agent -a "$agent"
+SSH_AUTH_SOCK="$agent" ssh-add "$HOME/enc/ssh/mozilla_rsa" "$HOME/enc/ssh/runit_rsa"

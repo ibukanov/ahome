@@ -1,0 +1,73 @@
+#!/bin/bash
+
+set -e -u
+
+if test $# -eq 0; then 
+    output="$HOME/.env"
+elif test $# -eq 1; then 
+    output="$1"
+else
+    echo "Bad usage: 0 or 1 argument expected"; exit 1
+fi
+
+p="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
+env=()
+
+append_path() {
+    for dir in "$@"; do
+	test -n "$dir" && test -d "$dir" && p="${p}:$dir"
+    done
+    return 0
+}
+
+git="$(which git 2>/dev/null)"
+test $? -eq 0 && append_path "$($git --exec-path)"
+
+platform="$(uname -i)"
+
+append_path $HOME/opt/$platform/rust*/bin
+
+append_path "$HOME/opt/$platform/rust/bin"
+
+append_path "$HOME/opt/virgil/bin"
+
+append_path "$HOME/opt/$platform/nodejs/bin"
+
+cygopt=/cygdrive/c/opt
+if test -d "$cygopt"; then
+    if test -d "$cygopt/jdk8"; then
+	append_path "$cygopt/jdk8/bin"
+    else
+	append_path "$cygopt/jdk7/bin"
+    fi
+    append_path "$cygopt/ant/bin"
+    append_path "$cygopt/haskell/bin"
+    append_path "$cygopt/haskell/lib/extralibs/bin"
+    append_path "$cygopt/nodejs"
+
+    win_home="$(cygpath -u "$USERPROFILE")"
+    append_path "$win_home/AppData/Roaming/npm"
+    append_path "$win_home/node_modules/.bin"
+
+    append_path "$cygopt/go/bin"
+    env+=(GOROOT "$(cygpath -w "$cygopt/go")")
+    env+=(GOPATH "$(cygpath -w "$HOME/gocode")")
+    
+else
+    append_path "$HOME/opt/$platform/jdk1.7/bin"
+    env+=(GOPATH "$HOME/gocode")
+fi
+
+
+env+=(PATH "$p")
+
+s=""
+NL=$'\n'
+
+for ((i=0; i<${#env[@]}; i+=2)); do
+    s+="export ${env[$i]}=$(printf %q ${env[$((i+1))]})$NL"
+done
+
+printf %s "$s" > $output
+
+printf "Copied into %s:\n%s" "$output" "$s"

@@ -1,0 +1,321 @@
+\documentclass{article}
+\usepackage{a4wide}
+\usepackage{amsmath}
+
+\usepackage{igor_macros}
+
+%%No paragraph break on emty lines
+\catcode10=10   \catcode13=10
+
+\def\dint#1#2{\int_{#1}^{#2}}
+
+
+\def\tower3#1#2#3{\overset{#3}{\underset{#2}{#1}}}
+
+\def\braced#1{\left\lbrace{#1}\right\rbrace}
+
+
+\title {Some relations for a and b operators}
+\author {Igor Bukanov}
+\date { 2004-1-27 }
+
+\begin{document}
+
+\begin{abstract}
+Should be written
+\end{abstract}
+
+\section{Should be named 1}
+
+In the following I will assume that $a$ and $b$ are operators with the following commutator:
+
+\eqnl{main-commutator}{
+[a, b] = 1
+}
+
+or assuming that $[a, b]$ is represented as $ab - ba$
+
+\eqnl{main-commutator-m}{
+ab - ba = 1
+}
+
+Typically $a$ corresponds to anyhilation operator and $b$ denotes creation operator so $b = a^+$, but I would not assume such relation in the following.
+\p
+
+I define operator $N$ as a product:
+\eqnl{N-definition}{
+N = ba
+}
+which typicaly denotes number-of-particles operator.
+
+\p
+
+Any polynomial $P(a, b)$ over a and b can always be represented in the following form:
+\eqnl{canonical-ab}{
+P(a, b) = \sum_{i} A(i, f_i(N)). 
+}
+
+Here sum is carried over some set of integers including negative numbers and zero and by definition
+\alignDo{
+A(i, f_i(N)) = f_i(N)a^i, i > 0
+\\
+A(i, f_i(N)) = b^{-i}f_i(N), i < 0
+\\
+A(0, f_0(N)) = f_0(N), i = 0,
+}
+where $f_i(N)$ is a polynomial over $N$.
+
+\p
+
+The proof follows from \rf{main-commutator} by induction over number of $a$ and $b$ in an arbitrary P(a, b) term as such term can always be rearanged as $N^ia^k$ or $b^lN^j$ plus terms with smaller number of $a$ and $b$.
+
+\p
+
+My goal is to give presentation in the form \rf{canonical-ab} for the product $A(i, f_i(N)) A(j, f_j(N))$ which would give a rule for multiplying $P(a,b)$ polynomials.
+
+\p First I prove that for any $i >= 0$
+\eqnl{abi-and-N}{
+\splitDo{
+ a^i N & = (N + i) a^i, \\
+ N b^i & = b^i (N + i)
+}
+}
+
+When $i = 0$, the relation follows trivialy. Now consider induction over $i$ when $i \ge 0$:
+\eqn{
+\splitDo{
+a^{i+1} N 
+& = a{a^i} N = a (N + i)a^i \; \text{(induction hypothesis)} \\
+& = (aN + ia)a^i \equiv (aba + ia)a^i = ((ba + 1)a +ia)a^i 
+    \; \text{(using \rf{main-commutator-m})} \\
+& \equiv ((N + 1)a +ia)a^i  = (Na + a + ia) a^i = (N + 1 + i) aa^i \\
+& = (N + i + 1) a^{i+1}.   
+}}
+
+Similarly in the $b$ case I obtain:
+\eqn{
+\splitDo{
+Nb^{i+1} 
+& = Nb^ib = b^i(N + i)b \; \text{(induction hypothesis)} \\
+& = b^i(Nb + ib) \equiv b^i(bab + ib) = b^ib(ab + i) 
+\\ &= b^{i+1}(ba + i + 1)\; \text{(using \rf{main-commutator-m})} 
+\equiv b^{i+1}(N + i + 1).
+}}
+
+\p
+Using \rf{abi-and-N} as a base case for another induction, it allows to prove that 
+\eqnl{aib-and-Nk}{
+\splitDo{
+a^i N^k & = (N + i)^k a^i, \\
+N^k b ^i  & = b^i (N + i)^k 
+}
+} 
+for any $i \ge 0$, $k >= 0$. Indeed:
+\eqn{
+\splitDo{
+a^i N^{k+1} 
+& = a^iN^kN = (N + i)^k a^iN \text{(induction hypothesis)} \\
+& = (N + i)^k (N + i) a^i = (N + i)^{k + 1} a^i.
+}}
+and similarly for $b$.
+
+From \rf{aib-and-Nk} it follows that
+\eqnl{aib-and-fN}{
+\splitDo{
+a^i f(N) & = f(N + i) a^i, \\
+f(N)b^i  & = b^i f(N + i), \\
+f(N) a^i & = a^i f(N - i), \\
+b^if(N) & =  f(N - i) b^i
+}} 
+where f(N) is some polynomial over N:
+\eqn{
+f(N) = \sum_{k=0}^{k_{max}} n_kN^k
+}
+so
+\eqn{
+\splitDo{
+a^i f(N) & = \sum_{k=0}^{k_{max}} n_k a^i N^k
+= \sum_{k=0}^{k_{max}} n_k (N+i)^k a^i = f(N+i) a^i,
+\\
+f(N) b^i  & = \sum_{k=0}^{k_{max}} n_k N^k b^i 
+= \sum_{k=0}^{k_{max}} n_k b^i (N+i)^k  = b^i f(N+i).
+}
+}
+
+The last 2 lines in \rf{aib-and-Nk} follows trivially from the relabeling $f(N - i)$ as $\tilde{f}(N)$ and using the first 2 lines line for $\tilde{f}(N)$.
+
+\p
+
+I will also need the expression for $b^ia^i$, $a^ib^i$, $i > 0$ as a polynomial of $N$:
+\eqnl{ak-bk}{
+\splitDo{
+b^ia^i & = \prod_{k=0}^{i - 1} (N - k), \\
+a^ib^i & = \prod_{k=1}^{i} (N + k)
+}
+} 
+which can also be symbolically written as 
+\eqn{
+b^ia^i = \frac{N!}{(N-i)!}, \quad a^ib^i = \frac{(N+i)!}{N!}
+}
+or more explicitly
+\eqn{
+\splitDo{
+b^ia^i & = N(N - 1)...(N - (i - 2))(N - (i - 1)),
+\\
+a^ib^i & = (N + 1)(N + 2)...(N + i - 1)(N + i).
+}}
+
+
+\p
+As in the previous cases to prove \rf{ak-bk} I use induction over $i$. The base case of $i=1$ is trivial:
+\eqn{
+ba \equiv N = \prod_{k=0}^{0} (N - k), 
+\quad ab = ba + 1 \equiv N + 1 = \prod_{k=1}^{1} (N + k)
+}
+
+For the induction step I have using \rf{aib-and-fN}:
+\eqn{
+\splitDo{
+b^{i+1}a^{i+1} & = bb^ia^ia = b \left(\prod_{k=0}^{i - 1} (N - k)\right) a \;
+ \text{(induction hypothesis)} 
+\\ & = ba \left(\prod_{k=0}^{i - 1} (N - 1 - k)\right) \; \text{(using \rf{aib-and-fN})}
+ \equiv N \left(\prod_{k=0}^{i - 1} (N - 1 - k)\right) 
+\\ & = N \left(\prod_{k=1}^{i} (N - k)\right)
+    =  \prod_{k=0}^{i} (N - k) 
+}
+}
+and for the $ab$ case:
+\eqn{
+\splitDo{
+a^{i+1}b^{i+1} & = aa^ib^ib = a \left(  \prod_{k=1}^{i} (N + k)  \right) b  \;
+ \text{(induction hypothesis)} 
+\\ & = \left(\prod_{k=1}^{i} (N + 1 + k) \right) ab
+= \left(\prod_{k=1}^{i} (N + 1 + k) \right) (N + 1)
+\\&
+= \left(\prod_{k=2}^{i + 1} (N + k) \right) (N + 1)
+= \prod_{k=1}^{i + 1} (N + k).
+}
+}
+
+\p
+The relations \rf{aib-and-fN} and \rf{ak-bk} allows to calculate $A(i, f(N))A(j, g(N))$. First I consider simple cases when $i$ and $j$ has the same sign. Indeed:
+\eqnl{AA-same-sign}{\splitDo{
+A(i, f(N))A(j, g(N))&, i \ge 0, j \ge 0 
+\\ & \equiv f(N)a^if_j(N)a^j  
+ =  f(N)g(N + i)a^ia^j = f(N)g(N + i) a^{i+j} 
+\\ &
+= A(i+j, f(N)g(N+i)),
+\\
+A(i, f(N))A(j, g(N)) &, i \le 0, j \le 0 
+\\ &
+ \equiv b^{-i} f(N) b^{-j} g(N)  
+ = b^{-i} b^{-j}  f(N - j) g(N) = b^{-(i + j)} f(N - j) g(N) 
+\\ &
+= A(i+j, f(N -j)g(N)).
+}}
+
+No I calculate $A(i, f(N))A(j, g(N))$ when $i \ge 0$, $j \le 0$ which I split into 2 subcases:
+\eqnl{AA-posnegpos}{\splitDo{
+A(i, f(N)) & A(j, g(N)), i \ge 0, j \le 0, i + j \ge 0
+\\ & 
+\equiv f(N) a^i b^{-j} g(N)  
+ = f(N) a^{i+j} a^{-j} b^{-j} g(N)
+ = f(N) a^{i+j} \frac{(N - j)!}{N!} g(N)
+\\ &
+ = f(N) \frac{(N - j + i + j)!}{(N +i + j)!} a^{i+j} g(N)
+ = f(N) \frac{(N + i)!}{(N + i + j)!} g(N + i+j) a^{i+j} 
+\\ & 
+= A\left(i + j, f(N) g(N + i + j) \frac{(N + i)!}{(N + i + j)!} \right),
+}}
+
+\eqnl{AA-posnegneg}{\splitDo{
+A(i, f(N)) & A(j, g(N)), i \ge 0, j \le 0, i + j \le 0
+\\ & 
+\equiv f(N) a^i b^{-j} g(N)  
+ = f(N) a^i b^i b^{-(i + j)} g(N)
+ = f(N) \frac{(N + i)!}{N!} b^{-(i + j)} g(N)
+\\ &
+ = f(N) b^{-(i + j)}  \frac{(N + i - (i + j))!}{(N - (i + j))!} g(N)
+ = b^{-(i + j)}  f(N - j - i)  \frac{(N - j)!}{(N - j - i)!} g(N)
+\\ & 
+= A\left(i + j, f(N - j - i) g(N) \frac{(N - j)!}{(N - j - i)!} \right).
+}}
+
+The treatment of the last case when $i \le 0$, $j \ge 0$ follows the same pattern of 2 subcases:
+\eqnl{AA-negpospos}{\splitDo{
+A(i, f(N)) & A(j, g(N)), i \le 0, j \ge 0, i + j \ge 0
+\\ & 
+\equiv b^{-i}f(N) g(N)a^{j}    
+ = f(N-(-i)) g(N-(-i)) b^{-i}a^j 
+\\ & 
+ = f(N+i) g(N + i) b^{-i}a^{-i}a^{j+i} 
+ = f(N+i) g(N + i) \frac{N!}{(N - (-i))!}a^{j+i}
+\\&
+= A\left(i + j, f(N+i) g(N + i) \frac{N!}{(N + i)!} \right),
+}}
+
+\eqnl{AA-negposneg}{\splitDo{
+A(i, f(N)) & A(j, g(N)), i \le 0, j \ge 0, i + j \le 0
+\\ & 
+\equiv b^{-i}f(N) g(N)a^{j}    
+ b^{-i}a^{j}f(N - j) g(N - j)
+\\ & 
+ b^{-i-j}b^{j}a^{j}f(N - j) g(N - j)
+ = b^{-(i + j)}\frac{N!}{(N - j)!}f(N - j) g(N - j)
+\\&
+= A\left(i + j, f(N - j) g(N - j)\frac{N!}{(N - j)!} \right).
+}}
+
+Combing \rf{AA-same-sign}, \rf{AA-posnegpos}, \rf{AA-posnegneg}, \rf{AA-negpospos}, \rf{AA-negposneg} gives
+\eqnl{AA-product}{
+A(i, f(N)) A(j, g(N)) = A(i + j, \Pi(i, j, f(N), g(N)))
+}
+
+where by defintion:
+\eqnl{Pi-def}{
+\splitDo{
+\Pi(i, j, f(N), g(N)), &i \ge 0, j \ge 0
+    = f(N)g(N + i), 
+\\
+\Pi(i, j, f(N), g(N)), &i \le 0, j \le 0
+    = f(N - j)g(N), 
+\\
+\Pi(i, j, f(N), g(N)), & i \ge 0, j \le 0, i + j \ge 0 
+    = f(N) g(N + i + j) \frac{(N + i)!}{(N + i + j)!},
+\\ 
+\Pi(i, j, f(N), g(N)), & i \ge 0, j \le 0, i + j \le 0 
+    = f(N - j - i) g(N) \frac{(N - j)!}{(N - j - i)!},
+\\ 
+\Pi(i, j, f(N), g(N)), & i \le 0, j \ge 0, i + j \ge 0
+ = f(N+i) g(N + i) \frac{N!}{(N + i)!}
+\\
+\Pi(i, j, f(N), g(N)), & i \le 0, j \ge 0, i + j \le 0
+    = f(N - j) g(N - j)\frac{N!}{(N - j)!}.
+}}
+
+Replacing symbolic factorial-like expressions with explicit products leads gives:
+\eqnl{Pi-def-explicit}{
+\splitDo{
+\Pi(i, j, f(N), g(N)), &i \ge 0, j \ge 0
+    = f(N)g(N + i), 
+\\
+\Pi(i, j, f(N), g(N)), &i \le 0, j \le 0
+    = f(N - j)g(N), 
+\\
+\Pi(i, j, f(N), g(N)), & i \ge 0, j \le 0, i + j \ge 0 
+    = f(N) g(N + i + j) \prod_{k = i + j + 1}^{i} (N + k)
+\\ 
+\Pi(i, j, f(N), g(N)), & i \ge 0, j \le 0, i + j \le 0 
+    = f(N - j - i) g(N) \prod_{k = -j - i + 1}^{-j} (N + k)
+\\ 
+\Pi(i, j, f(N), g(N)), & i \le 0, j \ge 0, i + j \ge 0
+ = f(N+i) g(N + i) \prod_{k = i + 1}^{0} (N + k)
+\\
+\Pi(i, j, f(N), g(N)), & i \le 0, j \ge 0, i + j \le 0
+    = f(N - j) g(N - j) \prod_{k = -j + 1}^{0} (N + k).
+}}
+
+In the last expressions it is assummed that empty product means 1 to cover properly cases with $i = 0$, $j = 0$.
+
+\end{document}
+

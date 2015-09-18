@@ -1,0 +1,192 @@
+\chapter{Numerical results}
+
+The chargino production cross-section at tree-level given by~\rf{chargeCross}
+depends on the parameters $\mu$, $\beta$, $m_{\tilde\Lambda}$ and the mass $m_{\tilde{\nu}}$
+of the lightest scalar neutrino. It also depends on 
+the sneutrino decay rate because the possibility to have stable 
+sneutrinos is excluded by a combination of the bound 
+obtained from precise measurements of the decay width 
+of the $Z$ boson at LEP~\cite{LEPConstrainOnStableSneutrino}
+and the limits derived from the unsuccessful search for relic 
+sneutrinos~\cite{GermaniumConstrainOnStableSneutrino}. In principle
+such decay rate can be calculated by means of the radiative corrections
+and would eventually depend on almost all MSSM parameters, but I treat it
+as an independent parameter. I also will mostly consider the cases of a heavy
+scalar neutrino, $m_{\tilde\nu} \approx 500$ GeV. 
+
+\footnote{
+The source of C++ code that I have used to calculate the numerical 
+results of this chapter is available on WWW as the compressed tar archive at 
+``http://www.fi.uib.no/{\char126}boukanov/dipl/prog/thesis-prog-source.tgz''.
+}
+
+\P
+If CP symmetry is violated in the chargino sector it would mean that 
+$\Im(\mu) \ne 0$. This effect would influence on the chargino masses
+given by~\rf{charginoMasses} and the production cross section 
+through its dependence on the matrices $X$ and $Y$, see~\rf{lagran-X-andY-is}.
+According to ~\rf{charginoMasses} and~\rf{lagran-X-andY-is} the contribution
+from $\Arg(\mu)$ would be most noticeable in the case when 
+$\tan\beta \approx 1$ and $\abs\mu \approx M_{\tilde\Lambda}$.
+It is illustrated on the Fig.~5.1 where 
+$m_\chi$ and $\sigma^T$ are given as functions
+of $\abs\mu$ and $\Arg(\mu)$. 
+The graphs also show the rather general property
+that the value of $\sigma(\mu)$ lies in the interval 
+between $\sigma(-\abs{\mu})$ and $\sigma(\abs{\mu})$. The same holds for 
+the dependence of $m_\chi$ on $\mu$. 
+Thus although in principle chargino mass measurements may be used to 
+test the level of the CP violation if it is present, the accuracy requirements
+for these experiments goes far beyond the level that will be available 
+in the nearest future. 
+I will assume in the following that $\Im(\mu) = 0$. 
+
+
+\P
+To illustrate the contributions from different reaction channels 
+to the chargino production cross section given by~\rf{chargeCross}
+I present in Fig.~5.2  $\sigma^T_{\gamma\gamma}$, 
+$\sigma^T_{ZZ}$, $\sigma^T_{\tilde{\nu}\tilde{\nu}}$ as functions of
+the center-of-mass energy. This plot shows a typical behavior 
+for the cross section,
+i.e. at the threshold the cross section is dominated by boson 
+channels of the reaction and at high energies 
+$\sigma^T \approx \sigma^T_{\tilde{\nu}\tilde{\nu}}$. It follows 
+from the assumption of heavy sneutrino and the asymptotic behavior
+of the cross section in the region where $s \gg m_\chi, m_{\tilde{\nu}}$. 
+In this case every component but $\sigma^T_{\nu\nu}$ in~\rf{chargeCross}
+goes to zero and according to~\rf{charge-total-nu-nu} 
+and~\rf{charge-t-plus-minus-is} I have
+\bem
+\lim_{s \rightarrow \infty } \sigma^T_{\nu\nu}
+& = & 
+\lim_{s \rightarrow \infty }
+{g^4 \cos^4\theta_X\over 64 \pi s^2}
+\Biggl\{
+{s^2 \over m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}}
+\arctg{m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}  \over m_{\tilde{\nu}}^2}
++ 2s\ln\abs{t_+ \over t_- }
++ s
+\Biggr\}
+\nel
+& = & 
+{g^4 \cos^4\theta_X\over 64 \pi m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}}
+\arctg{\Gamma_{\tilde{\nu}} \over m_{\tilde{\nu}}}
+.
+\ee
+
+Thus at the high $s$ the cross section will approach its limit given by
+\be
+\lim_{s \rightarrow \infty } \sigma^T
+=
+{g^4 \cos^4\theta_X\over 64 \pi m_{\tilde{\nu}}\Gamma_{\tilde{\nu}}}
+\arctg{\Gamma_{\tilde{\nu}} \over m_{\tilde{\nu}}}
+.
+\ee
+
+\P
+The plots given in Fig.~5.3--5.5
+demonstrates different aspects of the cross section dependence 
+on the theory parameters. 
+
+\begin{figure} 
+    \begin{center}
+        \leavevmode
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{mass.mu_re-mu_im.eps}}
+    \end{center}
+    \begin{center}
+        \label{of-mu-re-im}
+
+        \leavevmode
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{tcs.mu_re-mu_im.eps}}
+
+        \caption{
+            Dependence of the chargino mass and cross section 
+            on complex value of $\mu$.
+            For both cases (a) and (b) 
+            $\tan \beta = 1.0$ and $M_{\tilde\Lambda} = 300$ GeV.
+            Part (a) shows the chargino mass, part (b)
+            shows the total cross section $\sigma^T$ for
+            $m_{\tilde\nu} = 500$ GeV, $\Gamma_{\tilde\nu} = 10$ GeV 
+            and $E_{\rm c.m.} = 500$ GeV.
+        }
+
+    \end{center}
+\end{figure}
+
+
+\begin{figure} 
+    \begin{center}
+        \label{num-channels}
+        \leavevmode
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{channels.eps}}
+        \caption{Contribution to the cross-section of 
+            $e^+e^-\rightarrow \chi^+\chi^-$ 
+            from $\gamma$, $Z^0$ and $\tilde\nu$ channels at 
+            $\mu = 200$ GeV, $\tan\beta = 1$, $M_{\tilde\Lambda} = 300$ GeV, 
+            $m_{\tilde\nu} = 500$ GeV and $\Gamma_{\tilde\nu} = 10$ GeV.
+        }
+    \end{center}
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \label{fig-picture-A}
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{tcs.mu-beta.eps}}
+        \caption{
+            $\sigma^T$ as a function of $\mu$, $\tan\beta$. 
+            The rest set of parameters 
+            are fixed by $M_{\tilde\Lambda} = 300$ GeV, 
+            $m_{\tilde\nu} = 500$ GeV,
+            $\Gamma_{\tilde\nu} = 10$ GeV
+            and
+            $E_{\rm c.m.} = 500$ GeV.
+        }
+    \end{center}
+\end{figure}
+
+
+\begin{figure}
+    \begin{center}
+        \label{fig-picture-B}
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{tcs.mu-lambda.eps}}
+        \caption{
+        $\sigma^T$ as a function of $\mu$, $M_{\tilde\Lambda}$ with 
+        $\tan\beta = 1$, 
+        $m_{\tilde\nu} = 500$ GeV,            
+        $\Gamma_{\tilde\nu} = 10$ GeV
+        and
+        $E_{\rm c.m.} = 500$ GeV.
+        }
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \label{fig-Picture-N}
+        \epsfxsize 138 mm 
+        \epsfbox{\bodyFigure{tcs.nu-E.eps}}
+        \caption{
+            $\sigma^T$ as a function of $m_{\tilde\nu}$, $E_{\rm c.m.}$
+            with
+            $\mu=300$ GeV, 
+            $\tan\beta = 1$, 
+            $M_{\tilde\Lambda} = 300$ GeV
+            and 
+            $\Gamma_{\tilde\nu} = 10$ GeV.
+
+        }
+    \end{center}
+\end{figure}
+
+
+
+
+
+

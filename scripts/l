@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# If no argumets are given, assume we want to show stdin unless it is a 
+# terminal, in which case we want to show the current directory.
+show_stdin=""
+if test "$#" = 0; then
+  if test -t 0; then   
+    set -- .
+  else
+    show_stdin="t"
+  fi
+fi
+
+# If the shell runs under the emacs, use it to show stdin or file. 
+# I use double test to avoid executing id when EMACS is false.
+if test -n "$EMACS" && test -e "/tmp/emacs$(id -u)/server"; then
+  if test "$show_stdin"; then
+    # use named pipe to ask emacs to read stdin
+    emacs_pipe="$(mktemp -u emacs_pipe.XXXXXXXXXXXXXXXXXXXX)"
+    mkfifo "$emacs_pipe"
+    if test $? -ne 0; then
+      echo "Failed to create named pipe $emacs_pipe" 1>&2
+      exit 1
+    fi
+    rm_pipe() { rm "$emacs_pipe"; }  
+    trap rm_pipe 0
+    arg="(my-dir-paged-process \"$PWD/\"  \"cat\" \"$emacs_pipe\")"
+    emacsclient -e "$arg" > /dev/null
+    cat > "$emacs_pipe"
+  else
+    exec emacsclient -n -- "$@" > /dev/null
+  fi
+else
+  # not Emacs
+  LESSOPEN="|u-less-pipe %s"
+  export LESSOPEN
+  exec less -- "$@"
+fi

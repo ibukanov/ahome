@@ -1,0 +1,54 @@
+#!/bin/bash
+
+fail() {
+    test $# -ge 1 && echo "$@" >&2
+    exit 1
+}
+
+is_home() {
+    grep -q 192.168.2.1 /etc/resolv.conf && ip addr show | grep -q 'inet 192.168.2.13/24'
+}
+
+dserver_home_addres=192.168.2.10
+public_name=dserver.mir2.org
+dserver_home_map="$dserver_home_addres $public_name"
+
+mapfile -t hosts < /etc/hosts || fail "Cannot read /etc/hosts"
+
+found=-1
+for (( i=0; i < ${#hosts[@]}; ++i )); do
+    hosts_line="${hosts[$i]}"
+    if test "x${hosts_line/#$dserver_home_map}" != "x$hosts_line"; then
+	found=$i
+    fi
+done
+
+if is_home; then
+    if test $found -ge 0; then
+	echo "Home network - /etc/hosts already updated"
+	exit 0;
+    fi
+    echo "Home network - appending to /etc/hosts: $dserver_home_map"
+    hosts+=("$dserver_home_map")
+else
+    if test $found -eq -1; then
+	echo "Outside of home - /etc/hosts already updated"
+	exit 0;
+    fi
+    echo "Outside of home - removing from /etc/hosts: $dserver_home_map"
+    unset hosts[$found]
+fi
+
+tmp=$(mktemp "/etc/hosts.XXXXXXXXXX")
+test -z "$tmp" && fail
+
+cleanup() {
+    test -f "$tmp" && rm -f "$tmp"
+}
+
+trap cleanup EXIT
+
+chmod 644 "$tmp"
+
+printf '%s\n' "${hosts[@]}" > "$tmp"
+mv -f "$tmp" "/etc/hosts"

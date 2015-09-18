@@ -1,0 +1,9 @@
+[user]
+	email = igor@mir2.org
+	name = Igor Bukanov
+
+[alias]
+# mozilla-prefered diff
+	mdiff = diff -U9
+[push]
+	default = simple

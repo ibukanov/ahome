@@ -1,0 +1,21 @@
+#!/bin/bash
+
+dirs=()
+for i do
+  case "$i" in
+    -*) break ;;
+    *) dirs[${#dirs[@]}]="$i"; shift ;;
+  esac
+done
+
+find_skip=( \(
+  \( -type d -a \( -name CVS -or -name _darcs -or -name .svn \) \) 
+  -a -prune -a -false
+\) )
+
+if test ${#@} = 0; then
+  exec find "${dirs[@]}" "${find_skip[@]}"
+else
+  exec find "${dirs[@]}" "${find_skip[@]}" -or "$@"
+fi
+

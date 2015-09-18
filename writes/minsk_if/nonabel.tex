@@ -1,0 +1,80 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc} % Input encoding
+\usepackage[T2A]{fontenc} % Output encoding
+\usepackage[russian]{babel} % Russian words for Chapter, etc
+
+% Original header: \documentstyle[14pt,russian]{artr}
+
+\def\baselinestretch{1.4}
+\textheight 210mm
+%\textwidth 150mm
+\topmargin 20.0mm
+%\hoffset 10.0mm
+
+
+\def\MAP#1{\ifmmode{#1}\else{$ #1 $}\fi}
+\def\abs#1{\MAP{\mid\!\!#1\!\!\mid}}
+\def\ket#1{\MAP{\mid\!\!#1\!\!>}}
+\def\bra#1{\MAP{<\!\!#1\!\!\mid}}
+\def\dirProd#1#2{\MAP{<\!\! #1 \!\! \mid \!\! #2 \!\!>}}
+\def\vct#1{\MAP{\vec #1}}
+\def\pDer#1#2{\MAP{\frac{\partial #1}{\partial #2}}}
+\def\oDer#1#2{\MAP{\frac{d#1}{d#2}}}
+
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bel#1{\begin{equation}\label{#1}}
+\def\rf#1{(\ref{#1})}
+
+\def\H{\MAP{\bf H}}
+\def\X{\MAP{\vct x}}
+\def\E{\MAP{E\,}}
+
+
+%\pagestyle{empty}
+
+\begin{document}
+
+Рассмотрим квантовую систему с гамильтонианом $\H(\X)$ и заданной зависимостью
+внешних параметров \X = $\{x_1, \ldots, x_d\}$ от времени:
+\be
+\X = \X(t),
+\ee
+и пусть в начальный
+момент времени система находится в состоянии \ket{\psi(t_0)},
+соответствующем уровню с энергией \E и
+степенью вырождения $N$, так что:
+\be
+\H(\X(t_0))\ket{\psi(t_0)} = \E(\X(t_0))\ket{\psi(t_0)}.
+\ee
+
+Тогда в случае применимости адиабатического приближения можно считать,
+что в последующие моменты времени система будет оставаться на данном
+уровне, при этом конкретная зависимость \ket{\psi(t)} дается выражением:
+\be
+\ket{\psi(t)} =
+\exp\left(-i\int_{t_0}^{t} E(t_1) d\,t_1\right)c^i(\X(t))\ket{n_i(\X(t))},
+\ee
+где по повторяющимся латинским индексам подразумевается суммирование от
+1 до $N$, \ket{n_i} образуют базис в пространстве состояний с энергией
+\E:
+\be
+\dirProd{n^i}{n_j} = \delta^i_j, \mbox{ и} \quad
+\H(\X)\ket{n_i} = \E(\X)\ket{n_i}, \quad i, j = 1\ldots N,
+\ee
+а коэфиценты $c^i$ определяются из решения системы уравнений:
+\bel{cEqn}
+\oDer{x^\mu}{t}\left(\pDer{c^i}{x^\mu} + A^i_{\mu j} c^j\right) = 0
+\ee
+с начальными условиями, следующими из разложения \ket{\psi} по базису
+\ket{n_i} в момент времени $t_0$:
+\be
+\ket{\psi(t_0)} = c^i(\X(t_0))\ket{n_i(\X(t_0))}.
+\ee
+В \rf{cEqn} по повторяющимся греческим индексам идет суммирование от
+1 до $d$ - размерности пространства параметров и по определению:
+\bel{ADef}
+A^i_{\mu j} \equiv \dirProd{n^i}{\oDer{n_j}{x^\mu}}.
+\ee
+
+\end{document}

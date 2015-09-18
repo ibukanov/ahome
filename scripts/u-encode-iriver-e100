@@ -1,0 +1,19 @@
+#!/bin/bash
+test $# -eq 2 -a x"${2%.avi}.avi" = x"$2" || { 
+  echo "Usage: $0 INFILE.something OUTFILE.avi" 1>&2; exit 1; }
+
+
+# based on http://renomath.org/ejolson/video/portable/
+#ratio="scale=568:240,crop=320:240"
+ratio="scale=320:240"
+
+exec mencoder $1 \
+    -ovc xvid -oac twolame -ofps 15 \
+    -xvidencopts profile=sp3:bitrate=250 \
+    -twolameopts br=64 \
+    -vf harddup,kerndeint,$ratio,dsize=320:240 \
+    -af resample=44100,volume=8,volnorm=2 -o $2
+
+
+# Based on http://heisenbugs.blogspot.com/2008/06/quick-tip-on-encoding-video-for-your.html
+#exec mencoder $1 -vf scale=320,expand=320:240 -oac mp3lame -lameopts abr=128 -ovc xvid -xviden#copts bitrate=600:max_bframes=0:vhq=4 -of avi -o $2

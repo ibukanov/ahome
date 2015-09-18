@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if test -n "$SSH_AUTH_SOCK"; then
+    ssh_agent_link="$HOME/.ssh/screen_ssh_agent"
+    if test $ssh_agent_link != $SSH_AUTH_SOCK; then
+	rm -f "$ssh_agent_link"
+	ln -s "$SSH_AUTH_SOCK" "$ssh_agent_link"
+    fi
+fi
+
+emacs_server_socket="/tmp/emacs$(id -u)/server"
+if test ! -S "$emacs_server_socket"; then
+    env_list=(HOME=$HOME SHELL=$SHELL PATH=$PATH)
+    test -n "$DISPLAY" && env_list=("${env_list[@]}" DISPLAY="$DISPLAY")
+    test -n "$SSH_AUTH_SOCK" && env_list=("${env_list[@]}" SSH_AUTH_SOCK="$ssh_agent_link")
+
+    (cd "$HOME"; env -i "${env_list[@]}" $SHELL -l -c 'emacs --daemon')
+    if test $? -ne 0; then
+	echo "Failed to start emacs daemon" 1>&2
+	exit 1
+    fi
+    if test ! -S "$emacs_server_socket"; then
+	echo "Emacs daemon has not created $emacs_server_socket" 1>&2
+	exit 1
+    fi
+fi
+
+# Use --tty as a default option 
+test $# -eq 0 && set -- --tty
+exec emacsclient "$@"

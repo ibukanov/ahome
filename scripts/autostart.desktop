@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Exec=u-start-session
+Hidden=false
+X-GNOME-Autostart-enabled=true
+Name=Custom Session
+Comment=Start custom session script

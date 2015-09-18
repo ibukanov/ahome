@@ -1,0 +1,796 @@
+\documentclass[a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc} % Input encoding
+\usepackage[T2A]{fontenc} % Output encoding
+\usepackage[russian]{babel} % Russian words for Chapter, etc
+
+% Original header: \documentstyle[12pt,russian,titlepage,A4]{article}
+
+
+
+\newcommand{\MathBr}[1]{\ifmmode{#1} \else{$#1$} \fi}
+
+\newcommand{\Hhat}{\MathBr{\hat H}}
+\newcommand{\Hhatf}[1]{\MathBr{\hat H(#1)}}
+
+\newcommand{\HZhat}{\MathBr{\hat H_0}}
+\newcommand{\HZtilde}{\MathBr{\tilde H_0}}
+
+\newcommand{\Ht}{\MathBr{H'}}
+
+
+\newcommand{\KetVect}[1]{\MathBr{\,|#1\!\!>}}
+\newcommand{\BraVect}[1]{\MathBr{<\!\!#1|}}
+\newcommand{\DirProd}[2]{\MathBr{<\!\!#1|#2\!\!>}}
+
+\newcommand{\mod}[1]{\MathBr{\mid\!\!#1\!\!\mid}}
+
+\newcommand{\XVect}{\MathBr{\overrightarrow{X}}}
+\newcommand{\AForm}{\MathBr{A}}
+
+\newcommand{\rf}[1]{(\ref{#1})}
+
+\newcommand{\der}[1]{\MathBr{\partial_{#1}}}
+%\newcommand{\der}[1]{\MathBr{\partial \over \partial #1}}
+
+\begin{document}
+
+\titlepage{
+\lineskip=6pt % Это расстояние между строками
+
+\centerline{МИНИСТЕРСТВО ОБРАЗОВАНИЯ И НАУКИ РЕСПУБЛИКИ БЕЛАРУСЬ}
+
+\centerline{БЕЛОРУССКИЙ ОРДЕНА ТРУДОВОГО КРАСНОГО ЗНАМЕНИ}
+
+\centerline{ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ}
+
+\vskip1.5cm
+
+\centerline{Физический факультет}
+
+\centerline{Кафедра теоретической физики}
+
+\vskip1.5cm
+
+\centerline{БУКАНОВ ИГОРЬ ВАЛЕРЬЕВИЧ}
+
+\vskip1cm
+\centerline{МЕТОД ВЫЧИСЛЕНИЯ}
+\centerline{АБЕЛЕВЫХ ГЕОМЕТРО-ТОПОЛОГИЧЕСКИХ ФАЗ}
+\centerline{ДЛЯ МНОГОУРОВНЕВЫХ КВАНТОВЫХ СИСТЕМ}
+
+\vskip1.5cm
+
+
+\centerline{Дипломная работа}
+\centerline{студента 5 курса}
+
+\vskip1.5cm
+
+\vbox{\halign{
+# \hfil\hskip10cm & # \hfil\cr
+& \qquad\underbar{Руководитель}\cr
+& Толкачев Е.\,А. \cr
+& главный научный сотрудник, \cr
+& доктор физ.--мат. наук \cr
+&\cr
+\cr\cr
+& \qquad \underbar{Рецензент}\cr
+& Томильчик Л.\,М. \cr
+& член--корр. АН Беларуси, \cr
+& профессор, \cr
+& доктор физ.--мат. наук \cr
+&\cr
+}}
+\vfill
+\centerline{Минск 1995}
+
+}
+
+\newpage
+
+\tableofcontents
+
+%\begin{center}
+%{\large\bf  }
+%Буканов~И.В.
+%\end{center}
+
+\newpage
+\section{Введение.}
+
+Как известно, в последние годы уделяется значительное внимание исследованию
+геометро - топологических зффектов в квантовых системах. К их числу
+относится, в частности, комплекс наблюдаемых и предсказываемых явлений
+под общим названием геометрическая фаза или фаза Берри. Данный эффект был
+открыт сравнительно недавно в работе~\cite{FirstBerryWork}, где было показано,
+что в случае параметрической квантовомеханической системы с циклически
+адиабатически меняющимися параметрами у волновой функции возникает
+дополнительный фазовый множитель, который может быть обнаружен
+экспериментально.
+
+В дальнейшем было установлено, что аналогичное явление имеет место
+для целого ряда систем, описываемых классической механикой~\cite{60},
+классической электродинамикой~\cite{61}, a также аномальными калибровочными
+теориями~\cite{62,63,64}. Универсальная геометрическая природа этой
+фазы~\cite{SimonWork} позволяет с единых позиций интерпретировать такие, казалось бы,
+разнородные явления, как нейтринные осциляции~\cite{NaumovWork} и некоторые
+закономерности в молекулярных спектрах~\cite{AboutPhaseInSpectra}.
+Экспериментальное наблюдение фазы Берри в нейтронных и оптических
+экспериментах породило определенные надежды на возможность ее практического
+использования.
+
+Однако вскоре выяснилось, что несмотря на разнообразные обобщения -- на
+случай неадиабатического изменения параметров~\cite{91}, наличие
+вырождения~\cite{WilzekZeeWork} и т.д., конкретные вычисления данного эффекта
+можно
+провести лишь для ряда простых квантовых систем, описываемых квадратичным
+гамильтонианом~\cite{About2Hamiltonian} или обладаюших 3-х параметрической
+группой динамической симметрии~\cite{FirstBerryWork,AboutExactSolution}.
+Попытки в рамках стандартного подхода
+получить результат, например, для трехуровневой системы, удались лишь
+ценой существенных ограничений на вид соответствующего
+гамильтониана ~\cite{CeulemansWork,KorenblitWork}.
+
+Основной задачей данной работы является получение выражений для
+фазы Берри в случае произвольной конечноуровневой системы на основе нового
+подхода, развитого в работах~\cite{TolkachevTregubovich1,TolkachevTregubovich2}
+и пригодного для квантовых систем, описываемых гамильтонианами,
+которые реализуют некоторое представление конечномерной алгебры Ли группы
+динамической симметрии.
+
+Работа состоит из введения, трех параграфов, заключения и списка цитируемой
+литературы.
+
+Первый параграф носит в основном вспомогательный характер и посвящен
+рассмотрению некоторых общих вопросов, связанных с возникновением
+фазы Берри при циклической эволюции параметров в случае отсутствия вырождения
+и ее геометрической интерпретацией. Также будут рассмотрены некоторые подходы
+к расчету данного эффекта.
+
+Второй параграф целиком посвящен построению общих формул для вычисления
+геометрической фазы в случае конечноуровневых систем. Будет показано, что как
+ и в случае двухуровневой системы, в пространстве параметров возникает
+индуцированное калибровочное поле, потенциал которого аналогичен потенциалу
+поля магнитного монополя.
+
+В третьем параграфе рассмотрены некоторые приложения полученных результатов
+в случае трехуровневой системы.
+
+\newpage
+\section{Абелева геометрическая фаза.}
+
+Рассмотрим вначале, следуя \cite{AboutPhaseInSpectra}, некоторые общие вопросы,
+связанные с геометрической фазой. Пусть имеется некоторая
+квантовомеханическая $N$-- уровневая система, описываемая гамильтонианом
+$H(\XVect)$, зависяшим от набора параметров
+$\XVect = \{x^i|i = \overline{1,d}\}$, где $d$ -- размерность
+пространства параметров.
+
+Тогда в случае зависимости \XVect от времени
+эволюция состояния $\KetVect{\psi}$ системы будет подчиняться
+уравнению Шредингера $(\hbar = 1)$:
+\begin{equation}
+   i \der{t}\KetVect{\psi(t)} = H(\XVect(t))\KetVect{\psi(t)}.
+\label{Shredinger}
+\end{equation}
+
+Введем теперь полный набор ортонормированных собственных функций
+$\KetVect{n}$:
+\begin{equation}
+   H(\XVect)\KetVect{n} = E_n(\XVect)\KetVect{n}
+   \qquad n = 1..N,
+\label{EugenVectors}
+\end{equation}
+в предположении что спектр $E_n$ невырожден. Тогда \KetVect{n} образуют
+базис в гильбертовом пространстве состояний системы и $\KetVect{\psi}$ в
+любой момент времени $t$ можно представить в виде:
+\begin{equation}
+  \KetVect{\psi(t)} = \sum_m c_m(t)\KetVect{m(\XVect(t))}.
+\label{PsiRepresent}
+\end{equation}
+
+Подставляя \rf{PsiRepresent} в \rf{Shredinger} и учитывая \rf{EugenVectors},
+получим уравнение на коэфиценты $c_m$:
+\begin{equation}
+  \sum_m (i\der{t}c_m - c_m E_m)\KetVect{m}
+     + i \sum_m c_m \der{t}\KetVect{m} = 0,
+\label{EqnForCN}
+\end{equation}
+или, используя ортонормированность собственных функций:
+\begin{equation}
+  i\der{t}c_n + i \sum_m c_m \DirProd{n}{\der{t}m} = c_n E_n.
+\label{OneEqnForCN}
+\end{equation}
+
+Предположим теперь, что параметры системы \XVect изменяются во времени
+достаточно медленно, где под медленностью изменения понимается то, что
+спектральная плотность $\XVect(\omega)$ отлична от нуля лишь в области
+частот, много меньших собственных частот системы. Тогда в соответствии с
+адиабатической теоремой \cite{BornAndFock} можно считать:
+\[
+  \DirProd{n}{\der{t}m} = 0, \qquad n \ne m.
+\]
+
+Откуда:
+\[
+  \sum_m c_m \DirProd{n}{\der{t}m} = c_n \DirProd{n}{\der{t}n},
+\]
+и \rf{OneEqnForCN} представляется в виде:
+\[
+  i\der{t}c_n = c_n(E_n - i\DirProd{n}{\der{t}n}),
+\]
+что сразу позволяет найти зависимость $c_n$ от времени:
+\begin{equation}
+  c_n(t) = c_n(t_0)\exp i(\alpha_n(t) + \gamma_n(t)),
+\label{CNis}
+\end{equation}
+где $\alpha_n(t) = -i \int_{t_0}^{t}E_n(t') dt'$
+и для фазового множителя $\gamma_n$:
+\begin{equation}
+ \gamma_n(t) = i \int_{t_0}^{t} \DirProd{n}{\der{t'}n} dt'
+  = i \int_{t_0}^{t} \DirProd{n}{\der{x^i}n} {dx^i \over dt'} dt',
+\label{FullGeomFase}
+\end{equation}
+или:
+\begin{equation}
+ \gamma_n(t) = \gamma_n(С) = i \int_{C} \DirProd{n}{\der{x^i}n} dx^i =
+  \int_{C} A(\XVect),
+\label{GeomFase}
+\end{equation}
+\begin{equation}
+A(\XVect) = i \DirProd{n}{\der{x^i}n} dx^i.
+\label{AFromN}
+\end{equation}
+
+Т.\,е. $\gamma_n(t)$ определяется через интеграл по кривой $C$ в пространстве
+параметров системы от дифференциальной 1 - формы \AForm, которая имеет смысл
+индуцированного калибровочного поля, поскольку при калибровочных, или
+фазовых преобразованиях собственных векторов \KetVect{n}:
+\begin{equation}
+\KetVect{n(\XVect)} \rightarrow \KetVect{\tilde{n}(\XVect)}
+ = \exp{i\phi_n(\XVect)} \KetVect{n(\XVect)}
+\label{FaseTransform}
+\end{equation}
+с произвольной вещественной функцией $\phi_n(\XVect)$, \AForm преобразуется
+как потенциал в электродинамике:
+\begin{equation}
+A \rightarrow \tilde{A} = A - \der{x^i}\phi_n dx^i.
+\label{ATransform}
+\end{equation}
+ В самом деле, по определению:
+\[
+ \tilde{A} = i \DirProd{\tilde{n}}{\der{x^i}\tilde{n}} dx^i
+\]
+\[
+ = ie^{-i\phi_n}\left(\DirProd{n}{\der{x^i}n}e^{i\phi_n}
+  + i \DirProd{n}{n}e^{i\phi_n}\der{x^i}\phi_n \right) dx^i
+\]
+\[
+ = A - \der{x^i}\phi_n dx^i.
+\]
+
+   Тогда:
+\begin{equation}
+  \tilde{\gamma_n(t)} = \int_{C} \tilde{A} =
+     \gamma_n(t) + \phi_n(\XVect(t_0)) - \phi_n(\XVect(t_0)),
+\label{TransGamma}
+\end{equation}
+ и в случае незамкнутого контура $C$, т.\,е. когда
+$\XVect(t_0) \ne \XVect(t)$, выбором $\phi_n$ можно всегда обратить
+$\gamma_n(t)$ в ноль.
+
+Если же $C$ является замкнутым контуром в пространстве параметров системы,
+то, используя теорему Стокса, $\gamma_n(C)$ можно представить в виде
+интеграла по поверхности:
+
+\begin{equation}
+  \gamma_n(C) = \int_S F(\XVect),
+\label{GammaAsSurfInt}
+\end{equation}
+  здесь $S$ -- произвольная ориентируемая поверхность,
+натянутая на контур $C$, а 2 - форма
+\begin{equation}
+  F(\XVect) = dA(\XVect) = i \DirProd{\der{x^i}n}{\der{x^j}n} dx^i \wedge dx^j
+\label{FFromN}
+\end{equation}
+ является тензором калибровочного поля.
+
+Из калибровочной инвариантности $F$ относительно преобразований
+\rf{FaseTransform}, как впервые показал Берри в своей
+работе~\cite{FirstBerryWork}, следует, что $\gamma_n$ -- геометрическая
+фаза или фаза Берри -- не зависит от выбора базиса \rf{EugenVectors} и
+является наблюдаемой физической величиной, однозначно определяемой
+соотношением \rf{GammaAsSurfInt}. При этом значение $\gamma_n$ определяется
+только формой контура $C$, в отличии от динамической фазы
+$\alpha_n$, которая может быть найдена, если только известна зависимость
+$\XVect(t)$.
+
+Т.\,к. $A$ является функцией только $\KetVect{n}$, то для
+любых квантовых систем, гамильтонианы которых коммутируют при всех значениях
+параметров и вследствии этого обладают одинаковыми системами собственных
+векторов~\cite{AboutMatrix}, их геометрические фазы будут совпадать.
+В частности, $\gamma_n$ не зависит от следа гамильтониана,
+т.\,к. $H$ всегда можно представить в виде:
+\begin{equation}
+   H = H_0 + {1 \over N}(SpH)I,
+\label{ZeroSP}
+\end{equation}
+ где $SpH_0 = 0$ и $[H_0, H] = [H_0, H_0] + {1 \over N}SpH[H_0, I] = 0$.
+
+Представим теперь $F$ в виде, в котором требование невырожденности
+гамильтониана присутствует явным образом. Для этого воспользуемся
+полнотой базиса \rf{EugenVectors}:
+\[
+  F = i \sum_{m} \DirProd{\der{x^i}n}{m}\DirProd{m}{\der{x^j}n}
+    dx^i \wedge dx^j
+\]
+\[
+  = i \sum_{m \ne n} \DirProd{\der{x^i}n}{m}\DirProd{m}{\der{x^j}n}
+    dx^i \wedge dx^j.
+\]
+
+Но из \rf{EugenVectors} получаем:
+\[
+  \DirProd{m}{\der{x^i}n} =
+    {\BraVect{m}\der{x^i}H\KetVect{n} \over E_n - E_m }.
+\]
+
+Тогда:
+\begin{equation}
+  F = i \sum_{m}
+  {\BraVect{n}\der{x^i}H\KetVect{m} \BraVect{m}\der{x^j}H\KetVect{n}
+     \over (E_n - E_m)^2 } dx^i \wedge dx^j.
+\label{FAsSum}
+\end{equation}
+
+Откуда следует, что при пересечении уровней $E_n$, $E_m$, когда наступает
+вырождение системы, знаменатель в \rf{FAsSum} обращается в ноль и $F$
+перестает существовать.
+
+Геометрическая интерпретация фазы Берри была дана в работе \cite{SimonWork}
+на основе теории расслоений и вкратце может быть изложена следующим
+образом. Т.\,к. область изменения
+параметров $x_i$ произвольна, то $x_i$ -- суть локальные координаты на
+некотором многообразии $M$. Каждой точке $\XVect \in M$ для фиксированного
+уровня $E_n$ соответствует некоторый собственный вектор
+$\KetVect{n}$, поэтому $\KetVect{n(\XVect)}$ также образуют некоторое
+многообразие $P$. Тогда, как нетрудно видеть,
+преобразование~\rf{FaseTransform} реализует
+унитарное представление группы $U(1)$, действующей на $P$ и описываемая
+конструкция -- это не что иное, как главное \(U(1)\)
+расслоение~\cite{PostnikovWork} $\zeta$ c
+тотальным пространством $P$, базой $M$ и канонической проекцией
+\[
+  \pi : P \rightarrow M, \quad \pi(\KetVect{n(\XVect)}) = \XVect.
+\]
+
+При этом калибровочный потенциал $A$ является $U(1)$ связностью, а
+2-форма $F$ -- кривизной расслоения $\zeta$. Т.\,к. $U(1)$ -- абелева группа,
+то \rf{GeomFase} иногда называют абелевой фазой в отличии от случая
+вырожденной квантовой системы~\cite{WilzekZeeWork}.
+
+Нетрудно заметить, что рассмотренный выше геометрический подход во многом
+аналогичен широко использующемуся в калибровочных теориях
+(cм., например \cite{DanielWork}). Отличие состоит в том, что в последних
+в качестве базы соответствующего расслоения рассматривается обычно
+пространство Минковского $R^{3,1}$, а в данном случае -- произвольное
+пространство параметров квантовой системы.
+
+\newpage
+\section{Вычисление калибровочного потенциала в общем случае.}
+
+При проведении вычислений фазы Берри использовать
+формулы \rf{GeomFase}, \rf{GammaAsSurfInt} довольно трудно, т.\,к.
+в конкретных задачах обычно бывают известны только матричные элементы
+гамильтониана в каком либо представлении и необходимость
+вычислять $\KetVect{\der{x^i}n}$, входящих в \rf{AFromN}, \rf{FFromN}
+приводит к очень громоздким вычислениям уже в случае простейших систем.
+\rf{FAsSum} несколько сокращает обьем вычислений, однако требует знания
+всех собственных векторов, что тоже является неприемлемым требованием в
+большинстве случаев.
+
+Поэтому получим в случае конечноуровневой ситемы альтернативные выражения
+для $A$, $F$, пригодные для произвольного невырожденного уровня с
+энергией $E$. Для этого положим по определению:
+\[
+   \Ht = H - EI_N,
+\]
+ т.\,е.
+\begin{equation}
+  \Ht_{ij} = H_{ij} - E\delta_{ij},
+  \qquad \sum_{j = 1}^{N} \Ht_{ij} n_j = 0, \quad i = 1..N,
+\label{SelfEqn}
+\end{equation}
+и пусть $M$ - матрица, составленная из миноров элементов $\Ht_{ij}$.
+Тогда в силу невырожденности $E$ $rank \Ht = N - 1$, поэтому
+существуют такие индексы $q$ и $p$, что
+\begin{equation}
+   M_{qp} \ne 0,
+\label{MNotZero}
+\end{equation}
+и с помощью \rf{SelfEqn} можно выразить через $n_p$ остальные компоненты
+вектора $n$.
+
+В самом деле, перепишем \rf{SelfEqn} в виде:
+\begin{equation}
+  \sum_{\nu} \Ht_{\mu\nu} n_\nu = - H_{\mu p} n_p,
+\label{WorkEqn}
+\end{equation}
+где индексы $\mu$, $\nu$ могут принимать следующие значения:
+$ \mu = 1..N, \mu \ne q$, $ \nu = 1..N, \nu \ne p$
+
+\rf{WorkEqn} является невырожденной системой линейных уравнений \
+относительно $n_\nu$, т.\,к. $det \Ht_{\mu\nu} = M_{qp} \ne 0$,
+поэтому решение \rf{WorkEqn} можно представить в следующем виде с помощью
+формул Кардано:
+\[
+   n_\nu = {\Delta_\nu \over M_{qp}},
+\]
+где $\Delta_\nu$ является определителем матрицы, полученной из $H$
+заменой элементов столбца с номером $\nu $ на $-\Ht_{\mu p} n_p$
+и вычеркиванием столбца с номером $p$ и строки с номером $q$,
+и, как легко показать:
+\[
+   \Delta_\nu = n_p (-1)^{\sigma_{p\nu}} M_{q\nu}, \qquad
+    \sigma_{p\nu} =
+     \left\{{\nu + p , \nu < p \atop \nu + p + 1, \nu > p} \right. .
+\]
+
+Тогда:
+\begin{equation}
+  n_\nu = n_p (-1)^{\sigma_{p\nu}} {M_{q\nu} \over M_{qp}}.
+\label{GetNFromH}
+\end{equation}
+
+Подставим \rf{GetNFromH} в выражение для потенциала
+калибровочного поля:
+\[
+   A = - Im\DirProd{n}{dn} = - \sum_{i=1}^{N} Im(n^\ast_i dn_i) =
+     - \sum_{\nu} Im(n^\ast_\nu dn_\nu) - Im(n^\ast_p dn_p)
+\]
+или:
+\[
+  A_{qp} = - Im\left(\sum_{\nu} n^\ast_p {M^\ast_{q\nu} \over M^\ast_{qp}}
+    d(n_p {M_{q\nu} \over M_{qp}})\right) - Im(n^\ast_p dn_p)
+\]
+\[
+  = - \mod{n_p}^2Im\left(\sum_{\nu} {M^\ast_{q\nu} \over M^\ast_{qp}}
+    d({M_{q\nu} \over M_{qp}})\right) -
+    \left(1 + \sum_{\nu} {\mod{M_{q\nu}}^2 \over \mod{M_{qp}}^2}\right)
+     Im(n^\ast_p dn_p),
+\]
+  где индексы $q$, $p$ у потенциала $A$ показывают, что данные
+выражения справедливы только при выполнении условия \rf{MNotZero}.
+
+Представим теперь $n_p$ в виде: $n_p = r_pe^{i\phi_p}$. Тогда:
+\[
+   \mod{n_p}^2 = r_p^2, \qquad
+   Im(n^\ast_p dn_p) = Im( ir_p^2d\phi_p + r_p dr_p) = r_p^2d\phi_p.
+\]
+
+Откуда для $A_{qp}$:
+\begin{equation}
+  A_{qp} = -r_p^2 \sum_{\nu}
+   \left({M^\ast_{q\nu} dM_{q\nu} \over \mod{M_{qp}}^2}
+     - {\mod{M_{q\nu}}^2 \over \mod{M_{qp}}^2} {dM_{qp} \over M_{qp}}\right)
+   - r_p^2\left({\sum_{\nu} \mod{M_{q\nu}}^2 + \mod{M_{qp}}^2
+       \over \mod{M_{qp}}^2}\right) d\phi_p.
+\label{TempA}
+\end{equation}
+  Для нахождения $r_p^2$ воспользуемся условием
+нормировки $1 = $\DirProd{n}{n} или:
+\[
+  1 = \sum_{i = 1}^{N} \mod{n_i}^2 = \sum_{\nu} \mod{n_\nu}^2 + \mod{n_p}^2 =
+   \mod{n_p}^2\left(
+      1 + \sum_{\nu} {\mod{M_{q\nu}}^2 \over \mod{M_{qp}}^2}\right),
+\]
+\begin{equation}
+   r_p^2 =
+     {\mod{M_{qp}}^2 \over \sum_{\nu} \mod{M_{q\nu}}^2 + \mod{M_{qp}}^2}
+     = {\mod{M_{qp}}^2 \over L_q}.
+\label{TempB}
+\end{equation}
+
+Здесь положено:
+\[
+  L_q = \sum_{\nu} \mod{M_{q\nu}}^2 + \mod{M_{qp}}^2
+    = \sum_{i = 1}^N \mod{M_{qi}}^2.
+\]
+   Подставляя \rf{TempB} в \rf{TempA}, получаем:
+\[
+  A_{qp} = - {1 \over L_q}\sum_{\nu} Im(M^\ast_{q\nu} dM_{q\nu})
+    + {\sum_{\nu} \mod{M_{q\nu}}^2 \over L_q}
+      Im\left({dM_{qp} \over M_{qp}}\right) - d\phi_p,
+\]
+\begin{equation}
+  A_{qp} = - {1 \over L_q}\sum_{i = 1}^{N} Im(M^\ast_{qi} dM_{qi})
+    + \Pi_{qp},
+\label{TempC}
+\end{equation}
+где по определению:
+\[
+   \Pi_{qp} = Im({dM_{qp} \over M_{qp}}) - d\phi_p = d(\phi_{qp} - \phi_p),
+   \qquad  \phi_{qp} = {M_{qp} \over \mod{M_{qp}}},
+\]
+т.\,е. $\Pi_{qp}$ является полным дифференциалом, и калибровочным
+преобразованием $A$ можно всегда обратить $\Pi_{qp}$ в 0. Тогда в
+\rf{TempC} пропадет зависимость $A_{qp}$ от индекса $p$, и полагая
+$A_q = A_{qp}$, окончательно имеем:
+\begin{equation}
+   A_q = - {1 \over L_q}\sum_{i = 1}^{N} Im(M^\ast_{qi} dM_{qi})
+      = - {1 \over L_q}\sum_{\mu} Im(M^\ast_{q\mu} dM_{q\mu}),
+\label{AExpression}
+\end{equation}
+где учтено, что $M$ -- эрмитова матрица в силу эрмитовости $\Ht$,
+поэтому $Im(M_{qq}) = 0$ и:
+\[
+   Im(M^\ast_{qq}dM_{qq}) = Im(M_{qq}dM_{qq}) = 0.
+\]
+
+Из \rf{AExpression} следует, что калибровочный потенциал $A_q$
+не определен при условии:
+\begin{equation}
+  L_q = 0,
+\label{UndefinedA}
+\end{equation}
+т.\,е. когда все элементы $q$-ой строки матрицы $M$ обращаются в ноль.
+При этом очевидно, что при разных $q_1$, $q_2$ в области, где параметры
+гамильтониана удовлетворяют условию $L_{q_1} \ne 0$, $L_{q_2} \ne 0$,
+$A_{q_1}$, $A_{q_2}$ калибровочно - эквивалентны, т.\,е.
+$d(A_{q_1} - A_{q_2}) = 0$ и для вычисления $F$ можно выбрать любое из
+выражений \rf{AExpression}
+
+Рассмотрим в качестве примера использования \rf{AExpression} "классический"
+случай двухуровневой системы с пространством параметров $R^3$, гамильтониан
+которой можно представить в виде:
+\begin{equation}
+   H = \left(\matrix{z&x+iy\cr
+         x-iy&-z}\right)
+    = \left(\matrix{r\cos\theta&r\sin\theta e^{i\phi}\cr
+      r\sin\theta e^{-i\phi}&-r\cos\theta}\right)
+\label{HFor2Level}
+\end{equation}
+ с собственнымм значениями $\pm r$. Здесь $(x,y,z)$,
+$(r,\theta,\phi)$ -- соответственно декартовы и сферические координаты
+в $R^3$.
+
+Полагая в \rf{AExpression} $q$ равным $1$, получим:
+
+\[
+   M_{\pm} = \left(\matrix{-r\cos\theta \mp r&r\sin\theta e^{-i\phi}\cr
+      r\sin\theta e^{i\phi}&r\cos\theta \mp r}\right),
+\]
+\[
+   L_{\pm1} = L_{\pm} = \mod{M_{11}}^2 + \mod{M_{12}}^2
+      = 2r^2(1 \pm \cos\theta),
+\]
+\begin{equation}
+   A_{\pm1} = A_{\pm} = -{1 \over L_{\pm}} Im(M^*_{12}dM_{12})
+      = {1 \over 2}(1 \mp \cos \theta) d\phi,
+\label{AFor2Level}
+\end{equation}
+\begin{equation}
+   F_{\pm} = dA_{\pm} = \pm {1 \over 2}\sin \theta d\theta \wedge d\phi,
+\label{FFor2Level}
+\end{equation}
+в полном соответствии с результатом работы~\cite{FirstBerryWork},
+согласно которому \rf{FFor2Level} является полем магнитного монополя,
+расположенного в начале координат -- точке вырождения
+гамильтониана~\rf{HFor2Level}.
+
+Представим теперь \rf{AExpression} в виде, удобном для
+сопоставления с~\rf{AFor2Level}. Для этого положим:
+%геометрической интерпретации полученного результата.
+\[
+   M_{q\mu} = \mod{M_{q\mu}}e^{-i\phi_{q\mu}},
+\]
+ тогда:
+\[
+   A_q = - {1 \over L_q}\sum_{\mu}
+ Im(\mod{M_{q\mu}} d\mod{M_{q\mu}} - i \mod{M_{q\mu}}^2 d\phi_{q\mu})
+ = \sum_{\mu} {\mod{M_{q\mu}}^2 \over L_q} d\phi_{q\mu}.
+\]
+
+Т.\,к. $\mod{M_{q\mu}}^2 \le L_q = \sum_{i = 1}^N \mod{M_{qi}}^2$,
+то существуют такие $\theta_{q\mu}$, что:
+\[
+   {1 \over 2}(1 - \cos\theta_{q\mu}) = \sin^2 {\theta_{q\mu} \over 2}
+      = {\mod{M_{q\mu}}^2 \over L_q},
+\]
+и для $A_q$ можно записать:
+\begin{equation}
+  A_q = {1 \over 2} \sum_{\mu} (1 - \cos\theta_{q\mu}) d\phi_{q\mu}.
+\label{AGeomExpression}
+\end{equation}
+
+Т.\,к. каждое слагаемое в сумме \rf{AGeomExpression} по своей
+структуре аналогично \rf{AFor2Level}, то в случае произвольных
+$\theta_{q\mu}$, $\phi_{q\mu}$ можно считать,
+что~\rf{AGeomExpression} задает потенциал обобщенного монополя в пространстве
+параметров квантовой системы.
+
+\newpage
+\section{Трехуровневая система.}
+
+Рассмотрим произвольную 3-ех уровневую квантовую систему с гамильтонианом:
+\begin{equation}
+   H = \left(\matrix{H_{11}&H_{12}&H_{13}\cr
+          H_{21}&H_{22}&H_{23}\cr
+          H_{31}&H_{32}&H_{33}}\right),
+\label{HForThreeLevel}
+\end{equation}
+ который, используя эрмитовость $H$, можно представить в виде:
+\begin{equation}
+   H = \left(\matrix{H_{11}&h_3e^{i\phi_3}&h_2e^{-i\phi_2}\cr
+         h_3e^{-i\phi_3}&H_{22}&h_1e^{i\phi_1}\cr
+          h_2e^{i\phi_2}&h_1e^{-i\phi_1}&H_{33}}\right),
+\label{HShort}
+\end{equation}
+ где $H_{ii}$, $h_{i}$ вещественны.
+В силу \rf{ZeroSP} в \rf{HShort} можно без ограничений общности считать, что
+\begin{equation}
+ Sp H = H_{11} + H_{22} + H_{33} = 0.
+\label{HSpIsZero}
+\end{equation}
+
+Тогда уровни энергии системы определяются из уравнения на собственные
+значения:
+\begin{equation}
+   E^3 + Sp{\overline H}E - DetH = 0,
+\label{SelfEquation}
+\end{equation}
+где ${\overline H}$ -- взаимная матрица~\cite{AboutMatrix},
+\[
+   Sp{\overline H} = - (H_{22})^2 - (H_{33})^2 - H_{22}H_{33}
+    - h_1^2 - h_2^2 - h_3^2,
+\]
+\[
+   DetH = (H_{22} + H_{33})(h_1^2 - H_{22}H_{33})
+   - H_{22}h_2^2 - H_{33}h_3^2 + 2h_1h_2h_3\cos \Phi.
+\]
+
+Выбирая, как и в случае двухуровневой системы, в \rf{AExpression}
+$q$ равным единице, получаем для уровня с энергией $E$:
+\[
+  A_1 =  -{1 \over L_1} Im(M^*_{12}dM_{12} + M^*_{13}dM_{13}),
+\]
+\[
+  L_1 = \mod{M_{11}}^2 + \mod{M_{12}}^2 + \mod{M_{13}}^3,
+\]
+\[
+M_{11} = \Delta_2 \Delta_3 - h_1^2,
+\]
+\[
+M_{12} = - h_2h_1e^{i(\phi_1 + \phi_2)} + \Delta_3 h_3 e^{-\phi_3}
+ \, = \, e^{-\phi_3}(\Delta_3 h_3 - h_1 h_2 e^{i\Phi}),
+\]
+\[
+M_{13} = h_1h_3e^{-i(\phi_1 + \phi_3)} - \Delta_2 h_2 e^{\phi_2}
+ \, = \, e^{\phi_2}(-\Delta_2 h_2 + h_1 h_3 e^{-i\Phi}),
+\]
+  где по определению:
+\[
+\Phi = \phi_1 + \phi_2 + \phi_3,
+\]
+\[
+\Delta_2 = H_{22} - E, \qquad \Delta_3 = H_{33} - E,
+\]
+
+ и при произвольной зависимости гамильтониана от времени можно записать:
+\[
+  A_1 =  {1 \over L_1} (\mod{M_{12}}^2 d\phi_3 - \mod{M_{13}}^2 d\phi_2 + K).
+\]
+
+   Здесь:
+\[
+   \mod{M_{12}}^2 = \Delta_3^2h_3^2 + h_1^2h_2^2 - 2h_1h_2h_3\Delta_3\cos\Phi,
+\]
+\[
+   \mod{M_{13}}^2 = \Delta_2^2h_2^2 + h_1^2h_3^2 - 2h_1h_2h_3\Delta_2\cos\Phi,
+\]
+  и форма $K$ определяется выражением:
+\[
+ K = h_1
+ \left(h_1(h_3^2 - h_2^2) + h_2h_3\cos\Phi(\Delta_3 - \Delta_2)\right)d\Phi
+\]
+\[
+  + h_2h_3\sin\Phi(\Delta_3 - \Delta_2)dh_1
+  + h_1\sin\Phi(\Delta_3 + \Delta_2)(h_3dh_2 - h_2dh_3)
+\]
+\[
+  - h_1h_2h_3\sin\Phi d\left(\Delta_3 -\Delta_2\right).
+\]
+
+При расчетах конкретных систем, используя те или иные ограничения на
+параметры гамильтониана, можно существенно упростить полученное выражение.
+Так, например в случае зависимости от времени только диагональных элементов
+$H$ $dh_1=$$dh_2=$$dh_3=$$d\Phi=0$, откуда:
+\[
+  A_1 = h_1h_2h_3\sin\Phi {d\left(\Delta_2 -\Delta_3\right) \over L_1}
+  = h_1h_2h_3\sin\Phi {d\left(H_{22}-H_{33}\right) \over L_1},
+\]
+и после простых вычислений получаем для $F$:
+\begin{equation}
+  F =
+   6 Im(H_{12}H_{23}H_{31}) { \Delta_2 \Delta_3 - \mod{H_{23}} \over L^2 } E
+ (1-{ \partial E \over \partial H_{22} }-{ \partial E \over \partial H_{33} })
+  dH_{33} \wedge dH_{22}.
+ \label{FOnPlate}
+\end{equation}
+  Из (\ref{FOnPlate}) следует, что в общем случае произвольной зависимости
+$H_{22}$, $H_{33}$ от времени $F \ne 0$, и в данной
+системе может наблюдаться геометрическая фаза, в отличии от двухуровневого
+гамильтониана, где при изменении только диагональных элементов фаза Берри
+тождественно обращается в ноль.
+
+%в отличии от утверждения, содержащегося в работе~\cite{NaumovWork}.
+
+\newpage
+\section{Заключение.}
+ Полученные в данной работе формулы могут
+быть использованы при теоретическом и экспериментальном изучении фазы Берри
+в различных квантовомеханических системах. При этом общность примененного
+подхода позволяет надееться на возможность обобщения результатов работы на
+случай неабелевой геометрической фазы, а также на случай систем с неэрмитовым
+гамильтонианом.
+
+\newpage
+\begin{thebibliography}{10}
+
+\bibitem{FirstBerryWork}
+ Berry~M.~V. // Proc. Roy. Soc. 1987. V. A392. P.~45.
+\bibitem{60}
+ Hannay J.H. // J. Phys. 1985. V. A18. P. 221
+\bibitem{61}
+ Berry M.V. // J. Phys. 1985. V. A18. P. 15
+\bibitem{62}
+ Berry M.V. Fundamental aspects of quantum theory. London, 1986. P. 267.
+\bibitem{63}
+ Aitchison I.J. // Acta Phys. Pol. 1987. V. B18. No 3. P.207.
+\bibitem{64}
+ Niemi A.J., Semenoff G.W. // Nucl. Phys. 1986. V. B276. No 1. P. 173.
+\bibitem{SimonWork}
+ Simon B. // Phys. Rev. Lett. 1983. V. 51. P. 2167.
+\bibitem{NaumovWork}
+ Наумов~В.~А. // ЖЭТФ. 1992. Т. 101. С.~3.
+\bibitem{AboutPhaseInSpectra}
+ Виницкий~С.И., Дербов~В.Л., Дубовик~В.М., Марковски~Б.Л., Степановский~Ю.П.
+ // УФН. 1990. Т. 160. N6. С.~1.
+\bibitem{91}
+ Aharonov Y., Anamdan J. // Phys. Rev. Lett. 1987. V. 58. P. 1593
+\bibitem{WilzekZeeWork}
+  Wilzek F., Zee A. // Phys. Rev. Lett. 1984. V. 52. P.2111
+\bibitem{About2Hamiltonian}
+ Dodonov~V.V., Man'ko~V.I. in Topological Phases in: Quantum Theory.
+ Eds. Markovski~B., Vinitsky~S.I. World Scientific, Singapore, 1989. P.~74.
+\bibitem{AboutExactSolution}
+ Chaturvedi~S., Sriram~M., Shrinivasan~V. // J.Phys. 1987. V. A20. P.~L1071
+\bibitem{CeulemansWork}
+ Ceulemans~A., Szopa~M. // J.Phys. 1991. V. A24. P.~4495.
+\bibitem{KorenblitWork}
+ Korenblit~S.E., Kuznetsov~V.E., Naumov~V.A. in: Proc. Int. Conf.
+ Quantum systems : New trends and methods. Minsk, 1994.
+ Eds. Barut~A.O. et al. World Scientific, Singapure, 1995. P.~209.
+\bibitem{TolkachevTregubovich1}
+  Tolkachev~E.A., Tregubovich~A.Ya. in: Proc. Int. Conf.
+  Topological phases in quantum theory. Eds. Markovski~B., Vinitsky~S.I.
+  World Scientific, Singapure, 1989. P.~119.
+\bibitem{TolkachevTregubovich2}
+  Tolkachev~E.A., Tregubovich~A.Ya. in: Proc. Int. Conf.
+ Quantum systems : New trends and methods. Minsk, 1994.
+ Eds. Barut~A.O. et al. World Scientific, Singapure, 1995. P.~218.
+\bibitem{BornAndFock}
+ Born M. Fock V. // Zs. Phys. 1928. Bd51. S. 165
+\bibitem{AboutMatrix}
+ Гантмахер Ф. Р. Теория матриц. Москва, 1988.
+\bibitem{PostnikovWork}
+ Постников М.М. Дифференциальная геометрия. Москва, 1988.
+\bibitem{DanielWork}
+ Даниэль М., Виалле С.М. // УФН. 1982. Т. 136. Вып. 3. С. 377.
+\end{thebibliography}
+
+\end{document}
+
+
+
+

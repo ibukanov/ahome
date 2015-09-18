@@ -1,0 +1,24 @@
+#!/bin/bash
+
+src="/scratch/igor/Pictures"
+
+if test ! -d "$src"; then
+  echo "No $src directory" 1>&2
+  exit 1
+fi
+
+mkdir -p photos
+cd photos
+
+list=($(find "$src" -mindepth 1 -type d))
+for dir in "${list[@]}"; do
+  d2=${dir#$src/}
+  mkdir -p "$d2"
+  find "$src/$d2" -maxdepth 1 -type f -print0 | xargs -0 ln -t "$d2" -sf
+done
+
+rm -rf .slides
+cp -r /usr/share/album/themes/Slides .slides
+album -medium=600x450 -theme=.slides
+chmod -R o+rX "$src" .
+

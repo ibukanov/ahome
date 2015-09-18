@@ -1,0 +1,10 @@
+#!/bin/sh
+
+EDITOR=e
+
+: ${QUILT_REFRESH_ARGS:=--strip-trailing-whitespace}
+: ${QUILT_PATCH_OPTS:=--reject-format=unified}
+: ${QUILT_DIFF_OPTS:=-p}
+
+: ${QUILT_DIFF_ARGS:="--diff=$HOME/a/scripts/u-diff"}
+

@@ -1,0 +1,72 @@
+#!/bin/sh
+
+test $# -eq 2 || {
+    echo "Invalid usage: exactly 2 arguments HOST PORT should be given" 1>&2 
+    exit 1 
+}
+
+host="$1"
+port="$2"
+
+if ! ip addr show |grep '^[0-9]\+:' | grep -vq LOOPBACK ; then 
+  # We have only loopback network devices or none at all. 
+  # Assume qubus network-less VM
+  exec /usr/lib/qubes/qrexec_client_vm netvm ssh.Proxy "$HOME/a/qubes/ssh_proxy_pipe.pl" "$host" "$port"
+fi
+
+connection=""
+proxy=""
+case "$host" in
+    watson )
+	host=watson.runitsoft.com
+	connection="direct"
+	;;
+    dserver )
+	if true || u-is-location home; then
+	    host=192.168.2.10
+	    connection="direct"
+	else
+	    host=dserver.mir2.org
+	    port=18284
+	fi
+	;;
+esac
+
+if test -z "$connection"; then
+    if false; then
+	if test watson.runitsoft.com = "$host"; then
+	    connection="http"
+	    proxy=10.20.16.28:88
+	    port=443
+	else
+	    connection="socks5"
+	    proxy="localhost:7010"
+	fi
+    else
+	connection="direct"
+    fi
+fi
+
+if test direct != "$connection"; then
+    
+    # As there are 2 versions of nc I use a hack and assume
+    # that on Ubuntu I have nc from openbsd.
+    bsd=""
+    test -x /usr/bin/lsb_release && bsd=1
+    bsd=1
+
+    case "$connection" in
+	http )
+	    test -z "$bsd" && proxy="--proxy-type http --proxy $proxy"
+            test -n "$bsd" && proxy="-X connect -x $proxy"
+	    ;;
+	socks5 )
+            test -z "$bsd" && proxy="--proxy-type socks5 --proxy $proxy"
+            test -n "$bsd" && proxy="-X 5 -x $proxy"
+	    ;;
+    esac
+fi
+
+# Pass 4 to avoid DNS lookups for ipv6
+#echo "$HOME/p/netcat-openbsd/nc" -F -4 $proxy $host $port 1>&2
+exec "$HOME/p/netcat-openbsd/nc" -F -4 $proxy $host $port

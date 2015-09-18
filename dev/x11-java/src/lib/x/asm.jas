@@ -1,0 +1,109 @@
+.class public lib/x/asm
+.super java/lang/Object
+
+
+;  static int matchBestIndex(int red, int green, int blue, 
+;                            int i, int[] rgbData) {
+;    int c, tmp, best = 0, dist2 = 196608;
+;    while (i > 0) {
+;      c = rgbData[--i];
+;      tmp = (tmp = (c >> 16) - red) * tmp
+;            + (tmp = ((c >> 8) & 0xFF) - green) * tmp 
+;            + (tmp = (c & 0xFF) - blue) * tmp;
+;      if (tmp == 0) { return i; }
+;      if (tmp < dist2) { 
+;        dist2 = tmp;
+;        best = i;
+;      }
+;    }
+;    return best;
+;  }                          
+
+
+.method static matchBestIndex(IIII[I)I
+    .limit locals 6
+    .limit stack 7
+ 
+    
+    iconst_0       ; the best index
+    istore 5 
+    ldc 196608  ; the maximum possible distance squared == 3 * 256 * 256
+    
+    goto loopTest
+    
+loop:
+    iinc 3 -1
+
+    aload 4     ; push the array rgbData on the stack
+    iload_3
+    iaload      ; get [i] entry
+    
+    dup      
+    
+    bipush 16
+    iushr
+    iload_0
+    isub
+    dup
+    imul
+    
+    swap
+    dup
+        
+    bipush 8
+    iushr
+    sipush 255
+    iand
+    iload_1
+    isub
+    dup
+    imul
+    
+    swap
+    
+    sipush 255
+    iand
+    iload_2
+    isub
+    dup
+    imul
+ 
+    iadd
+    iadd
+    
+    ; I have on the stack now 
+    ;   (tmp = (c >> 16) - red) * tmp
+    ;   + (tmp = ((c >> 8) & 0xFF) - green) * tmp 
+    ;   + (tmp = (c & 0xFF) - blue) * tmp
+    
+    dup
+    
+    ifne compareWithDistance
+    iload_3
+    ireturn
+
+compareWithDistance:
+     
+    ; current stack : min distance squared, curren distance squared
+    dup2 
+ 
+    if_icmplt notCloser
+
+    iload_3
+    istore 5 
+
+    swap
+
+notCloser:
+    pop 
+    
+loopTest:
+    iload_3
+    ifgt loop
+
+    iload 5 
+    ireturn
+
+.end method
+
+    

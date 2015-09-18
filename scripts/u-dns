@@ -1,0 +1,29 @@
+#!/bin/bash
+
+host="$1"
+
+is_runit() {
+    grep -q -F 'search runitsoft.com.' /etc/resolv.conf
+}
+
+is_home() {
+    grep -q 192.168.2.1 /etc/resolv.conf && ip addr show | grep -q 'inet 192.168.2.13/24'
+}
+
+case "$host" in
+    watson | tlipi )
+	is_runit || host=watson.runitsoft.com
+	;;
+    dserver )
+	if is_home; then
+	    host=192.168.2.10
+	else
+	    host=mir2home.asuscomm.com
+	fi
+	;;
+    rwww )
+	host=37.252.124.207
+	;;
+esac
+
+echo "$host"

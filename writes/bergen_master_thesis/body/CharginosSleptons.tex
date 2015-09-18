@@ -1,0 +1,321 @@
+\chapter{Charginos and Sleptons in MSSM}
+
+\section{Charginos}
+
+By definition, charginos $\chi_i$ are the two mass eigenstates formed
+by the mixing of the fermionic partners of the charged gauge bosons (winos)
+and those of the charged Higgs bosons~\cite{howCharginosCome}.
+Consequently the charginos are described by the following quadratic terms 
+in the MSSM Lagrangian that in terms of two component Weyl spinors 
+read (see~\cite{mainBook}, page 47.)
+\beml{lagran-free-chargino-1}
+L & = & 
+   -i\psi_1^-\sigma^a\partial_a\bar{\psi}_1^-  
+   -i\psi_2^+\sigma^a\partial_a\bar{\psi}_2^+  
+   -i\Lambda^-\sigma^a\partial_a\bar{\Lambda}^-  
+   -i\Lambda^+\sigma^a\partial_a\bar{\Lambda}^+  
+\nel &&
+- \pba{cc}-i\Lambda^+ & \psi_2^+ \pea B
+  \pba{c}-i\Lambda^- \\ \psi_1^- \pea
+- \pba{cc}-i\bar{\Lambda}^+ & \bar{\psi}_2^+ \pea \bar{B}
+  \pba{c}-i\bar{\Lambda}^- \\ \bar{\psi}_1^- \pea.
+\ee
+
+
+%(ALERT I should write the same by the terms of Dirac matrixes 
+%- it would be better)
+
+Here the fields $\Lambda^+$ and $\Lambda^-$ are charged SU(2) gaugino fields. 
+They are defined through
+\be 
+\Lambda^+ \equiv \frac{1}{\sqrt{2}}(\Lambda^1 - i\Lambda^2)
+\quad \mbox{and} \quad 
+\Lambda^- \equiv \frac{1}{\sqrt{2}}(\Lambda^1 + i\Lambda^2).
+\ee
+
+The fields $\psi_1^-$ and $\psi_2^+$ are charged Higgsino fields 
+and $\Lambda^1$, $\Lambda^2$ are $SU(2)$ gaugino fields. 
+The mass matrix $B$ at the tree level is completely determined 
+by three parameters: $\mu$, the mass coupling strength between the two Higgs
+superfields; $\tan\beta$, the ratio of the vacuum expectation values
+of the two Higgs doublets; and $m_{\tilde\Lambda}$, the $SU(2)$ gaugino
+mass. The later quantity comes from the soft breaking terms in 
+MSSM Lagrangian. These terms reflect the fact that supersymmetry cannot be 
+an exact symmetry of nature, else the supersymmetric partners 
+would have the same masses as the normal particles. In the absence 
+of a fundamental understanding of the origin of supersymmetry breaking
+one consider all possible terms that violate the SUSY and do not introduce 
+quadratic divergences, the most trouble part the Standard Model. 
+
+\P
+The matrix $B$ has the following structure:
+\bel{lagran-B-is}
+B =  \pba{cc} 
+   m_{\tilde\Lambda} & \sqrt{2}m_W \cos\beta \\
+   \sqrt{2}m_W \sin\beta  & \mu 
+\pea.
+\ee
+
+If the CP symmetry is violated in the chargino sector then $\mu \ne \mu^*$
+and $B$ would not be real matrix.  
+
+\P
+To construct from the quadratic charged Higgsino and gaugino terms two free
+Dirac fields I introduce the mass eigenstates as 
+(\cite{mainBook}, page 48)
+\bel{lagran-chargino-construction}
+\pba{c} \chi_1^+ \\ \chi_2^+ \pea = 
+   X\pba{c}-i\Lambda^+ \\ \psi_2^+ \pea
+\quad \mbox{and} \quad
+\pba{c} \chi_1^- \\ \chi_2^- \pea = 
+   Y\pba{c}-i\Lambda^- \\ \psi_1^- \pea
+\ee
+
+The $2\times 2$ matrixes $X$ and $Y$ must be unitary to have standard  kinetic
+terms for $\chi$ and should fulfill
+\be
+X^* BY^\hc = \pba{cc} -m_{\chi_1} & 0 \\ 0 & -m_{\chi_2} \pea 
+.
+\ee
+
+According to appendix \rf{appMatrix} I have for the chargino masses 
+from~\rf{lambdaForCompleMatrix} 
+\beml{charginoMasses}
+\lefteqn{
+m_{\chi_1}^2 \; = \; S + \sqrt{T}, 
+\qquad
+m_{\chi_2}^2 \; = \; S - \sqrt{T}, 
+}
+\nel
+S  &=& \frac{m_{\tilde\Lambda}^2 + \abs{\mu}^2}{2} + m_W^2
+\nel
+T &=& \frac{(m_{\tilde\Lambda}^2 + 2m_W^2\cos^2\beta - 
+     2m_W^2\sin^2\beta - \abs{\mu}^2)^2}{4} 
+\nel && {}
+   + \abs{m_{\tilde\Lambda}\sqrt{2}m_W\sin\beta 
+      + \sqrt{2}m_W\cos\beta\bar{\mu}}^2
+\nel & = &
+\frac{(m_{\tilde\Lambda}^2 - \abs{\mu}^2)^2}{4}
++ m_W^4(\cos^2\beta - \sin^2\beta)^2 
++ m_W^2(\cos^2\beta - \sin^2\beta)(m_{\tilde\Lambda}^2 - \abs{\mu}^2)
+\nel && {}
++ 2m_W^2(m_{\tilde\Lambda}\sin\beta + \bar{\mu}\cos\beta)
+    (m_{\tilde\Lambda}\sin\beta + \mu\cos\beta)
+\nel & = &
+\frac{(m_{\tilde\Lambda}^2 - \abs{\mu}^2)^2}{4}
++ m_W^4\cos^2(2\beta) 
+\nel && {}
++ m_W^2\big[
+   m_{\tilde\Lambda}^2(\cos^2\beta - \sin^2\beta)
+  -\abs{\mu}^2(\cos^2\beta - \sin^2\beta)
+\nel && \qquad {}
+  + 2m_{\tilde\Lambda}^2\sin^2\beta
+  + 2\abs{\mu}^2\cos^2\beta
+  +2m_{\tilde\Lambda}\cos\beta\sin\beta(\mu + \bar{\mu})
+\big] 
+\nel & = &
+\frac{(m_{\tilde\Lambda}^2 - \abs{\mu}^2)^2}{4}
++ m_W^4\cos^2(2\beta) 
++ m_W^2\big[
+   m_{\tilde\Lambda}^2 + \abs{\mu}^2
+  +2m_{\tilde\Lambda}\sin(2\beta)\Re(\mu)
+\big]. 
+\nel
+\ee
+
+The matrices $X$ and $Y$ are given by~\rf{matrixXandY}
+\bel{lagran-X-andY-is}
+X^* 
+\; = \;
+\pba{cc} 
+   \cos\theta_X & \sin\theta_X e^{i\phi_X} \\
+   -\sin\theta_X e^{-i\phi_X} & \cos\theta_X
+\pea,
+\ee
+\bel{lagXandY}
+Y 
+\; = \;
+\pba{cc} 
+   \cos\theta_Y e^{i\psi_Y} & \sin\theta_Y e^{i\phi_Y} e^{i\psi_Y} \\
+   -\sin\theta_Y e^{-i\phi_Y}e^{i\psi'_Y} & \cos\theta_Y e^{i\psi'_Y}
+\pea,
+\ee
+
+with the factors given by~\rf{matrixXandYcoef} and~\rf{lagran-B-is} as
+
+\be 
+e^{i\phi_X} = \zOverAbs{m_{\tilde\Lambda}\sin\beta + \mu^* \cos\beta}, 
+\quad
+e^{i\phi_Y} = \zOverAbs{m_{\tilde\Lambda}\cos\beta + \mu \sin\beta}, 
+\ee
+\be
+e^{i\psi_Y}
+= 
+  -\frac{m_{\tilde\Lambda}\cos\theta_X 
+     + \sqrt{2}m_W \sin\beta\sin\theta_X e^{i\phi_X}}{m_{\chi_1}\cos\theta_Y}
+        ,
+\ee
+\be
+e^{i\psi'_Y} = 
+\frac{-\sqrt{2} m_W \cos\beta \sin\theta_X e^{-i\phi_X} + \mu \cos\theta_X}
+     {m_{\chi_2}\cos\theta_Y}
+      .
+\ee
+
+Furthermore
+\bel{lagrangian-theta-X-and-Y}
+\tan\theta_X = \sqrt{1 + \eta_X^2} - \eta_X, 
+\quad
+\tan\theta_Y = \sqrt{1 + \eta_Y^2} - \eta_Y, 
+\ee
+
+and
+\bel{lagrangian-eta-X-and-Y}
+\eta_X = 
+   \frac{m_{\tilde\Lambda}^2 - \abs{\mu}^2 + 2m_W^2\cos(2\beta)}
+        {2\sqrt{2}m_W\abs{m_{\tilde\Lambda}\sin\beta + \mu^* \cos\beta}},
+\quad 
+\eta_Y = 
+   \frac{m_{\tilde\Lambda}^2 - \abs{\mu}^2 - 2m_W^2\cos(2\beta)}
+        {2\sqrt{2}m_W\abs{m_{\tilde\Lambda}\cos\beta + \mu^* \sin\beta}}
+        .
+\ee
+
+\P
+In terms of Dirac spinors the mass eigenstates are
+\bel{lagran-chargino-as-Dirac-spinors}
+\Psi_{\chi_1} = \pba{c} \chi_{1\alpha}^+ \\ \bar{\chi}_1^{-\dot\alpha} \pea,
+\quad
+\Psi_{\chi_2} = \pba{c} \chi_{2\alpha}^+ \\ \bar{\chi}_2^{-\dot\alpha} \pea
+\ee
+
+and the free chargino 
+Lagrangian terms have the usual form of free Dirac fields,
+\bel{lagran-free-charginos}
+L = \bar{\Psi}_{\chi_1}(i\gu\mu\partial_\mu - m_{\chi_1}) {\Psi}_{\chi_1}
+  + \bar{\Psi}_{\chi_2}(i\gu\mu\partial_\mu - m_{\chi_2}) {\Psi}_{\chi_2} 
+  .
+\ee
+
+%\subsection{Neutralinos}
+%
+\section{Scalar neutrinos}
+
+A possible channel for the chargino production process in $e^+$, $e^-$
+collisions involves the exchange of a virtual scalar electron neutrino
+$\tilde{\nu}_l$, the neutral scalar particle that 
+is the supersymmetric partner of the electron neutrino.
+There are two types of sneutrinos, i.e. right- and left-handed ones,
+$\tilde{\nu}_l^R$ and $\tilde{\nu}_l^L$. 
+In the framework of the MSSM the quadratic term in the Lagrangian 
+that gives masses for sneutrinos reads
+
+\be
+\Lc \; = \;
+ -\pmatrix{ \tilde{\nu}_l^{L\hc} & \tilde{\nu}_l^{R\hc}}
+\Mc_{\tilde{\nu}} \pmatrix{{\tilde{\nu}_l^L} \cr {\tilde{\nu}_l^R}}
+.
+\ee 
+
+The mass matrix has the following form (see~\cite{mainBook}, page 45)
+\bel{sneutrinoMassMatrix}
+\Mc_{\tilde{\nu}} = \pmatrix{\displaystyle
+           \tilde{M}_U^2 + {m_Z^2 \over 2} \cos(2\beta) & 0 \cr
+              0 & \tilde{m}_U^2 }.
+\ee
+
+As in the case of $m_{\tilde\Lambda}$ the mass parameters $\tilde{M}_U^2$
+and $\tilde{m}_U^2$ are introduced by quadratic soft breaking terms in the
+MSSM Lagrangian.
+
+\P
+The diagonal form of $\Mc_{\tilde{\nu}}$ comes from the assumption
+that neutrinos are massless. Otherwise one would have non-diagonal 
+$\Mc_{\tilde{\nu}}$ and mixing between $\tilde{\nu}^L$ and $\tilde{\nu}^L$.
+
+\section{Interaction Lagrangian density}
+
+The interactions of charginos with gauge bosons and 
+with charged leptons and scalar neutrinos are given by
+by~(see~\cite{mainBook}, page 67-69)
+\beml{charginoCoupling}
+L[\chi,\gamma] & = & 
+  \sum_{i = 1..2} -\overline{\psi}_{\chi_i} e\gu{\rho} \psi_{\chi_i} A_\rho,
+
+\nel
+
+L[\chi, Z] & = &
+    \frac{g}{4 \cos \theta_W} \sum_{i,j = 1..2}  
+    
+    \overline{\psi}_{\chi_j} \gu{\rho} \Bigl\lbrace 
+          [2\delta_{ji} \cos (2\theta_W) 
+            + Y_{i1}Y_{1j}^\hc  + X_{j1}X_{1i}^\hc 
+        
+\nel && \qquad {} 
+          + \gu5 [Y_{i1}Y_{1j}^\hc  - X_{j1}X_{1i}^\hc ]\Bigr\rbrace
+
+    \psi_{\chi_i} Z_\rho,
+        
+\ee
+
+\bel{ChiLSNu}
+L[l, \tilde{\nu}_l, \chi] = 
+  \frac{g}{2} \sum_{l,i, p} 
+       [- \psi^T_{\chi_i}C (\Vc_{lip} 
+              + \Ac_{lip}\gd{5}) \psi_{l} (\tilde{\nu}_l^p)^\hc
+       + \overline{\psi}_l (\Vc^\hc_{lip} 
+                - \Ac^\hc_{lip}\gd{5})
+                 C^{-1}\overline{\psi}_{\chi_i}^T \tilde{\nu}_l^p]
+                 ,
+\ee
+
+where in~\rf{ChiLSNu} 
+the sum is taken over two chargino generations $i$, $i = 1..2$, 
+all lepton flavors $l$ and two sneutrino types $p$, 
+$p = R,L$\footnote{
+In~\rf{ChiLSNu} I have written the minus sign before the first term
+as opposite to~\cite{mainBook}. With the plus sign
+the Lagrangian term $L[l, \tilde{\nu}_l, \chi]$ would not be Hermitian.
+}. I also use the convention $e = \abs{e}$, i.e.\ $e$ stands for the 
+absolute value of the unit electric charge and $g = e / \sin\theta_W > 0$.
+
+\P
+
+Under the assumption that all neutrinos are massless, the coefficients 
+in~\rf{ChiLSNu} read, 
+
+\bem
+\Vc_{liL} & = &
+-X_{1i}^\hc  - Y_{i2}\frac{m_l}{\sqrt{2} m_W \cos\beta} 
+,
+\nel
+\Vc_{liR} & = &
+0,
+
+\nel
+\Ac_{liL} & = &
+
+X_{1i}^\hc  - Y_{i2}\frac{m_l}{\sqrt{2} m_W \cos\beta}
+,
+
+\nel
+\Ac_{liR} & = &
+
+0.
+
+\ee
+
+\P
+The zero values of $\Ac_{lip}$ and $\Vc_{lip}$ when $p=R$ 
+means that cubic interaction between leptons, charginos and sneutrinos 
+involves only one kind of sneutrinos, thus
+\bel{lagranChiLSNu}
+L[l, \tilde{\nu}_l, \chi] = 
+  \frac{g}{2} \sum_{l,i} 
+       [- \psi^T_{\chi_i}C (\Vc_{liL} 
+              + \Ac_{liL}\gd{5}) \psi_{l} (\tilde{\nu}_l^R)^\hc
+       + \overline{\psi}_l (\Vc^\hc_{liL} 
+                - \Ac^\hc_{liL}\gd{5})
+                 C^{-1}\overline{\psi}_{\chi_i}^T \tilde{\nu}_l^L]
+.
+\ee

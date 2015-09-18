@@ -1,0 +1,48 @@
+#!/bin/bash
+
+test $# -lt 2 && { echo "Usage: $0 host command"; exit 1; }
+
+host="$1"
+shift
+if test $# -eq 1; then
+    dir="$1"
+    command=(true)
+elif test "$1" = "m-build-js" -o "$1" = "m-build-ff"; then
+    command=("$@")
+    dir="$2"
+else
+    dir="$1"
+    shift
+    command=("$@")
+fi
+
+rsync_remote_args=(--compress --compress-level=9 -e 'ssh -o Compression=no')
+rsync_args=(-tlr --delete -vh "${rsync_remote_args[@]}")
+
+rsync_exclude_list=(
+    --exclude=/.hg/store
+    --exclude=/.hg/undo.*
+    --exclude=/.hg/cache
+    --exclude=/.hg/dirstate
+    --exclude=/.hg/branch
+    --exclude=/.hg/bookmarks
+    --exclude=/.hg/requires
+    --exclude=/.hg/*.i
+    --exclude=/.hg/*.txt
+    --exclude="*.pyc"
+    --exclude="/.mozconfig.out"
+    --exclude="/.mozconfig.mk"
+    --exclude="/configure"
+    --exclude="/js/src/configure"
+    --exclude="*.rej"
+    --exclude="*.orig"
+    --exclude=/.hg/patches/status
+)
+
+#local_cache="$HOME/b/rsync_cache/$dir"
+#mkdir -p "$local_cache"
+
+rsync "${rsync_args[@]}" "${rsync_exclude_list[@]}" \
+    "$HOME/m/$dir/" "${host}:m/$dir" && \
+rsync "${rsync_args[@]}" "$HOME/a/mozilla" "${host}:a" &&
+exec ssh "$host" "${command[@]}"
