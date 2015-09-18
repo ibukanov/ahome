@@ -33,6 +33,15 @@ append_path "$HOME/opt/virgil/bin"
 
 append_path "$HOME/opt/$platform/nodejs/bin"
 
+d="$HOME/a/dev/tex_lib"
+[[ ! -d "$d" ]] || env+=(TEXINPUTS ".:$d")
+
+d="$HOME/node_modules/elm/share"
+[[ ! -d "$d" ]] || env+=(ELM_HOME "$d")
+
+d="$HOME/a/perl/mylib"
+[[ ! -d "$d" ]] || env+=(PERL5LIB "$d")
+
 cygopt=/cygdrive/c/opt
 if test -d "$cygopt"; then
     if test -d "$cygopt/jdk8"; then

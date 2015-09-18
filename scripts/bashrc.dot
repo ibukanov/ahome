@@ -8,8 +8,6 @@ shopt -s extglob
 export LANG="en_US.UTF-8"
 #export LC_ALL="C"
 
-export PERL5LIB="$HOME/a/perl/mylib"
-
 export LESS=\
 'ciMQsPM?f%f .?n?m(file %i of %m) ..?ltline %lt'\
 '?L/%L. :byte %bB?s/%s. .?e(END) ?x- Next\: %x.:'\
@@ -31,12 +29,7 @@ if test -f "$HOME/.env"; then
     source "$HOME/.env"
 fi
 
-export TEXINPUTS=".:$HOME/a/dev/tex_lib:$HOME/ysoft/tex:$HOME/ysoft/tex/data"
-TEXINPUTS="${TEXINPUTS}:"
-
 export CVSEDITOR=u-cvs-editor
-
-export DARCS_EDITOR="u-cvs-editor"
 export GIT_EDITOR="u-cvs-editor"
 export GIT_PAGER="cat"
 export SVN_EDITOR=u-cvs-editor
