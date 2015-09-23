@@ -14,11 +14,9 @@
 		     (and path (setq-default ispell-program-name path)))))
     (setq spellers (cdr spellers))))
 
-(setq Man-width 72)
-
 ;;; Version management
 
-; Disable it, shell command works netter for me
+; Disable it, shell command works better for me
 (setq vc-handled-backends nil)
 
 ;;; Remote access
@@ -33,9 +31,6 @@
 (setq auto-save-file-name-transforms `((".*" ,my-backup-dir-path t)))
 
 (setq create-lockfiles nil) ; works since emacs 24.3
-(setq auto-save-default nil)
-(setq backup-inhibited t)
-(setq vc-cvs-stay-local nil)
 
 ; I prefer to see changes in files immediately
 (global-auto-revert-mode 1)
@@ -414,11 +409,6 @@
 ;; use Alt-Space for marking as well. 
 (global-set-key (kbd "M-SPC") 'set-mark-command)
 
-;; My favourite ;)
-;(push "~/p/pc-bufsw" load-path)
-;(require 'pc-bufsw-autoloads)
-;(package-install-file "~/p/pc-bufsw/pc-bufsw.el")
-
 (when (fboundp 'ido-mode)
   (ido-mode 'buffers))
 
@@ -609,3 +599,14 @@
     (require 'server)
     (unless (my-server-running-p)
       (server-start))))
+
+(setq custom-file "~/.emacs.d/custom.el")
+(load custom-file)
+
+;; This is for testing - normally pc-bufsw should be loaded as a package
+;;(push "~/p/pc-bufsw" load-path)
+;;(require 'pc-bufsw-autoloads)
+;;(pc-bufsw-default-keybindings)
+;;(global-set-key [f6] 'pc-bufsw-mru)
+;;(global-set-key [f5] 'pc-bufsw-lru)
+;;(package-install-file "~/p/pc-bufsw/pc-bufsw.el")
