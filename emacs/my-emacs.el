@@ -543,6 +543,8 @@
 
 ;; No blinking cursors
 (blink-cursor-mode 0)
+(menu-bar-mode 0)
+(scroll-bar-mode 0)
 
 ;(desktop-load-default)
 ;(desktop-read)

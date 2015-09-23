@@ -2,7 +2,7 @@
 
 # This script is invoked as a login shell to get bashrc.dot customizations
 
-args=(--basic-display --no-splash -bg '#F8F8FF' -fg '#000000')
+args=(--no-splash -bg '#F8F8FF' -fg '#000000')
 
 case "${DESKTOP_SESSION,,}" in
     gnome | xfce ) args+=(--fullscreen) ;;
