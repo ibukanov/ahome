@@ -2,11 +2,11 @@
 (defvar my-paged-last-buffer nil)
 
 (defun my-paged-append-output (proc str)
-  (save-excursion
-    (set-buffer (process-buffer proc))
-    (goto-char (point-max))
-    (setq buffer-read-only nil)
-    (insert str)))
+  (with-current-buffer (process-buffer proc)
+    (save-excursion
+      (goto-char (point-max))
+      (setq buffer-read-only nil)
+      (insert str))))
 
 (defun my-paged-sentinel (proc str)
   (my-paged-append-output proc (concat "----- " str)))
@@ -28,8 +28,7 @@ then just show that file."
 (defun my-paged-process-impl (command-dir command args)
   (let* ((outname (concat "*" command " " (if args (car args) "output") "*"))
 	 (outbuf (get-buffer-create outname)))
-    (save-excursion
-      (set-buffer outbuf)
+    (with-current-buffer outbuf
       (let ((old-proc (get-buffer-process (current-buffer))))
 	(when old-proc
 	  (if (or (not (eq (process-status old-proc) 'run))
@@ -58,7 +57,7 @@ then just show that file."
 	  (insert " " (car cursor))
 	  (setq cursor (cdr cursor))))
       (newline))
-    (switch-to-buffer outbuf)
+    (switch-to-buffer-other-window outbuf)
     (let ((outwin (get-buffer-window outbuf)))
       (set-window-start outwin (point-min))
       (set-window-point outwin (point-min)))
