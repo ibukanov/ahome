@@ -256,10 +256,10 @@
 
 (defsubst eshell/e (filename)
   (find-file filename))
-(defun eshell/p (command &rest args)
-  (if (file-attributes command)
-      (find-file command)
-    (apply 'my-paged-process command args)))
+;; (defun eshell/p (command &rest args)
+;;   (if (file-attributes command)
+;;       (find-file command)
+;;     (apply 'my-paged-process command args)))
 
 (defun my-term-mode-hook()
   (auto-fill-mode -1)
