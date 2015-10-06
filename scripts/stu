@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# send-to-untrusted
+
+cmd=(ssh user@untrusted tee /tmp/x.txt)
+
+if [[ $# -eq 0 ]]; then
+    "${cmd[@]}"
+else
+    printf '%s\n' "$*" | "${cmd[@]}"
+fi
