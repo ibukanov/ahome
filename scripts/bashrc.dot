@@ -206,7 +206,7 @@ if test -n "${PS1+1}"; then
                 if test "${DIRSTACK[$i]}" = "$PWD"; then
                     popd +$i > /dev/null
                 else
-                    i=$(($i + 1))
+                    let i+=1
                 fi
             done
             return
@@ -229,9 +229,14 @@ if test -n "${PS1+1}"; then
 
     # initialize dir stack from the history
     if test -n "$HISTFILE" -a -r "$HISTFILE"; then
-        for i in $(grep '^cd ' "$HISTFILE" | cut -d' ' -f2); do
-            pushd -n ${i/#~/$HOME} > /dev/null
+	mapfile -t lines < $HISTFILE
+        for line in "${lines[@]}"; do
+	    i=${line#cd }
+	    if [[ ${#i} -ne 0 && ${#i} -ne ${#line} ]]; then
+		pushd -n ${i/#~/$HOME} > /dev/null
+	    fi
         done
+	unset lines line 
     fi
 fi
 
