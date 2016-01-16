@@ -54,7 +54,7 @@ path_dir "~/opt/node/bin"
 
 path_dir "~/node_modules/.bin"
 
-env_dir TEXINPUTS "~/a/dev/tex_lib"
+env+=(TEXINPUTS "$HOME/a/dev/tex_lib:")
 
 env_dir ELM_HOME "~/node_modules/elm/share"
 
