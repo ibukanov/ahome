@@ -43,7 +43,7 @@ case "$name" in
 	# unless we tun it as systemd unit. Plus we use a custom tmux
 	# binary that is not on PATH when sh runs. Plus 
 	case "$host" in
-	    kino | thip )
+	    hippyru | kino | thip )
 		what='exec /opt/bin/tmux-attach'
 		;;
 	    * )
