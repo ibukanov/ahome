@@ -48,7 +48,7 @@ exe_list += $(list)
 $(list) : greptree
 	ln -sf $(CURDIR)/$< $@
 
-list := u-root-term u-dserver-term u-hippyru.net-term u-kino-term u-thip-term
+list := u-root-term u-dserver-term u-hippyru-term u-kino-term u-thip-term
 list := $(addprefix $(EXE_DIR)/,$(list))
 exe_list += $(list)
 $(list) : u-term
