@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e -u
+
+# Do not use printf %q for a remote shell as that may use escapes that
+# are not supported by the remote shell. Rather escape argument using
+# single quotas with with each single quote in arg replaced by '"'"'
+escape_for_shell() {
+    local arg="$1" escaped= before_quote
+    while : ; do
+	before_quote="${arg%%\'*}"
+	[[ $arg != "$before_quote" ]] || break
+	escaped="$escaped$before_quote'\"'\"'"
+	arg="${arg#*\'}"
+    done
+    printf %s "'$escaped$arg'"
+}
+
+image="$1"
+source_host="$2"
+destination_host="$3"
+
+tranfer_dir="/var/tmp/docker-image-transfer"
+mkdir -p "$tranfer_dir"
+
+image_filename="${image##*/}.tar.gz"
+image_path="$tranfer_dir/$image_filename"
+
+echo "saving image locally from $source_host" >&2
+ssh "$source_host" "docker save $(escape_for_shell "$image")" | gzip --rsyncable > $image_path
+
+echo "sending image to $destination_host" >&2
+ssh "$destination_host" "mkdir -p '$tranfer_dir'"
+rsync -Pv "$image_path" "$destination_host:$image_path"
+
+echo "loading image on $destination_host" >&2
+ssh "$destination_host" "docker load -i $(escape_for_shell "$image_path")"
