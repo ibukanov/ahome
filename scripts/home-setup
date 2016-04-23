@@ -58,6 +58,16 @@ action_dir() {
 }
 
 action_symlink() {
+    local OPTIND opt link_is_dir=
+
+    while getopts d opt; do
+	case "$opt" in
+	    d ) link_is_dir=1;;
+	    * ) err "unknown option '$opt'";;
+	esac
+    done
+    shift $((OPTIND - 1))
+
     local from="$1" link_dir="$2"
     [[ -n $link_dir ]] || err "empty link_dir" 
     local link_name="${3-${from##*/}}"
@@ -81,8 +91,12 @@ action_symlink() {
 	target="$target$from"
     fi
 
-    [[ -f $from ]] || err "$from is not existing regular file"
     [[ -h $from ]] && err "$from is symbolic link"
+    if [[ -n $link_is_dir ]]; then
+	[[ -d $from ]] || err "$from is not an existing directory"
+    else
+	[[ -f $from ]] || err "$from is not an existing regular file"
+    fi
 
     action_dir "$link_dir"
 
@@ -370,7 +384,7 @@ done
 # extra bash symlinks besides .bashrc
 action_symlink "a/scripts/bashrc.dot" . .bash_profile
 
-action_symlink a/scripts/xfce-terminal.conf .config/xfce4/terminal terminalrc
+action_symlink -d a/scripts/xfce-terminal .config/xfce4 terminal
 
 action_symlink a/scripts/lxterminal.conf .config/lxterminal lxterminal.conf
 
