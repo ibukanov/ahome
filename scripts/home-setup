@@ -337,77 +337,141 @@ setup_emacs() {
 	if let Setup; then
 	    log "inserting custom init file into $emacs_init"
 	    mapfile lines < $emacs_init
-	    printf %s "$emacs_load_command" "${lines[@]:+lines[@]}" > $emacs_init 
+	    printf %s "$emacs_load_command" "${lines[@]:+${lines[@]}}" > $emacs_init 
 	fi
     fi
 }
 
-Setup=0
-Clean=0
+setup_lxde() {
+    local rc="$HOME/.config/openbox/lxde-rc.xml"
+    [[ -s $rc ]] || return 0
+    local -a keys=()
+    # Send-to-untrusted the content of the keyboard
+    keys+=("<keybind key='W-U'><action name='Execute'><command>stu</command></action></keybind>")
 
-if [[ $# -eq 0 ]]; then
-    Setup=1
-else
-    case $1 in
-	clean ) Clean=1 ;;
-	setup ) Setup=1 ;;
-	* ) err "unknown action $1" ;;
-    esac
-    shift
-    [[ $# -eq 0 ]] || err "unexpected extra action argument $1"
-fi
-
-path_value="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
-manpath_value=""
+    # First read the file and remove any marks with previously generated code
+    local insert_start='<!-- #generated# -->'
+    local insert_end='<!-- #/generated# -->'
     
-cd "$HOME"
+    local -a lines
+    local -a without_inserts=()
+    mapfile -t lines < $rc
+    local line inside_insert=
+    for line in "${lines[@]}"; do
+	if [[ -z $inside_insert ]]; then
+	    if [[ $line == "$insert_start" ]]; then
+		inside_insert=1
+	    else
+		without_inserts+=("$line")
+	    fi
+	else
+	    if [[ $line == "$insert_end" ]]; then
+		inside_insert=
+	    fi
+	fi
+    done
+    [[ -z $inside_insert ]] || err "$rc contains $insert_start without $insert_end"
 
-# executables
-for i in $(find a/scripts a/mozilla -mindepth 1 -maxdepth 1 -type f -executable); do
-    action_symlink "$i" bin "${i##*/}"
-done
+    [[ ${#without_inserts[@]} -ne 0 ]] || err "$rc contains only previusly generated lines"
 
-# add extra names for some scripts
-for i in root bergenrabbit hippyru lubavainfo r2 kino thip; do
-    action_symlink a/scripts/u-term bin "u-$i-term"
-done
+    if let Setup; then
+	lines=()
+	local found_keyboard=
+	for line in "${without_inserts[@]}"; do
+	    lines+=("$line")
+	    if [[ $line == "  <keyboard>" ]]; then
+		[[ -z $found_keyboard ]] || err "$rc contains duplicated <keyboard> sections"
+		found_keyboard=1
+		lines+=("$insert_start")
+		local k
+		for k in "${keys[@]}"; do
+		    lines+=("    $k")
+		done
+		lines+=("$insert_end")
+	    fi
+	done
+	action_write_file "$rc" "$(printf '%s\n' "${lines[@]}")"
+    fi
 
-action_symlink p/git-subrepo/lib/git-subrepo bin
-man_dir p/git-subrepo
+    if let Clean; then
+	# Force write on under clean
+	Setup=1 Clean=0 action_write_file "$rc" "$(printf '%s\n' "${without_inserts[@]}")"
+    fi
+}
 
-# dot files that are symlinked to home
-for i in a/scripts/*.dot; do
-    name="${i##*/}"
-    action_symlink "$i" . ".${name%.dot}"
-done
+main() {
+    local i
+    local Setup=0
+    local Clean=0
 
-# extra bash symlinks besides .bashrc
-action_symlink "a/scripts/bashrc.dot" . .bash_profile
+    if [[ $# -eq 0 ]]; then
+	Setup=1
+    else
+	case $1 in
+	    clean ) Clean=1 ;;
+	    setup ) Setup=1 ;;
+	    * ) err "unknown action $1" ;;
+	esac
+	shift
+	[[ $# -eq 0 ]] || err "unexpected extra action argument $1"
+    fi
 
-action_symlink -d a/scripts/xfce-terminal .config/xfce4 terminal
-
-action_symlink a/scripts/lxterminal.conf .config/lxterminal lxterminal.conf
-
-action_symlink a/scripts/autostart.desktop .config/autostart
-
-action_symlink a/scripts/u-term.desktop .local/share/applications
-
-action_symlink a/scripts/u-xstartup-vnc .vnc xstartup
-
-setup_emacs
-
-if [[ -f a/scripts/home-setup-extra.bash ]]; then
-    . a/scripts/home-setup-extra.bash
-fi
-
-write_dot_env
-
-if let Clean; then
+    local path_value="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
+    local manpath_value=""
     
-    if [[ ${#cleanup_files[@]} -ne 0 ]]; then
-	cmd_log rm -f "${!cleanup_files[@]}"
+    cd "$HOME"
+
+    # executables
+    for i in $(find a/scripts a/mozilla -mindepth 1 -maxdepth 1 -type f -executable); do
+	action_symlink "$i" bin "${i##*/}"
+    done
+
+    # add extra names for some scripts
+    for i in root bergenrabbit hippyru lubavainfo r2 kino thip; do
+	action_symlink a/scripts/u-term bin "u-$i-term"
+    done
+
+    action_symlink p/git-subrepo/lib/git-subrepo bin
+    man_dir p/git-subrepo/man
+
+    # dot files that are symlinked to home
+    for i in a/scripts/*.dot; do
+	name="${i##*/}"
+	action_symlink "$i" . ".${name%.dot}"
+    done
+
+    # extra bash symlinks besides .bashrc
+    action_symlink "a/scripts/bashrc.dot" . .bash_profile
+
+    action_symlink -d a/scripts/xfce-terminal .config/xfce4 terminal
+
+    action_symlink a/scripts/lxterminal.conf .config/lxterminal lxterminal.conf
+
+    action_symlink a/scripts/autostart.desktop .config/autostart
+
+    action_symlink a/scripts/u-term.desktop .local/share/applications
+
+    action_symlink a/scripts/u-xstartup-vnc .vnc xstartup
+
+    setup_emacs
+
+    setup_lxde
+
+    if [[ -f a/scripts/home-setup-extra.bash ]]; then
+	. a/scripts/home-setup-extra.bash
     fi
-    if [[ ${#cleanup_dirs[@]} -ne 0 ]]; then
-	cmd_log rmdir -p --ignore-fail-on-non-empty "${!cleanup_dirs[@]}"
+
+    write_dot_env
+
+    if let Clean; then
+	
+	if [[ ${#cleanup_files[@]} -ne 0 ]]; then
+	    cmd_log rm -f "${!cleanup_files[@]}"
+	fi
+	if [[ ${#cleanup_dirs[@]} -ne 0 ]]; then
+	    cmd_log rmdir -p --ignore-fail-on-non-empty "${!cleanup_dirs[@]}"
+	fi
     fi
-fi
+}
+
+main "$@"

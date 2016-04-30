@@ -2,10 +2,12 @@
 
 # send-to-untrusted
 
-cmd=(ssh user@untrusted tee /tmp/x.txt)
+ssh_script='
+set -e -u
+text="$(base64 -w0)"
+(printf %s "$text" | base64 -d | xclip -d :0.0 -selection clipboard -i) \
+    < /dev/null > /dev/null 2> /dev/null &
+disown -a
+'
 
-if [[ $# -eq 0 ]]; then
-    "${cmd[@]}"
-else
-    printf '%s\n' "$*" | "${cmd[@]}"
-fi
+xclip -o | ssh user@untrusted "$ssh_script"
