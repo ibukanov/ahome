@@ -2,9 +2,33 @@
 
 set -e -u
 
-# Do not use printf %q for a remote shell as that may use escapes that
-# are not supported by the remote shell. Rather escape argument using
-# single quotas with with each single quote in arg replaced by '"'"'
+log() {
+    printf "%s\n" "$*" 1>&2
+}
+
+err() {
+    log "$@"
+    log "stack: ${FUNCNAME[*]}"
+    exit 1
+}
+
+usage_err() {
+    log "Usage error: $*"
+    log "Try $0 -h for details"
+    exit 1
+}
+
+trap exit_cleanup EXIT
+tmp_dir=
+exit_cleanup() {
+    if [[ $tmp_dir ]]; then
+        rm -rf "$tmp_dir"
+    fi 
+}
+
+# Do not use printf %q as that may use escapes that are not supported
+# by the remote shell. Rather escape argument using single quotas with
+# with each single quote in arg replaced by '"'"'
 escape_for_shell() {
     local arg="$1" escaped= before_quote
     while : ; do
@@ -16,22 +40,69 @@ escape_for_shell() {
     printf %s "'$escaped$arg'"
 }
 
+main() {
+    local transfer_dir="/var/tmp/docker-image-transfer"
+    mkdir -p "$transfer_dir"
+
+    local dir="${image//\//%}"
+
+    cd "$transfer_dir"
+
+    local id
+    id="$(ssh "$source_host" "docker inspect -f '{{.Id}}' $(escape_for_shell "$image")")"
+    [[ 64 -eq ${#id} ]] || err "image ID must be 64 characters was ${#id}($id)"
+    local old_id=""
+    if [[ -f "$dir/id" ]]; then
+	read -r old_id < $dir/id || :
+    fi
+    if [[ $id == "$old_id" ]]; then
+	log "using already saved image"
+    else
+	log "saving image from $source_host"
+	tmp_dir="tmp.$(date +%s.%N)"
+	mkdir "$tmp_dir"
+	ssh "$source_host" "docker save $(escape_for_shell "$id")" \
+	    | gzip --rsyncable > "$tmp_dir/image.tar.gz"
+	printf %s "$id" > "$tmp_dir/id"
+	if [[ -d $dir ]]; then
+            rm -rf "$dir"
+	fi
+	mv "$tmp_dir" "$dir"
+    fi
+    
+    log "sending image to $destination_host"
+    local destionation_path="$transfer_dir/$dir.tar.gz"
+
+    ssh "$destination_host" "mkdir -p $(escape_for_shell "$transfer_dir")"
+    rsync -Pv "$dir/image.tar.gz" "$destination_host:$destionation_path"
+    
+    log "loading image on $destination_host"
+    ssh "$destination_host" "docker load -i $(escape_for_shell "$destionation_path")"
+}
+
+usage() {
+    printf %s "\
+Usage: $0 [OPTION]... docker-image-name source-host destination-host
+Transfer the named docker image from source-host to destination using ssh.
+
+Available options:
+    -h  show this help end exit
+"
+    exit 0
+}
+
+while getopts :h opt; do
+    case $opt in
+	h ) usage;;
+	: ) usage_err "option -$OPTARG requires an argument";;
+	* ) usage_err "invalid option -$OPTARG";;
+    esac
+done
+shift $(($OPTIND - 1))
+
+[[ $# -eq 3 ]] || usage_err "the command takes exactly 3 arguments"
+
 image="$1"
 source_host="$2"
 destination_host="$3"
-
-tranfer_dir="/var/tmp/docker-image-transfer"
-mkdir -p "$tranfer_dir"
-
-image_filename="${image##*/}.tar.gz"
-image_path="$tranfer_dir/$image_filename"
-
-echo "saving image locally from $source_host" >&2
-ssh "$source_host" "docker save $(escape_for_shell "$image")" | gzip --rsyncable > $image_path
-
-echo "sending image to $destination_host" >&2
-ssh "$destination_host" "mkdir -p '$tranfer_dir'"
-rsync -Pv "$image_path" "$destination_host:$image_path"
-
-echo "loading image on $destination_host" >&2
-ssh "$destination_host" "docker load -i $(escape_for_shell "$image_path")"
+main
