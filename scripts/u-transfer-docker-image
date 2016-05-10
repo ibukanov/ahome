@@ -77,7 +77,13 @@ main() {
     rsync -Pv "$dir/image.tar.gz" "$destination_host:$destionation_path"
     
     log "loading image on $destination_host"
-    ssh "$destination_host" "docker load -i $(escape_for_shell "$destionation_path")"
+
+    ssh_script="\
+set -e -u
+docker load -i $(escape_for_shell "$destionation_path")
+docker tag -f $(escape_for_shell "$id") $(escape_for_shell "$image")
+"
+    ssh "$destination_host" "$ssh_script"
 }
 
 usage() {
