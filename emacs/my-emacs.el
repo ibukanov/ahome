@@ -404,6 +404,10 @@
 
 (setq x-select-enable-clipboard t)
 
+(when (not window-system)
+  (load "osc52.el")
+  (osc52-set-cut-function))
+
 ; Dynamic abbrev should copy the word it finds verbatim
 (setq dabbrev-case-replace nil)
 
@@ -552,7 +556,8 @@
 ;; No blinking cursors
 (blink-cursor-mode 0)
 (menu-bar-mode 0)
-(scroll-bar-mode 0)
+(when (functionp 'scroll-bar-mode)
+  (scroll-bar-mode 0))
 
 ;(desktop-load-default)
 ;(desktop-read)
@@ -611,7 +616,7 @@
       (server-start))))
 
 (setq custom-file "~/.emacs.d/custom.el")
-(load custom-file)
+(load custom-file t t)
 
 ;; This is for testing - normally pc-bufsw should be loaded as a package
 ;;(push "~/p/pc-bufsw" load-path)
