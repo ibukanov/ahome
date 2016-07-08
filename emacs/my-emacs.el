@@ -624,7 +624,7 @@
 ;;(pc-bufsw-default-keybindings)
 ;;(global-set-key [f6] 'pc-bufsw-mru)
 ;;(global-set-key [f5] 'pc-bufsw-lru)
-;;(package-install-file "~/p/pc-bufsw/pc-bufsw.el")
+(package-install-file "~/p/pc-bufsw/pc-bufsw.el")
 
 (require 'package)
 (add-to-list 'package-archives

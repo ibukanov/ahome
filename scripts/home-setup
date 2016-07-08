@@ -58,11 +58,12 @@ action_dir() {
 }
 
 action_symlink() {
-    local OPTIND opt link_is_dir=
+    local OPTIND opt link_is_dir= skip_if_not_found=
 
-    while getopts d opt; do
+    while getopts ds opt; do
 	case "$opt" in
 	    d ) link_is_dir=1;;
+	    s ) skip_if_not_found=1;;
 	    * ) err "unknown option '$opt'";;
 	esac
     done
@@ -91,11 +92,19 @@ action_symlink() {
 	target="$target$from"
     fi
 
-    [[ -h $from ]] && err "$from is symbolic link"
-    if [[ -n $link_is_dir ]]; then
-	[[ -d $from ]] || err "$from is not an existing directory"
-    else
-	[[ -f $from ]] || err "$from is not an existing regular file"
+    if let Setup; then
+	if [[ ! -e $from ]]; then
+	    if [[ $skip_if_not_found ]]; then
+		return 0
+	    fi
+	    err "$from does not exist"
+	fi
+	[[ -h $from ]] && err "$from is symbolic link"
+	if [[ -n $link_is_dir ]]; then
+	    [[ -d $from ]] || err "$from is not an existing directory"
+	else
+	    [[ -f $from ]] || err "$from is not an existing regular file"
+	fi
     fi
 
     action_dir "$link_dir"
@@ -431,7 +440,7 @@ main() {
 	action_symlink a/scripts/u-term bin "u-$i-term"
     done
 
-    action_symlink p/git-subrepo/lib/git-subrepo bin
+    action_symlink -s p/git-subrepo/lib/git-subrepo bin
     man_dir p/git-subrepo/man
 
     # dot files that are symlinked to home
