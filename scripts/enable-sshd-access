@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e -u
+
+ssh -i /root/.ssh/hippyru-www-ed25519 -p 2022 -R 21028:127.0.0.1:22 -N \
+    -o HostKeyAlias=hippyru-www -o CheckHostIP=no user@lubava.info
