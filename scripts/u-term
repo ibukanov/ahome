@@ -43,7 +43,7 @@ case "$name" in
 
 	# On CoreOS tmux session is teminated the moment ssh exits
 	# unless we tun it as systemd unit. Plus we use a custom tmux
-	# binary that is not on PATH when sh runs. Plus 
+	# binary that is not on PATH when sh runs. Plus
 	case "$host" in
 	    hippyru | bergenrabbit | lubavainfo | r2 | thip )
 		what='exec /opt/bin/tmux-attach'
@@ -71,7 +71,7 @@ if [[ -z "$width" ]]; then
     if let 'display_width < 1400 || display_width > 2300'; then
 	let maximize=1
     fi
-    
+
     if let wide; then
 	if [[ "$display_width" -le 1366 ]]; then
 	    width=192
@@ -154,9 +154,7 @@ if [[ -n "$term" ]]; then
 "Xft.rgba: rgb"
 "Xft.antialias: true"
 
-# colors
-"*foreground: rgb:0/0/0"
-"*background: rgb:d0/ff/ff"
+# color palette
 "*color0: rgb:0000/0000/0000"
 "*color1: rgb:7851/0000/0000"
 "*color2: rgb:0000/6666/0000"
@@ -190,29 +188,31 @@ if [[ -n "$term" ]]; then
   Ctrl Shift <Key>Tab: string(0x1b) string(\"[1;6I\") \n\
 "
     )
-    
+
     [[ -z "$permanent_title" ]] || res+=("*.vt100.allowTitleOps: false")
 
     args=()
+    args+=(-bg rgb:d0/ff/ff -fg rgb:0/0/0)
+
     if let maximize; then
 	args+=(-maximized)
-    else 
+    else
 	args+=(-geometry ${width}x${height})
     fi
     args+=(-title "$title")
-    
+
     # disable scrollbar and visual bell
     args+=(+sb +vb +mb)
 
-#    args+=(-fa "Monospace:size=8")
-    
+    #args+=(-fa "Monospace:size=8")
+
     for i in "${res[@]}"; do args+=("-xrm" "$i"); done
 
     if [[ ${#cmd[@]} -ne 0 ]]; then
 	args+=(-e "${cmd[@]}")
     fi
 
-    exec xterm "${args[@]}" 
+    exec xterm "${args[@]}"
 fi
 
 args=(
