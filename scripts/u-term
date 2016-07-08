@@ -1,7 +1,9 @@
 #!/bin/bash
 
-set -e
-set -u
+set -e -u
+
+check_xfce_terminal=
+check_lxterminal=
 
 name="$(basename "$0")"
 cmd=()
@@ -94,8 +96,12 @@ fi
 # for debugging
 # exec "${cmd[@]}"
 
-term="$(which Terminal 2>/dev/null || true)"
-[[ -n "$term" ]] || term="$(which xfce4-terminal 2>/dev/null || true)"
+term=
+
+if [[ $check_xfce_terminal ]]; then
+    term="$(which Terminal 2>/dev/null || true)"
+    [[ -n "$term" ]] || term="$(which xfce4-terminal 2>/dev/null || true)"
+fi
 if [[ -n "$term" ]]; then
     args=(
 	"--working-directory=$HOME"
@@ -116,7 +122,9 @@ if [[ -n "$term" ]]; then
     exec "$term" "${args[@]}"
 fi
 
-term="$(which lxterminal 2>/dev/null || true)"
+if [[ $check_lxterminal ]]; then
+    term="$(which lxterminal 2>/dev/null || true)"
+fi
 if [[ -n "$term" ]]; then
     args=(
 	--working-directory="$HOME"
@@ -138,14 +146,39 @@ term="$(which xterm 2>/dev/null || true)"
 if [[ -n "$term" ]]; then
 
     res=(
-"*.faceName: DejaVu Sans Mono:style=Book:size=9.0"
+# fonts
+"*.renderFont: true"
+"*.faceName: Monospace:size=9"
 "Xft.hintstyle: hintmedium"
 "Xft.hinting: true"
 "Xft.rgba: rgb"
 "Xft.antialias: true"
 
+# colors
+"*foreground: rgb:0/0/0"
+"*background: rgb:d0/ff/ff"
+"*color0: rgb:0000/0000/0000"
+"*color1: rgb:7851/0000/0000"
+"*color2: rgb:0000/6666/0000"
+"*color3: rgb:7d70/3eb8/0000"
+"*color4: rgb:0000/0000/8000"
+"*color5: rgb:7851/0000/7851"
+"*color6: rgb:0000/7851/7851"
+"*color7: rgb:aaaa/aaaa/aaaa"
+"*color8: rgb:5555/5555/5555"
+"*color9: rgb:b333/3bbb/3bbb"
+"*color10: rgb:3259/970a/3259"
+"*color11: rgb:cf5b/cf5b/451e"
+"*color12: rgb:41b5/41b5/c51e"
+"*color13: rgb:b333/3bbb/b333"
+"*color14: rgb:3bbb/b333/b333"
+"*color15: rgb:ffff/ffff/ffff"
+
 # Alt-char sends escape sequences
 "*.metaSendsEscape: true"
+
+# access windows functions
+"*disallowedWindowOps: GetIconTitle,GetSelection,GetWinPosition,GetWinSizePixels,GetWinState,GetWinTitle,LowerWin,MaximizeWin,FullscreenWin,MinimizeWin,RaiseWin,RefreshWin,RestoreWin,SetWinLines,SetWinPosition,SetWinSizeChars,SetWinSizePixels,SetXprop"
 
 # Keybindings - for Ctrl-Tab I use codes that Cygwin's mintty sends
 
@@ -170,6 +203,9 @@ if [[ -n "$term" ]]; then
     
     # disable scrollbar and visual bell
     args+=(+sb +vb +mb)
+
+#    args+=(-fa "Monospace:size=8")
+    
     for i in "${res[@]}"; do args+=("-xrm" "$i"); done
 
     if [[ ${#cmd[@]} -ne 0 ]]; then
