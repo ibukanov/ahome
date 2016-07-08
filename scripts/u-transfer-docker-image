@@ -50,7 +50,7 @@ main() {
 
     local id
     id="$(ssh "$source_host" "docker inspect -f '{{.Id}}' $(escape_for_shell "$image")")"
-    [[ 64 -eq ${#id} ]] || err "image ID must be 64 characters was ${#id}($id)"
+    [[ $id == sha256:* ]] || err "image ID must start with sha256: prefix,  was ${#id}($id)"
     local old_id=""
     if [[ -f "$dir/id" ]]; then
 	read -r old_id < $dir/id || :
@@ -81,7 +81,7 @@ main() {
     ssh_script="\
 set -e -u
 docker load -i $(escape_for_shell "$destionation_path")
-docker tag -f $(escape_for_shell "$id") $(escape_for_shell "$image")
+docker tag $(escape_for_shell "$id") $(escape_for_shell "$image")
 "
     ssh "$destination_host" "$ssh_script"
 }
