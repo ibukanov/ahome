@@ -227,17 +227,22 @@ if test -n "${PS1+1}"; then
         echo "Failed to find '$dir' in ${DIRSTACK[*]}" 1>&2
     }
 
-    # initialize dir stack from the history
-    if test -n "$HISTFILE" -a -r "$HISTFILE"; then
+    init_cd_history() {
+	# initialize dir stack from the history
+	[[ $HISTFILE  && -r $HISTFILE ]] || return 0
+	local -a lines
 	mapfile -t lines < $HISTFILE
-        for line in "${lines[@]}"; do
-	    i=${line#cd }
+	local line
+        for line in "${lines[@]:+${lines[@]}}"; do
+	    local i="${line#cd }"
 	    if [[ ${#i} -ne 0 && ${#i} -ne ${#line} ]]; then
-		pushd -n ${i/#~/$HOME} > /dev/null
+		pushd -n "${i/#~/$HOME}" > /dev/null
 	    fi
         done
-	unset lines line 
-    fi
+    }
+
+    init_cd_history
+
 fi
 
 unset i
