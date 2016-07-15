@@ -15,8 +15,21 @@ err() {
 }
 
 cmd_log() {
-    log "$*"
-    "$@"
+    local no_stderr=0
+    while :; do
+	case $1 in
+	    --no-stderr ) no_stderr=1 ;;
+	    * ) break ;;
+	esac
+	shift
+    done
+    if let no_stderr; then
+	log "$* 2> /dev/null"
+	"$@" 2> /dev/null
+    else
+	log "$*"
+	"$@"
+    fi
 }
 
 declare -a tmp_files=()
@@ -213,8 +226,8 @@ action_write_file() {
 
 env_dir() {
     local name=$1 dir="$2"
-    if [[ "${dir:0:2}" == "~/" ]]; then
-	dir=$HOME${dir:1}
+    if [[ "${dir:0:1}" != / ]]; then
+	dir="$HOME/$dir"
     fi
     if [[ -d "$dir" ]]; then
 	env+=("$name" "$dir")
@@ -222,10 +235,11 @@ env_dir() {
 }
 
 path_dir() {
+    local dir
     for dir in "$@"; do
-	if [[ -n "$dir" ]]; then
-	    if [[ "${dir:0:2}" == "~/" ]]; then
-		dir=$HOME${dir:1}
+	if [[ $dir ]]; then
+	    if [[ "${dir:0:1}" != "/" ]]; then
+		dir="$HOME/$dir"
 	    fi
 	    if [[ -d "$dir" ]]; then
 		path_value+=":$dir"
@@ -264,23 +278,21 @@ write_dot_env() {
     local platform
     platform="$(uname -i)"
 
-    path_dir ~/opt/bin
+    path_dir opt/bin
     
-    path_dir ~/opt/$platform/rust*/bin
+    path_dir "opt/$platform/rust/bin"
     
-    path_dir "~/opt/$platform/rust/bin"
+    path_dir "opt/virgil/bin"
     
-    path_dir "~/opt/virgil/bin"
+    path_dir "opt/node/bin"
     
-    path_dir "~/opt/node/bin"
-    
-    path_dir "~/node_modules/.bin"
+    path_dir "node_modules/.bin"
     
     env+=(TEXINPUTS "$HOME/a/dev/tex_lib:")
     
-    env_dir ELM_HOME "~/node_modules/elm/share"
+    env_dir ELM_HOME "node_modules/elm/share"
     
-    env_dir PERL5LIB "~/a/perl/mylib"
+    env_dir PERL5LIB "a/perl/mylib"
     
     local cygopt=/cygdrive/c/opt
     if [[ -d "$cygopt" ]]; then
@@ -348,6 +360,77 @@ setup_emacs() {
 	    mapfile lines < $emacs_init
 	    printf %s "$emacs_load_command" "${lines[@]:+${lines[@]}}" > $emacs_init 
 	fi
+    fi
+}
+
+setup_git_config() {
+    
+    # Array of (section name value)
+    local -a config_entries=(
+	user name "$USER_NAME"
+	user email "$USER_EMAIL"
+	push default simple
+    )
+    
+    local credential_helper=""
+    case ${DESKTOP_SESSION,,} in
+	gnome | gnome-* ) credential_helper="/usr/libexec/git-core/git-credential-gnome-keyring" ;;
+    esac
+    if [[ $credential_helper ]]; then
+	let Setup && [[ -x $credential_helper ]] || \
+	    err "credential helper for git $credential_helper does not exist or is not executable" 
+	config_entries+=(credential helper "$credential_helper")
+    fi
+
+    if let Setup; then
+	local -A current_config_entries=()
+	{
+	    while :; do
+		local name value
+		read -r section_and_name || break
+		read -r -d '' value 
+		current_config_entries[$section_and_name]="$value"
+	    done
+	} < <(git config --global --list --null)
+	local i mismatch=0
+	for ((i=0; i<${#config_entries[@]}; i+=3)); do
+	    local section="${config_entries[$((i+0))]}"
+	    local name="${config_entries[$((i+1))]}"
+	    local value="${config_entries[$((i+2))]}"
+	    if [[ ${current_config_entries[$section.$name]-} != "$value" ]]; then
+		mismatch=1
+	    fi
+	done
+	let mismatch || return 0
+    fi
+
+    if let Setup || let Clean; then
+	local -A section_set=()
+	local i
+	for ((i=0; i<${#config_entries[@]}; i+=3)); do
+	    local section="${config_entries[$((i+0))]}"
+	    local name="${config_entries[$((i+1))]}"
+	    section_set[$section]=1
+	    cmd_log git config --global --unset-all "$section.$name" || :
+	done
+
+	# workaround for git config bug that keeps empty sections
+	local section
+	for section in "${!section_set[@]}"; do
+	    if ! git config --get-regexp "^$section\\." > /dev/null; then
+		cmd_log --no-stderr git config --global --remove-section "$section" || :
+	    fi
+	done
+    fi
+
+    if let Setup; then
+	local i
+	for ((i=0; i<${#config_entries[@]}; i+=3)); do
+	    local section="${config_entries[$((i+0))]}"
+	    local name="${config_entries[$((i+1))]}"
+	    local value="${config_entries[$((i+2))]}"
+	    cmd_log git config --global "$section.$name" "$value"
+	done
     fi
 }
 
@@ -466,8 +549,10 @@ main() {
 
     setup_lxde
 
-    if [[ -f a/scripts/home-setup-extra.bash ]]; then
-	. a/scripts/home-setup-extra.bash
+    setup_git_config
+
+    if type -t extra_setup > /dev/null; then
+	extra_setup
     fi
 
     write_dot_env
