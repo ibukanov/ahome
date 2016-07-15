@@ -357,7 +357,7 @@
 
 (setq history-delete-duplicates t)
 (setq history-length 1000)
-(setq set-mark-command-repeat-pop)
+(setq set-mark-command-repeat-pop 1)
 (setq undo-limit 2000000)
 (setq undo-strong-limit (* undo-limit 2))
 
