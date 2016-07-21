@@ -2,64 +2,68 @@
 
 set -e -u
 
+err() {
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
 check_xfce_terminal=
 check_lxterminal=
 
 name="$(basename "$0")"
 cmd=()
-host=""
 declare -i maximize=0
 declare -i fullscreen=0
 width=""
 height=""
 wide=1
-title=""
 permanent_title=""
+
 host=""
+ssh_master=""
+title=""
 
-# if [[ $# -ge 1 ]]; then
-#     case "$1" in
-# 	dserver | rwww | tlipi | thip)
-# 	    host="$1"
-# 	    shift
-# 	    cmd=(env TERM=xterm-256color u-mosh "$host")
-# 	    title="$host - mosh"
-# 	    permanent_title=true
-# 	    ;;
-#     esac
-# fi
+while [[ $# -gt 0 && $1 == --* ]]; do
+    case $1 in
+	-- ) shift; break ;;
+	--host=* ) host=${1:7};;
+	--ssh-master ) ssh_master=1;;
+	--title=* ) title=${2:8};;
+	* ) err "invalid option $1. Use -- to pass terminal-specific options." ;;
+    esac
+    shift
+done
 
-case "$name" in
-    u-term )
-	title="terminal $(hostname -s)"
-	;;
-    u-root-term )
-	title="local root"
-	cmd+=(sudo sh -c 'cd /root; exec tmux attach')
-	;;
-    u-*-term )
-	host="${name:2:-5}"
+if [[ -z $host ]]; then
+    case $name in
+	u-term ) host="" ;;
+	u-*-term ) host="${name:2:-5}" ;;
+	* ) err "unknown base name: $name" ;;
+    esac
+fi
+
+if [[ -z $title ]]; then
+    if [[ -z $host ]]; then
+	title="localhost"
+    else
 	title="$host"
+    fi
+fi
 
-	# On CoreOS tmux session is teminated the moment ssh exits
-	# unless we tun it as systemd unit. Plus we use a custom tmux
-	# binary that is not on PATH when sh runs. Plus
-	case "$host" in
-	    hippyru | bergenrabbit | lubavainfo | r2 | thip )
-		what='exec /opt/bin/tmux-attach'
-		;;
-	    * )
-		what='\
+if [[ $host ]]; then
+    cmd+=(ssh -t)
+    if [[ $ssh_master ]]; then
+	cmd+=(-M)
+    fi
+
+    # On CoreOS tmux session is teminated the moment ssh exits unless
+    # we tun it as systemd unit so use a helper there.
+    what="\
+test -x /opt/bin/tmux-attach && exec /opt/bin/tmux-attach
 tmux list-sessions > /dev/null 2>&1 || tmux new-session -d
-exec tmux attach'
-		;;
-	esac
-	cmd+=(ssh -t "$host" "$what")
-    ;;
-    * )
-	echo "Unknown base name: $name" 1>&2
-	exit 1
-esac
+exec tmux attach"
+    cmd+=("$host" "$what")
+fi
 
 if [[ -z "$width" ]]; then
     width=102
@@ -144,7 +148,6 @@ fi
 
 term="$(which xterm 2>/dev/null || true)"
 if [[ -n "$term" ]]; then
-
     res=(
 # fonts
 "*.renderFont: true"
