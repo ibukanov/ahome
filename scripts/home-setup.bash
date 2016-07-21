@@ -198,20 +198,21 @@ action_write_file() {
 	    mode_mismatch=1
 	fi
 	
-	if [[ -n $new_file ]]; then
+	if [[ $new_file ]]; then
 	    log "creating new file $path"
 	else
 	    if [[ -z $mode_mismatch ]]; then
  		log "re-creating $path with new content"
 	    else
  		log "re-creating $path to ensure proper permissions"
-	    fi
-	    
-	    # removing the file first deals with symlinks amd special
-	    # files and allows to skip permission check when context is
-	    # different
-	    rm -f "$path"
+	    fi	    
 	fi
+
+	# removing the file first deals with symlinks amd special
+	# files and allows to skip permission check when context is
+	# different
+	rm -f "$path"
+
 	printf %s "$text" > $path
 	if [[ -n $mode ]]; then
 	    chmod "$mode" "$path"
