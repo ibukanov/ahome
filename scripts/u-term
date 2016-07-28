@@ -10,7 +10,6 @@ err() {
 check_xfce_terminal=
 check_lxterminal=
 
-name="$(basename "$0")"
 cmd=()
 declare -i maximize=0
 declare -i fullscreen=0
@@ -20,21 +19,22 @@ wide=1
 permanent_title=""
 
 host=""
-ssh_master=""
 title=""
+declare -a ssh_options=()
 
 while [[ $# -gt 0 && $1 == --* ]]; do
     case $1 in
 	-- ) shift; break ;;
-	--host=* ) host=${1:7};;
-	--ssh-master ) ssh_master=1;;
-	--title=* ) title=${2:8};;
+	--host=* ) host="${1:7}";;
+	--ssh-option=* ) ssh_options+=("${1:13}");;
+	--title=* ) title="${2:8}";;
 	* ) err "invalid option $1. Use -- to pass terminal-specific options." ;;
     esac
     shift
 done
 
 if [[ -z $host ]]; then
+    name="$(basename "$0")"
     case $name in
 	u-term ) host="" ;;
 	u-*-term ) host="${name:2:-5}" ;;
@@ -51,10 +51,7 @@ if [[ -z $title ]]; then
 fi
 
 if [[ $host ]]; then
-    cmd+=(ssh -t)
-    if [[ $ssh_master ]]; then
-	cmd+=(-M)
-    fi
+    cmd+=(ssh -t "${ssh_options[@]:+${ssh_options[@]}}")
 
     # On CoreOS tmux session is teminated the moment ssh exits unless
     # we tun it as systemd unit so use a helper there.
