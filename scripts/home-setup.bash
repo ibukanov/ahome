@@ -373,13 +373,27 @@ setup_git_config() {
 	push default simple
     )
     
-    local credential_helper=""
+    local -a credential_helper_paths=()
     case ${DESKTOP_SESSION,,} in
-	gnome | gnome-* ) credential_helper="/usr/libexec/git-core/git-credential-gnome-keyring" ;;
+	gnome | gnome-* | xubuntu ) 
+	    credential_helper_paths+=(
+		"/usr/libexec/git-core/git-credential-gnome-keyring" 
+		"/usr/share/doc/git/contrib/credential/gnome-keyring/git-credential-gnome-keyring"
+	    )
+	    ;;
     esac
-    if [[ $credential_helper ]]; then
-	let Setup && [[ -x $credential_helper ]] || \
-	    err "credential helper for git $credential_helper does not exist or is not executable" 
+    if [[ ${#credential_helper_paths[@]} -ne 0 ]]; then
+	local credential_helper=""
+	if let Setup; then
+	    for credential_helper in "${credential_helper_paths[@]}"; do
+		if [[ -x "$credential_helper" ]]; then
+		    break
+		fi
+		credential_helper=""
+	    done
+	    [[ $credential_helper ]] || \
+		err "none of credential helpers for git from (${credential_helper_paths[@]}) exists or executable"
+	fi
 	config_entries+=(credential helper "$credential_helper")
     fi
 
