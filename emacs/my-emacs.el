@@ -176,6 +176,15 @@
 
 (add-hook 'js-mode-hook 'my-js-initialization-hook)
 
+(defun my-shell-mode-hook ()
+  (setq sh-indentation 8)
+  (setq sh-basic-offset 8)
+  (setq sh-indent-for-case-label 0)
+  (setq sh-indent-for-case-alt '+)
+  (setq indent-tab-mode 't))
+
+;;; shell
+(add-hook 'sh-mode-hook 'my-shell-mode-hook)
 
 ;;; php
 ;(autoload 'php-mode "php-mode" nil t)
