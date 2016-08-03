@@ -519,11 +519,6 @@ main() {
 	action_symlink "$i" bin "${i##*/}"
     done
 
-    # add extra names for some scripts
-    for i in root bergenrabbit hippyru lubavainfo r2 kino thip; do
-	action_symlink a/scripts/u-term bin "u-$i-term"
-    done
-
     action_symlink -s p/git-subrepo/lib/git-subrepo bin
     man_dir p/git-subrepo/man
 
