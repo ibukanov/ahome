@@ -41,12 +41,14 @@ escape_for_shell() {
 }
 
 main() {
-    local transfer_dir="/var/tmp/docker-image-transfer"
-    mkdir -p "$transfer_dir"
+    local -r transfer_dir_subpath=".cache/docker-image-transfer"
+    local -r local_transfer_dir="$HOME/$transfer_dir_subpath"
+    local -r remote_transfer_dir="$transfer_dir_subpath"
+    mkdir -p "$local_transfer_dir"
 
     local dir="${image//\//%}"
 
-    cd "$transfer_dir"
+    cd "$local_transfer_dir"
 
     local id
     id="$(ssh "$source_host" "docker inspect -f '{{.Id}}' $(escape_for_shell "$image")")"
@@ -71,16 +73,16 @@ main() {
     fi
     
     log "sending image to $destination_host"
-    local destionation_path="$transfer_dir/$dir.tar.gz"
+    local destination_path="$remote_transfer_dir/$dir.tar.gz"
 
-    ssh "$destination_host" "mkdir -p $(escape_for_shell "$transfer_dir")"
-    rsync -Pv "$dir/image.tar.gz" "$destination_host:$destionation_path"
+    ssh "$destination_host" "mkdir -p $(escape_for_shell "$remote_transfer_dir")"
+    rsync --ignore-times -Pv "$dir/image.tar.gz" "$destination_host:$destination_path"
     
     log "loading image on $destination_host"
 
     ssh_script="\
 set -e -u
-docker load -i $(escape_for_shell "$destionation_path")
+docker load -i $(escape_for_shell "$destination_path")
 docker tag $(escape_for_shell "$id") $(escape_for_shell "$image")
 "
     ssh "$destination_host" "$ssh_script"
