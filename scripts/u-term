@@ -186,6 +186,8 @@ if [[ -n "$term" ]]; then
   \
   Ctrl ~Shift <Key>Tab: string(0x1b) string(\"[1;5I\") \n\
   Ctrl Shift <Key>Tab: string(0x1b) string(\"[1;6I\") \n\
+  \
+  Ctrl ~Shift <Key>Return: string(0x1e) \n\
 "
     )
 
