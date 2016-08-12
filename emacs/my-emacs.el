@@ -1,8 +1,12 @@
+;;; local emacs configuration -*- lexical-binding: t; -*-
+
 (push "~/a/emacs" load-path)
 (push "~/a/emacs/external" load-path)
 (push "~/p/emacs/purescript-mode" load-path)
 
 (load "my-emacs-lib")
+
+(require 'cl)
 
 ;;quilt support
 ;(require 'quilt)
@@ -40,24 +44,24 @@
 ;;; Customizations for all modes in CC Mode.
 (defun my-c-initialization-hook ()
 
-  (c-add-style 
-   "personal" 
+  (c-add-style
+   "personal"
    '((c-tab-always-indent        . t)
      (c-comment-only-line-offset . 0)
-     (c-hanging-braces-alist     
+     (c-hanging-braces-alist
       . ((substatement-open after)
 	 (brace-list-open)))
-     (c-hanging-colons-alist     
+     (c-hanging-colons-alist
       . ((member-init-intro before)
 	 (inher-intro)
 	 (case-label after)
 	 (label after)
 	 (access-label after)))
-     (c-cleanup-list             
+     (c-cleanup-list
       . (scope-operator
 	 empty-defun-braces
 	 defun-close-semi))
-     (c-offsets-alist            
+     (c-offsets-alist
       . ((arglist-close . c-lineup-arglist)
 	 (inline-open . 0)
 	 (substatement-open . 0)
@@ -75,26 +79,26 @@
      (c-echo-syntactic-information-p . t)
      (fill-column . 78)))
 
-  (c-add-style 
-   "runit-java" 
+  (c-add-style
+   "runit-java"
    '("personal"
-     (c-offsets-alist 
+     (c-offsets-alist
       . ((case-label . 0)
 	 (statement-case-intro . +)
 	 (statement-case-open . 0)))))
 
-  (c-add-style 
+  (c-add-style
    "c-tabs8"
    '("personal"
      (c-basic-offset . 8)
      (indent-tabs-mode . t)
-     (c-offsets-alist 
+     (c-offsets-alist
       . ((case-label . 0)
 	 (label . 0)
 	 (statement-case-intro . +)
 	 (statement-case-open . +)))))
 
-  (c-add-style 
+  (c-add-style
    "c-indent2"
    '("personal"
      (c-basic-offset . 2)))
@@ -111,34 +115,34 @@
   (local-set-key (vector ?\M-q ?q) 'c-fill-paragraph)
 
   ;; add my personal style and set it for the current buffer
-  
+
   (c-set-style "personal")
-  
+
 ;; other customizations
   (setq tab-width 8)
   ;; this will make sure spaces are used instead of tabs
   (setq indent-tabs-mode nil)
   (let ((file-path (buffer-file-name)))
-    (cond 
+    (cond
      ((runit-file-p file-path)
       (setq enable-local-variables nil
 	    enable-local-eval nil
 	    tab-width 4
 	    indent-tabs-mode 't)
-      
+
       (c-set-style "runit-java"))
-     ((string-match 
+     ((string-match
        "\\<\\(mosh\\)/.*\\.\\(cc\\|h\\)" file-path)
       (setq c-basic-offset 2)
       (setq indent-tabs-mode 't))
-     ((string-match 
+     ((string-match
        "\\<\\(closure-compiler\\)/.*\\.java" file-path)
       (setq c-basic-offset 2)
       (setq indent-tabs-mode nil))
-     ((string-match 
+     ((string-match
        "/\\(netcat-openbsd[-.0-9a-z]*\\|nc\\)/.*\\.\\(cc?\\|h\\)" file-path)
       (c-set-style "c-tabs8"))
-     ((string-match 
+     ((string-match
        "/s/x\.cpp" file-path)
       (c-set-style "c-indent2"))
      ))
@@ -162,7 +166,7 @@
 ;;; js-mode customization
 (defun my-js-initialization-hook ()
   (let ((file-path (buffer-file-name)))
-    (cond 
+    (cond
      ((runit-file-p file-path)
       (setq tab-width 4)
       (setq indent-tabs-mode 't))
@@ -170,7 +174,7 @@
       (setq tab-width 2)
       (setq js-indent-level 2)
       (setq indent-tabs-mode nil))
-     ('t 
+     ('t
       (setq tab-width 8)
       (setq indent-tabs-mode nil)))))
 
@@ -216,7 +220,7 @@
 (defun my-golang-hook ()
   (setq tab-width 4)
   (setq indent-tabs-mode 1))
-  
+
 (add-hook 'go-mode-hook 'my-golang-hook)
 
 ;; Key binding
@@ -370,16 +374,9 @@
 (setq undo-limit 2000000)
 (setq undo-strong-limit (* undo-limit 2))
 
-(when (fboundp 'beginning-of-visual-line)
-  (setq line-move-visual t)
-  (global-set-key [remap move-beginning-of-line] 'beginning-of-visual-line)
-  (global-set-key [remap move-end-of-line]  'end-of-visual-line))
-
-;(when (fboundp 'global-visual-line-mode)
-
-;  (add-hook 'find-file-hook (lambda ()
-
-;  (global-visual-line-mode 0) line-move-visual)
+; navigating by visual lines
+(global-visual-line-mode t)
+(setq visual-line-fringe-indicators '(left-curly-arrow right-curly-arrow))
 
 ; clipboard
 (defun copy-to-x (start end)
@@ -417,63 +414,144 @@
   (load "osc52.el")
   (osc52-set-cut-function))
 
+; Activate standard copy-paste
+(cua-mode t)
+
+(defvar user-keys-mode-map (make-sparse-keymap) "user-keys-mode keymap.")
+
+(defun user-keys--empty-command ()
+  "do-nothing action to remove a default keybinding"
+  (interactive))
+
+(defvar user-keys-prefix "M-q" "Custom keybindings prefix in `kbd' format")
+
+(defun user-keys-reset ()
+  "Empty the mode keymap to remove all custom keybindings."
+  (setcdr user-keys-mode-map nil))
+
+(defun user-keys-disable (key-string)
+  (define-key user-keys-mode-map (kbd key-string) 'user-keys--empty-command))
+
+(defun user-keys-add (key-string command)
+  (define-key user-keys-mode-map (kbd key-string) command))
+
+(defun user-keys-make-command-wrap (lookup)
+  (lambda (&rest args)
+    "Wraped command"
+    (interactive (advice-eval-interactive-spec
+		  (let ((cmd (funcall lookup)))
+		    (when cmd (cadr (interactive-form command))))))
+    (let ((cmd (funcall lookup)))
+      (when cmd (apply cmd args)))))
+
+(defun user-keys-alias (global-key-string alias-key-string)
+  (let ((global-key (kbd global-key-string)))
+    (define-key
+      user-keys-mode-map
+      (kbd alias-key-string)
+      (user-keys-make-command-wrap
+       (lambda () (lookup-key (current-global-map) global-key))))))
+
+(defun user-keys-subkey (subkey-string command)
+  (define-key user-keys-mode-map (vconcat (kbd user-keys-prefix) (kbd subkey-string)) command))
+
+(defun user-keys-find-overwritten (key-string)
+  (let* ((key (kbd key-string))
+	 (local-map (current-local-map))
+	 (cmd (and local-map (lookup-key local-map key))))
+    (or cmd (lookup-key (current-global-map) key))))
+
+(defun user-keys-overwritten-prefix-command ()
+  (user-keys-make-command-wrap (lambda () (user-keys-find-overwritten user-keys-prefix))))
+
+(define-minor-mode user-keys-mode
+  "A minor mode that makes user-defined keys a priority over mode-specific or global keybindings."
+  :global t
+  :lighter "")
+
+;(define-globalized-minor-mode user-keys-mode user-keys-global-mode user-keys-mode)
+
+(add-to-list 'emulation-mode-map-alists `((user-keys-mode . ,user-keys-mode-map)))
+
+(user-keys-mode t)
+
+(defun user-keys-init-map ()
+  (user-keys-reset)
+  
+  (setcdr user-keys-mode-map nil)
+
+  ;; As Cua takes C-v, provide an alternative for scrolling. For now I
+  ;; use C-p/C-n as those are bound to line movements by default and
+  ;; so far keyboards always comes with arrow keys.
+  (user-keys-alias "<prior>" "C-p")
+  (user-keys-alias "<next>" "C-n")
+
+  ;; C-space may not be available in some window managers, so use
+  ;; Alt-Space for marking as well.
+  (user-keys-alias "C-SPC" "M-SPC")
+
+  (user-keys-add "C-x 3" 'my-2-window-split)
+
+  ;; Bindings to call the action overriden with user-keys-prefix
+  (user-keys-subkey "q" (user-keys-overwritten-prefix-command))
+
+  (user-keys-subkey "c" 'compile)
+  (user-keys-subkey "e" 'eshell)
+  (user-keys-subkey "g" 'grep)
+  (user-keys-subkey "r" 'rgrep)
+
+  ;; C-x k <enter> is too long for buffer kill, so make "prefix k" as
+  ;; shortcut.
+  ;;
+  ;; (user-keys-subkey "k" (lambda () (interactive) (kill-buffer nil)))
+
+  (user-keys-subkey "t" (lambda () (interactive) (my-run-terminal "term")))
+
+  (mapc (lambda (subkey-string)
+	  (let ((shell-buffer-name (concat "shell_" subkey-string)))
+	    (user-keys-subkey
+	     subkey-string
+	     (lambda () (interactive) (my-run-shell shell-buffer-name)))))
+	'("1" "2" "3" "4" "5" "6"))
+
+  ;; It is way too easy to type this accidentally
+  (user-keys-disable "<insert>")
+  (user-keys-disable "<insertchar>")
+
+  ;; TODO use what is <insert> is bound to currently
+  (user-keys-subkey
+   "<insert>"
+   (user-keys-make-command-wrap (lambda () (user-keys-find-overwritten "<insert>"))))
+
+
+  ;; Remove the binding for keyboard-escape-quit. It is way too easy
+  ;; to trigger it via autorepeat of the escape key.
+  (user-keys-disable (kbd "ESC ESC ESC"))
+
+  (user-keys-subkey
+   "i"
+   (user-keys-make-command-wrap (lambda () (and (fboundp 'ispell-region) 'ispell-region))))
+
+  (user-keys-subkey "f" 'my-toggle-fullscreen)
+
+  )
+
+(user-keys-init-map)
+
 ; Dynamic abbrev should copy the word it finds verbatim
 (setq dabbrev-case-replace nil)
-
-(global-set-key "\C-z" 'undo)
-
-; Extra copy-paste
-(global-set-key (kbd "C-S-v") 'yank)
-(global-set-key (kbd "C-S-c") 'kill-ring-save)
-
-;; C-space may not be available in some window managers, so 
-;; use Alt-Space for marking as well. 
-(global-set-key (kbd "M-SPC") 'set-mark-command)
 
 (when (fboundp 'ido-mode)
   (ido-mode 'buffers))
 
 ; Ignore accidental hiting of insert
-(global-unset-key [insert])
-(global-unset-key [insertchar])
+;(global-unset-key (kbd "<insert>"))
+;(global-unset-key (kbd "<insertchar>"))
 
 ; Remove the binding for keyboard-escape-quit. It is way too easy to trigger
 ; it via autorepeat of the escape key.
-(global-unset-key "\e\e\e")
+(global-unset-key (kbd "ESC ESC ESC"))
 
-(global-unset-key "\C-x3")
-(global-set-key "\C-x3" 'my-2-window-split)
-
-; Custom bindings through a prefix key
-(let* ((my-prefix1 ?\M-q)
-       (old-prefix-action (lookup-key (current-global-map) (vector my-prefix1))) 
-       (f (lambda (key action)
-	    (global-set-key (vector my-prefix1 key) action)
-	    )))
-  (when old-prefix-action
-    (global-unset-key (vector my-prefix1))
-    (funcall f ?q old-prefix-action))
-    
-  (funcall f ?c 'compile)
-  (funcall f ?e 'eshell)
-  (funcall f ?g 'grep)
-  (funcall f ?r 'rgrep)
-
-  ;; C-x k <enter> is too long for buffer kill, so make f3 k as shortcut.
-  (funcall f ?k (lambda () (interactive) (kill-buffer nil)))
-
-  (funcall f ?t (lambda () (interactive) (my-run-terminal "term")))
-  (funcall f ?1 (lambda () (interactive) (my-run-shell "shell_1")))
-  (funcall f ?2 (lambda () (interactive) (my-run-shell "shell_2")))
-  (funcall f ?3 (lambda () (interactive) (my-run-shell "shell_3")))
-  (funcall f ?4 (lambda () (interactive) (my-run-shell "shell_4")))
-  (funcall f ?5 (lambda () (interactive) (my-run-shell "shell_5")))
-  (funcall f ?6 (lambda () (interactive) (my-run-shell "shell_6")))
-  (funcall f 'insert 'overwrite-mode)
-  (when (fboundp 'ispell-region)
-    (funcall f ?i 'ispell-region))
-  (funcall f ?f 'my-toggle-fullscreen)
-)
 
 ; Bindings for the debugger
 (let ((dbg-prefix 'f5))
@@ -510,7 +588,7 @@
       ;; This is necessary to get normal Backspace and Delete operation
       ;; in all cases under x-windows
       (normal-erase-is-backspace-mode 1)
-      
+
       ;; Deal with Emacs weirdness so C-S-tab always works
       ;; (define-key local-function-key-map [C-S-iso-lefttab] [C-S-tab])
       )
@@ -518,7 +596,7 @@
   ;; Do some substitutions to enable various function keys to work under
   ;; customized xterm as they do in X-Windows client.
   ;; TODO: check for the standard for C-home/C-end
-  
+
   (substitute-key-definition [deletechar] "\C-d" function-key-map)
   (substitute-key-definition [insertchar] [insert] function-key-map)
   (define-key function-key-map "\e[1;5A" [C-up])
@@ -529,6 +607,8 @@
   (define-key function-key-map "\e[6;5~" [C-next])
   (define-key function-key-map "\e[1;5~" [C-home])
   (define-key function-key-map "\e[4;5~" [C-end])
+  (define-key function-key-map "\e[4;5~" [C-end])
+  (define-key function-key-map (kbd "C-^") [C-return])
 
   ;; Cygwin's mintty
   ;; (define-key function-key-map "\e[1;5I" [C-tab])
@@ -588,7 +668,7 @@
 
     ;; Let terminal to decide the background color
     (when tty (set-face-background 'default "unspecified-bg" frame))
-     
+
      (message "Initial window config frame-width=%s frame-height=%s"
 	      (frame-width frame) (frame-height frame))
      (if (>= (frame-width frame) 140)
@@ -627,14 +707,15 @@
 (setq custom-file "~/.emacs.d/custom.el")
 (load custom-file t t)
 
+(require 'package)
+(package-initialize)
+
 ;; This is for testing - normally pc-bufsw should be loaded as a package
 ;;(push "~/p/pc-bufsw" load-path)
 ;;(require 'pc-bufsw-autoloads)
 ;;(pc-bufsw-default-keybindings)
 ;;(global-set-key [f6] 'pc-bufsw-mru)
 ;;(global-set-key [f5] 'pc-bufsw-lru)
-(package-install-file "~/p/pc-bufsw/pc-bufsw.el")
 
-(require 'package)
 (add-to-list 'package-archives
 	     '("melpa" . "https://melpa.org/packages/"))
