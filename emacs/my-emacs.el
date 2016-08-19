@@ -440,7 +440,7 @@
     "Wraped command"
     (interactive (advice-eval-interactive-spec
 		  (let ((cmd (funcall lookup)))
-		    (when cmd (cadr (interactive-form command))))))
+		    (when cmd (cadr (interactive-form cmd))))))
     (let ((cmd (funcall lookup)))
       (when cmd (apply cmd args)))))
 
@@ -475,7 +475,7 @@
 
 (user-keys-mode t)
 
-(defun user-keys-init-map ()
+(progn
   (user-keys-reset)
   
   (setcdr user-keys-mode-map nil)
@@ -490,7 +490,7 @@
   ;; Alt-Space for marking as well.
   (user-keys-alias "C-SPC" "M-SPC")
 
-  (user-keys-add "C-x 3" 'my-2-window-split)
+  (user-keys-subkey "s" 'my-2-window-split)
 
   ;; Bindings to call the action overriden with user-keys-prefix
   (user-keys-subkey "q" (user-keys-overwritten-prefix-command))
@@ -535,8 +535,6 @@
   (user-keys-subkey "f" 'my-toggle-fullscreen)
 
   )
-
-(user-keys-init-map)
 
 ; Dynamic abbrev should copy the word it finds verbatim
 (setq dabbrev-case-replace nil)
