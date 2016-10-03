@@ -7,6 +7,29 @@ err() {
     exit 1
 }
 
+# If necessary, escape each argument using single quotas with with each single quote in
+# arg replaced by '"'"' and join all arguments using space.
+escape_for_shell() {
+    R=''
+    local arg
+    for arg in "$@"; do
+	local s
+	if [[ $arg =~ ^[-+_=./a-zA-Z0-9]+$ ]]; then
+	    s="$arg"
+	else
+	    local escaped=
+	    while : ; do
+		local before_quote="${arg%%\'*}"
+		[[ $arg != "$before_quote" ]] || break
+		escaped="$escaped$before_quote'\"'\"'"
+		arg="${arg#*\'}"
+	    done
+	    printf -v s %s "'$escaped$arg'"
+	fi
+	R+="${R:+ }$s"
+    done
+}
+
 check_xfce_terminal=
 check_lxterminal=
 
@@ -21,11 +44,13 @@ permanent_title=""
 host=""
 title=""
 declare -a ssh_options=()
+declare -a tmux_options=()
 
 while [[ $# -gt 0 && $1 == --* ]]; do
     case $1 in
 	-- ) shift; break ;;
 	--host=* ) host="${1:7}";;
+	--tmux-option=* ) tmux_options+=("${1:14}");;
 	--ssh-option=* ) ssh_options+=("${1:13}");;
 	--title=* ) title="${2:8}";;
 	* ) err "invalid option $1. Use -- to pass terminal-specific options." ;;
@@ -54,11 +79,14 @@ if [[ $host ]]; then
     cmd+=(ssh -t "${ssh_options[@]:+${ssh_options[@]}}")
 
     # On CoreOS tmux session is teminated the moment ssh exits unless
-    # we tun it as systemd unit so use a helper there.
+    # we turn it into systemd unit using a helper there.
+    escape_for_shell "${tmux_options[@]:+${tmux_options[@]}}"
+    tmux="tmux${R:+ }$R"
     what="\
+set +x
 test -x /opt/bin/tmux-attach && exec /opt/bin/tmux-attach
-tmux list-sessions > /dev/null 2>&1 || tmux new-session -d
-exec tmux attach"
+$tmux list-sessions > /dev/null 2>&1 || $tmux new-session -d
+exec $tmux attach"
     cmd+=("$host" "$what")
 fi
 
