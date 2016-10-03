@@ -288,6 +288,8 @@ write_dot_env() {
     path_dir "opt/node/bin"
     
     path_dir "node_modules/.bin"
+
+    path_dir .local/bin
     
     env+=(TEXINPUTS "$HOME/a/dev/tex_lib:")
     
@@ -374,8 +376,9 @@ setup_git_config() {
     )
     
     local -a credential_helper_paths=()
-    case ${DESKTOP_SESSION,,} in
-	gnome | gnome-* | xubuntu ) 
+    local desktop_session="${DESKTOP_SESSION-}"
+    case "${desktop_session,,}" in
+	gnome | gnome-* | xubuntu | lubuntu ) 
 	    credential_helper_paths+=(
 		"/usr/libexec/git-core/git-credential-gnome-keyring" 
 		"/usr/share/doc/git/contrib/credential/gnome-keyring/git-credential-gnome-keyring"
