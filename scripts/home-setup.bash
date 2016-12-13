@@ -273,7 +273,7 @@ link_to_bin() {
     done
 }
 
-write_dot_env() {
+write_setup_env() {
     local -a env=()
 
     local platform
@@ -332,7 +332,11 @@ write_dot_env() {
 	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
     done
     
-    action_write_file ~/.env "$s"
+    action_write_file ".u-setup/env" "$s"
+
+    local s=
+    s+="PATH OVERRIDE=$path_value$NL"
+    action_write_file ".pam_environment" "$s"
 }
 
 setup_emacs() {
@@ -531,11 +535,11 @@ main() {
     
     cd "$HOME"
 
-    # executables
-    for i in $(find a/scripts a/mozilla -mindepth 1 -maxdepth 1 -type f -executable); do
-	action_symlink "$i" bin "${i##*/}"
-    done
+    action_dir .u-setup
 
+    path_dir a/scripts
+    path_dir a/mozilla
+    
     action_symlink -s p/git-subrepo/lib/git-subrepo bin
     man_dir p/git-subrepo/man
 
@@ -568,7 +572,7 @@ main() {
 	extra_setup
     fi
 
-    write_dot_env
+    write_setup_env
 
     if let Clean; then
 	

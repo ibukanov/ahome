@@ -6,6 +6,7 @@ shopt -s extglob
 ### SET ENVIROMMENT VARIABLES
 
 export LANG="en_US.UTF-8"
+export LANG="C.UTF-8"
 #export LC_ALL="C"
 
 export LESS=\
@@ -21,12 +22,10 @@ unset LESSOPEN
 export PAGER="$HOME/a/scripts/l"
 export MANPAGER="u-man-pager"
 
-export GZIP="-v"
-
 unset INPUTRC
 
-if test -f "$HOME/.env"; then
-    source "$HOME/.env"
+if [[ -f "$HOME/.u-setup/env" ]]; then
+    source "$HOME/.u-setup/env"
 fi
 
 export CVSEDITOR=u-cvs-editor
@@ -37,22 +36,14 @@ export SVN_EDITOR=u-cvs-editor
 ### NO CORE FILES
 #ulimit -c 0
 
-### umask to create files by default as u=rwx,g=rwx,o=
-umask 007
-
 ### Setup SSH agent
 i="$HOME/.ssh/remote_ssh_agent"
-test -z "$SSH_AUTH_SOCK" -a -S "$i" && export SSH_AUTH_SOCK="$i"
+if [[ -z "$SSH_AUTH_SOCK" && -S "$i" ]]; then
+    export SSH_AUTH_SOCK="$i"
+fi
 
 ### INTERACTIVE-ONLY SETTINGS when PS1 is set
 if test -n "${PS1+1}"; then
-
-    is_watson=""
-    test "${HOSTNAME%%.*}" = watson && is_watson=1
-
-    # TODO detect that vnc server is indeed running on watson perhaps
-    # via reading its pid file.
-    test -z "$DISPLAY" -a  -n "$is_watson" && export DISPLAY=":2.0"
 
     # Disable blinking cursor in linux console
     test "$TERM" = linux && echo -e '\033[?17;0;64c'
@@ -60,16 +51,14 @@ if test -n "${PS1+1}"; then
     # Change shell promt
 
     if test -n "$VNCDESKTOP" -o -n "$SSH_CLIENT"; then
-        arch=""
-        test -n "$is_watson" -a "$(uname -m)" = i686 && arch="-32"
-        PS1="@\h${arch}\w> "
+        PS1="@\h\w> "
     else
         # Probably a local terminal
         PS1='\w> '
     fi
 
     case "$TERM" in
-        xterm* | cygwin | dtterm | iris-ansi | aixterm | screen )
+        xterm* | cygwin | screen )
             PS1="\\[\\e]2;$PS1\\a\\]$PS1"
             ;;
     esac
@@ -246,5 +235,3 @@ if test -n "${PS1+1}"; then
 fi
 
 unset i
-
-test -f "$HOME/.bashrc_extra" && source "$HOME/.bashrc_extra"
