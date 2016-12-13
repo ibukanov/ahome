@@ -458,7 +458,10 @@ setup_git_config() {
 
 setup_lxde() {
     local rc="$HOME/.config/openbox/lxde-rc.xml"
-    [[ -s $rc ]] || return 0
+    if [[ ! -s $rc ]]; then
+	rc="$HOME/.config/openbox/lubuntu-rc.xml"
+	[[ -s $rc ]] || return 0
+    fi
     local -a keys=()
     # Send-to-untrusted the content of the keyboard
     keys+=("<keybind key='W-U'><action name='Execute'><command>stu</command></action></keybind>")
