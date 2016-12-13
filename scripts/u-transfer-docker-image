@@ -88,29 +88,35 @@ docker tag $(escape_for_shell "$id") $(escape_for_shell "$image")
     ssh "$destination_host" "$ssh_script"
 }
 
-usage() {
-    printf %s "\
-Usage: $0 [OPTION]... docker-image-name source-host destination-host
-Transfer the named docker image from source-host to destination using ssh.
+show_usage=
+source_host=
 
-Available options:
-    -h  show this help end exit
-"
-    exit 0
-}
-
-while getopts :h opt; do
+while getopts :hs: opt; do
     case $opt in
-	h ) usage;;
+	h ) show_usage="1" ;;
+	s ) source_host="$OPTARG" ;;
 	: ) usage_err "option -$OPTARG requires an argument";;
 	* ) usage_err "invalid option -$OPTARG";;
     esac
 done
 shift $(($OPTIND - 1))
 
-[[ $# -eq 3 ]] || usage_err "the command takes exactly 3 arguments"
+if [[ $show_usage ]]; then
+    printf %s "\
+Usage: $0 [OPTION]... docker-image-name destination-host
+Transfer the named docker image from source-host to destination using ssh.
+
+Available options:
+    -h       show this help end exit
+    -s host  get image from docker running on HOST
+"
+    exit 0
+fi
+
+[[ $# -le 2 ]] || usage_err "unexpected positional arguments"
+[[ $# -ge 2 ]] || usage_err "both docker-image-name destination-host must be given"
 
 image="$1"
-source_host="$2"
-destination_host="$3"
+destination_host="$2"
+echo "$source_host"
 main
