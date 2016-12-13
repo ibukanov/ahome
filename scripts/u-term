@@ -117,6 +117,7 @@ if let maximize; then
     # from fullscreen either.
     if [[ "${DESKTOP_SESSION,,}" == gnome ]]; then
 	let fullscreen=1
+        fullscreen=0
     fi
 fi
 
@@ -176,11 +177,12 @@ if [[ -n "$term" ]]; then
     res=(
 # fonts
 "*.renderFont: true"
-"*.faceName: Monospace:size=9"
+"*.faceName: Monospace:size=8"
 "Xft.hintstyle: hintmedium"
 "Xft.hinting: true"
 "Xft.rgba: rgb"
 "Xft.antialias: true"
+"Xft.lineSpace: -1"
 
 # color palette
 "*color0: rgb:0000/0000/0000"
