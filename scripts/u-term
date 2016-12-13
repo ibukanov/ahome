@@ -79,16 +79,30 @@ if [[ $host ]]; then
     cmd+=(ssh -t "${ssh_options[@]:+${ssh_options[@]}}")
 
     # On CoreOS tmux session is teminated the moment ssh exits unless
-    # we turn it into systemd unit using a helper there.
+    # we turn it into systemd unit.
     escape_for_shell "${tmux_options[@]:+${tmux_options[@]}}"
     tmux="tmux${R:+ }$R"
-    what="\
-set +x
-test -x /opt/bin/tmux-attach && exec /opt/bin/tmux-attach
-$tmux list-sessions > /dev/null 2>&1 || $tmux new-session -d
-exec $tmux attach"
+    what='
+set -e -u
+
+if test -d /etc/coreos; then
+    PATH="$PATH:/opt/bin"
+    service="tmux-$USER.service"
+    if ! sudo systemctl is-active -q "$service"; then
+        sudo systemd-run -q --unit="$service" "--uid=$UID" --service-type=forking \
+            /bin/bash -l -c "cd \"$HOME\"; exec '"$tmux"' new-session -d"
+    fi
+else
+    '"$tmux"' list-sessions > /dev/null 2>&1 || '"$tmux"' new-session -d
+fi
+exec '"$tmux"' attach
+'
+
     cmd+=("$host" "$what")
 fi
+
+# for debug
+#exec "${cmd[@]}"
 
 if [[ -z "$width" ]]; then
     width=102
