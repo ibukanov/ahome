@@ -6,5 +6,5 @@ EDITOR=e
 : ${QUILT_PATCH_OPTS:=--reject-format=unified}
 : ${QUILT_DIFF_OPTS:=-p}
 
-: ${QUILT_DIFF_ARGS:="--diff=$HOME/a/scripts/u-diff"}
+: ${QUILT_DIFF_ARGS:="--diff=u-diff"}
 

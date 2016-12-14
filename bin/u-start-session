@@ -1,0 +1,9 @@
+#!/bin/bash -l
+
+set -e -u
+
+case "$DESKTOP_SESSION" in
+    gnome ) gsettings set org.gnome.desktop.interface enable-animations false ;;
+esac
+
+u-start-emacs &

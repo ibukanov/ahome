@@ -6,8 +6,8 @@ args=(--no-splash -bg '#F8F8FF' -fg '#000000')
 
 case "${DESKTOP_SESSION,,}" in
     gnome | xfce )
-	args+=(--fullscreen)
-	args+=(--maximized)
+	#args+=(--fullscreen)
+	args+=(--fullheight)
 	;;
     * ) args+=(--maximized) ;;
 esac

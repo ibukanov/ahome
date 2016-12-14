@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e -u
+shopt -s lastpipe
 
 log() {
     printf "%s\n" "$*" 1>&2
@@ -50,33 +51,89 @@ main() {
 
     cd "$local_transfer_dir"
 
-    local id
-    id="$(ssh "$source_host" "docker inspect -f '{{.Id}}' $(escape_for_shell "$image")")"
-    [[ $id == sha256:* ]] || err "image ID must start with sha256: prefix,  was ${#id}($id)"
     local old_id=""
     if [[ -f "$dir/id" ]]; then
 	read -r old_id < $dir/id || :
     fi
-    if [[ $id == "$old_id" ]]; then
-	log "using already saved image"
+
+    local source_script="image=$(escape_for_shell "$image") old_id=$(escape_for_shell "$old_id")"
+    source_script+='
+id="$(sudo docker inspect -f "{{.Id}}" "$image")"
+if test "_$id" = "_${id#sha256:}"; then
+    printf "ERROR\\n%s\\n" "image ID ($id) dies not start with sha256: prefix"
+    exit 0
+fi
+if test "_$id" = "_$old_id"; then
+   printf "USE_CACHE\\n"
+   exit 0
+fi
+printf "NEW_IMAGE\\n$id\\n"
+sudo docker save "$id"
+'
+    local -a source_cmd
+    if [[ $source_host ]]; then
+	source_cmd=(ssh "$source_host")
     else
-	log "saving image from $source_host"
-	tmp_dir="tmp.$(date +%s.%N)"
-	mkdir "$tmp_dir"
-	ssh "$source_host" "docker save $(escape_for_shell "$id")" \
-	    | gzip --rsyncable > "$tmp_dir/image.tar.gz"
-	printf %s "$id" > "$tmp_dir/id"
-	if [[ -d $dir ]]; then
-            rm -rf "$dir"
-	fi
-	mv "$tmp_dir" "$dir"
+	source_cmd=(/bin/sh -c)
     fi
-    
+
+    local id
+    "${source_cmd[@]}" "$source_script" | {
+	local command=
+	IFS='' read -r command
+	case "$command" in
+	    ERROR )
+		cat >&2
+		exit 1
+		;;
+	    USE_CACHE )
+		id="$old_id"
+		log "using cached saved image"
+		;;
+	    NEW_IMAGE )
+		IFS='' read -r id
+		[[ $id ]] || err "No image id"
+		log "saving $image image from the docker on ${source_host:-local machine}"
+		tmp_dir="tmp.$(date +%s.%N)"
+		mkdir "$tmp_dir"
+		gzip --rsyncable > "$tmp_dir/image.tar.gz"
+		printf %s "$id" > "$tmp_dir/id"
+		if [[ -d $dir ]]; then
+		    rm -rf "$dir"
+		fi
+		mv "$tmp_dir" "$dir"
+		;;
+	    * )
+		err "unexpected server response"
+		;;
+	esac
+    }
+
     log "sending image to $destination_host"
     local destination_path="$remote_transfer_dir/$dir.tar.gz"
 
-    ssh "$destination_host" "mkdir -p $(escape_for_shell "$remote_transfer_dir")"
-    rsync --ignore-times -Pv "$dir/image.tar.gz" "$destination_host:$destination_path"
+    local destination_script="\
+set -e -u
+transfer_dir=$(escape_for_shell "$remote_transfer_dir")
+image=$(escape_for_shell "$image") 
+id=$(escape_for_shell "$id")
+destination_host=$(escape_for_shell "$destination_host")
+destination_path=$(escape_for_shell "$destination_path")
+"
+    destination_script+='
+mkdir -p "$transfer_dir"
+rsync "$@"
+echo "loading image to docker on $destination_host" >&2
+sudo docker load -i "$destination_path" >/dev/null && \
+sudo docker tag "$id" "$image" > /dev/null || :
+'
+    destination_script="exec /bin/sh -c $(escape_for_shell "$destination_script") ignore"
+
+    #ssh "$destination_host" "mkdir -p $(escape_for_shell "$remote_transfer_dir")"
+    #rsync --ignore-times -Pv --rsync-path="$destination_script" "$dir/image.tar.gz" "$destination_host:$destination_path"
+    rsync -t -Pv --rsync-path="$destination_script" "$dir/image.tar.gz" "$destination_host:$destination_path"
+
+    exit 0
     
     log "loading image on $destination_host"
 
@@ -118,5 +175,4 @@ fi
 
 image="$1"
 destination_host="$2"
-echo "$source_host"
 main

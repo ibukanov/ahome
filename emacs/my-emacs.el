@@ -636,7 +636,7 @@
 ;; Window management
 (setq truncate-partial-width-windows nil)
 (setq split-height-threshold nil)
-;(setq split-width-threshold 0)
+(setq split-width-threshold 250)
 
 ;(add-hook 'after-make-frame-functions 'my-on-new-frame-hook)
 

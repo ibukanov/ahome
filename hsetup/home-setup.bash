@@ -9,7 +9,11 @@ log() {
 }
 
 err() {
-    log "$@"
+    if [[ $# -ne 0 ]]; then 
+	log "$@"
+    else
+	log "error"
+    fi
     log "stack: ${FUNCNAME[*]}"
     exit 1
 }
@@ -225,43 +229,48 @@ action_write_file() {
     fi
 }
 
-env_dir() {
-    local name=$1 dir="$2"
+check_dir() {
+    local dir="$1"
     if [[ "${dir:0:1}" != / ]]; then
 	dir="$HOME/$dir"
     fi
     if [[ -d "$dir" ]]; then
-	env+=("$name" "$dir")
+	R="$dir"
+	return 0
+    fi
+    unset R
+    return 1
+}
+
+env_dir() {
+    local name=$1 dir="$2"
+    if check_dir "$dir"; then
+	env+=("$name" "$R")
     fi
 }
 
 path_dir() {
-    local dir
-    for dir in "$@"; do
-	if [[ $dir ]]; then
-	    if [[ "${dir:0:1}" != "/" ]]; then
-		dir="$HOME/$dir"
-	    fi
-	    if [[ -d "$dir" ]]; then
-		path_value+=":$dir"
-	    fi
-	fi
-    done
-    return 0
+    [[ $# -eq 1 ]] || err
+    if check_dir "$1"; then
+	path_dirs+=("$R")
+    fi
 }
 
 man_dir() {
-    for dir in "$@"; do
-	if [[ -n "$dir" ]]; then
-	    if [[ "${dir:0:1}" != "/" ]]; then
-		dir="$HOME/$dir"
-	    fi
-	    if [[ -d "$dir" ]]; then
-		manpath_value+="$dir:"
-	    fi
-	fi
+    [[ $# -eq 1 ]] || err
+    if check_dir "$1"; then
+	man_dirs+=("$R")
+    fi
+}
+
+array_join() {
+    local separator="$1"
+    shift
+    local s= i
+    for i in "$@"; do
+	s+="${s:+$separator}$i"
     done
-    return 0
+    R="$s"
 }
 
 link_to_bin() {
@@ -280,6 +289,8 @@ write_setup_env() {
     platform="$(uname -i)"
 
     path_dir opt/bin
+
+    path_dir .local/bin
     
     path_dir "opt/$platform/rust/bin"
     
@@ -322,9 +333,22 @@ write_setup_env() {
 	env+=(GOPATH "$HOME/gocode")
     fi
 
+    local d
+    for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
+	# Do not add /bin if it is a symlink to /usr/bin
+	if [[ $d != /usr/* && $(realpath -qm "$d") == "$(realpath -qm "/usr/$d")" ]]; then
+	    continue
+	fi
+	path_dir "$d"
+    done
+
+    array_join : "${path_dirs[@]}"
+    local path_value="$R"
+
     env+=(PATH "$path_value")
-    if [[ -n $manpath_value ]]; then
-	env+=(MANPATH "$manpath_value")
+    if [[ ${#manp_dirs[@]} -ne 0 ]]; then
+	array_join : "${manp_dirs[@]}"
+	env+=(MANPATH "$R:")
     fi
 
     local s= i
@@ -332,11 +356,7 @@ write_setup_env() {
 	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
     done
     
-    action_write_file ".u-setup/env" "$s"
-
-    local s=
-    s+="PATH OVERRIDE=$path_value$NL"
-    action_write_file ".pam_environment" "$s"
+    action_write_file ".config/hsetup/env" "$s"
 }
 
 setup_emacs() {
@@ -511,8 +531,10 @@ setup_lxde() {
     fi
 
     if let Clean; then
-	# Force write on under clean
-	Setup=1 Clean=0 action_write_file "$rc" "$(printf '%s\n' "${without_inserts[@]}")"
+	local original
+	printf -v original '%s\n' "${without_inserts[@]}"
+	# Force write under clean
+	Setup=1 Clean=0 action_write_file "$rc" "$original"
     fi
 }
 
@@ -533,37 +555,46 @@ main() {
 	[[ $# -eq 0 ]] || err "unexpected extra action argument $1"
     fi
 
-    local path_value="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
-    local manpath_value=""
+    local hsetup_source_dir
+    hsetup_source_dir="$(realpath --relative-base="$HOME" "${BASH_SOURCE[0]}")"
+    hsetup_source_dir="${hsetup_source_dir%/*}"
+
+    local -a path_dirs=()
+    local -a manp_dirs=()
     
     cd "$HOME"
 
-    action_dir .u-setup
+    action_dir ".config/hsetup"
 
-    path_dir a/scripts
-    path_dir a/mozilla
+    path_dir a/bin
     
     action_symlink -s p/git-subrepo/lib/git-subrepo bin
     man_dir p/git-subrepo/man
 
     # dot files that are symlinked to home
-    for i in a/scripts/*.dot; do
+    for i in "$hsetup_source_dir/"*.dot; do
 	name="${i##*/}"
 	action_symlink "$i" . ".${name%.dot}"
     done
 
     # extra bash symlinks besides .bashrc
-    action_symlink "a/scripts/bashrc.dot" . .bash_profile
+    action_symlink "$hsetup_source_dir/bashrc.dot" . .bash_profile
 
-    action_symlink -d a/scripts/xfce-terminal .config/xfce4 terminal
+    action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 
-    action_symlink a/scripts/lxterminal.conf .config/lxterminal lxterminal.conf
+    action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
-    action_symlink a/scripts/autostart.desktop .config/autostart
+    action_write_file .config/autostart/u-autostart.desktop "\
+[Desktop Entry]
+Type=Application
+Exec=$HOME/a/bin/u-start-session
+Hidden=false
+X-GNOME-Autostart-enabled=true
+Name=Custom Session
+Comment=Start custom session script
+"
 
-    action_symlink a/scripts/u-term.desktop .local/share/applications
-
-    action_symlink a/scripts/u-xstartup-vnc .vnc xstartup
+    action_symlink "$hsetup_source_dir/u-term.desktop" .local/share/applications
 
     setup_emacs
 
