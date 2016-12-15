@@ -484,7 +484,7 @@ setup_lxde() {
     fi
     local -a keys=()
     # Send-to-untrusted the content of the keyboard
-    keys+=("<keybind key='W-U'><action name='Execute'><command>stu</command></action></keybind>")
+    keys+=("<keybind key='W-U'><action name='Execute'><command>$HOME/a/bin/stu</command></action></keybind>")
 
     # First read the file and remove any marks with previously generated code
     local insert_start='<!-- #generated# -->'
@@ -538,6 +538,31 @@ setup_lxde() {
     fi
 }
 
+setup_gnome() {
+
+    if type -p gsettings > /dev/null; then
+	# disable blinking cursor in terminals
+	local profile_uuid
+	profile_uuid="$(gsettings get org.gnome.Terminal.ProfilesList default 2>/dev/null || :)"
+	if [[ $profile_uuid ]]; then 
+	    [[ $profile_uuid =~ ^\'(.*)\'$ ]] && profile_uuid="${BASH_REMATCH[1]}"
+	    local p="org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$profile_uuid/"
+	    local value
+	    value="$(gsettings get "$p" cursor-blink-mode || :)"
+	    if [[ -z $value ]]; then
+		log "failed to read cursor-blink-mode for gnome terminal"
+	    else
+		if let Setup; then
+		    [[ $value == "'off'" ]] || gsettings set "$p" cursor-blink-mode off
+		fi
+		if let Clean; then
+		    gsettings reset "$p" cursor-blink-mode
+		fi
+	    fi
+	fi
+    fi
+}
+
 main() {
     local i
     local Setup=0
@@ -584,6 +609,7 @@ main() {
 
     action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
+    action_dir .config/autostart
     action_write_file .config/autostart/u-autostart.desktop "\
 [Desktop Entry]
 Type=Application
@@ -599,6 +625,8 @@ Comment=Start custom session script
     setup_emacs
 
     setup_lxde
+
+    setup_gnome
 
     setup_git_config
 
