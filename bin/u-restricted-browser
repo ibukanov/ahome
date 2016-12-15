@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e -u
+
+d="$HOME/.cache/restricted-browser"
+
+[[ -d $d/Downloads ]] || mkdir -p "$d/Downloads"
+
+exec firejail --name="restricted-browser" --x11 --private="$d" --no3d \
+     --profile=/etc/firejail/brave.profile brave
