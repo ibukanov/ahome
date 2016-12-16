@@ -24,8 +24,8 @@ export MANPAGER="u-man-pager"
 
 unset INPUTRC
 
-if [[ -f "$HOME/.config/hsetup/env" ]]; then
-    source "$HOME/.config/hsetup/env"
+if [[ -f "$HOME/.local/hsetup/env" ]]; then
+    source "$HOME/.local/hsetup/env"
 fi
 
 export CVSEDITOR=u-cvs-editor

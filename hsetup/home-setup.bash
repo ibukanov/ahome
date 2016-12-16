@@ -356,7 +356,7 @@ write_setup_env() {
 	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
     done
     
-    action_write_file ".config/hsetup/env" "$s"
+    action_write_file ".local/hsetup/env" "$s"
 }
 
 setup_emacs() {
@@ -589,7 +589,7 @@ main() {
     
     cd "$HOME"
 
-    action_dir ".config/hsetup"
+    action_dir ".local/hsetup"
 
     path_dir a/bin
     
