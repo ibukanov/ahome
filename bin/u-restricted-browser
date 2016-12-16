@@ -6,5 +6,8 @@ d="$HOME/.cache/restricted-browser"
 
 [[ -d $d/Downloads ]] || mkdir -p "$d/Downloads"
 
+# TODO pass --force-device-scale-factor=2 as necessary
+
+
 exec firejail --name="restricted-browser" --x11 --private="$d" --no3d \
-     --profile=/etc/firejail/brave.profile brave
+     --profile=/etc/firejail/brave.profile brave "$@"
