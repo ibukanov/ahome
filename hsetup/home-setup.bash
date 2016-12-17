@@ -590,10 +590,11 @@ main() {
     cd "$HOME"
 
     action_dir ".local/hsetup"
+    action_dir ".local/hsetup/bin"
 
     path_dir a/bin
     
-    action_symlink -s p/git-subrepo/lib/git-subrepo bin
+    action_symlink -s p/git-subrepo/lib/git-subrepo .local/hsetup/bin
     man_dir p/git-subrepo/man
 
     # dot files that are symlinked to home
@@ -643,6 +644,9 @@ Comment=Start custom session script
 	fi
 	if [[ ${#cleanup_dirs[@]} -ne 0 ]]; then
 	    cmd_log rmdir -p --ignore-fail-on-non-empty "${!cleanup_dirs[@]}"
+	fi
+	if [[ -d .local/hsetup ]]; then
+	    cmd_log rm -rf .local/hsetup
 	fi
     fi
 }
