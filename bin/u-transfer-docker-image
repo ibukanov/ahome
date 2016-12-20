@@ -58,7 +58,7 @@ main() {
 
     local source_script="image=$(escape_for_shell "$image") old_id=$(escape_for_shell "$old_id")"
     source_script+='
-id="$(sudo docker inspect -f "{{.Id}}" "$image")"
+id="$(sudo docker inspect --type=image -f "{{.Id}}" "$image")"
 if test "_$id" = "_${id#sha256:}"; then
     printf "ERROR\\n%s\\n" "image ID ($id) dies not start with sha256: prefix"
     exit 0
