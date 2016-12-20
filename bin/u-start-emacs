@@ -4,41 +4,13 @@ set -e -u
 shopt -s lastpipe
 
 args=(--no-splash -bg '#F8F8FF' -fg '#000000')
-has_geometry=
 
-# parse xrandr output to get both screen resolution and dimensions
-line=()
-xrandr -q | {
-    while read -a line a && [[ ${line[1]} != connected ]]; do :; done
-}
-if [[ ${#line[@]} -ne 0 ]]; then
-    xrandr_ok=
-    if [[ ${#line[@]} -eq 6 && ${line[2]} =~ ^([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)$ ]]; then
-	pixel_width="${BASH_REMATCH[1]}"
-	display_xoffset="${BASH_REMATCH[3]}"
-	physical_width="${line[3]}"
-	if [[ $physical_width =~ ^([0-9]+)(mm)$ ]]; then
-	    width_mm="${BASH_REMATCH[1]}"
-	    xrandr_ok=1
-	fi
-    fi
-    if [[ -z $xrandr_ok ]]; then
-	echo "unexpected xrandr output: ${line[*]}" >&2
-    else
-	if [[ $width_mm -ge 350 ]]; then
-	    # Too big screen for full screen
-	    args+=(--fullheight "--geometry=240+$display_xoffset")
-	    has_geometry=1
-	fi
-    fi
+# Full height and try to fit 240 character colums
+geometry="240"
+u-display-dimensions | read _ _ _ _ _ display_xoffset _
+if [[ $display_xoffset -ne 0 ]]; then
+    geometry+="+$display_xoffset"
 fi
+args+=(--fullheight "--geometry=$geometry")
 
-if [[ -z $has_geometry ]]; then
-    case "${DESKTOP_SESSION,,}" in
-	gnome )
-	    args+=(--fullscreen)
-	    ;;
-	* ) args+=(--maximized) ;;
-    esac
-fi
 exec emacs "${args[@]}"

@@ -1,13 +1,18 @@
 #!/bin/bash
 
 set -e -u
+shopt -s lastpipe
 
 d="$HOME/.cache/restricted-browser"
 
 [[ -d $d/Downloads ]] || mkdir -p "$d/Downloads"
 
-# TODO pass --force-device-scale-factor=2 as necessary
+cmd=(brave)
 
+u-display-dimensions | read _ pixel_width _
+if [[ $pixel_width -gt 1600 ]]; then
+    cmd+=(--force-device-scale-factor=1.5)
+fi
 
 exec firejail --name="restricted-browser" --x11 --private="$d" --no3d \
-     --profile=/etc/firejail/brave.profile brave "$@"
+     --profile=/etc/firejail/brave.profile "${cmd[@]}" "$@"

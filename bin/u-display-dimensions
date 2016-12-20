@@ -28,23 +28,29 @@ xrandr -q | {
 
 if [[ ${#line[@]} -eq 0 ]]; then
     warn "xrandr generated no lines with connected status"
-elif ! [[ ${#line[@]} -eq 6 && ${line[2]} =~ ^([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)$ ]]; then
+elif ! [[ ${#line[@]} -eq 6 && \
+	      ${line[2]} =~ ^([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)$ && \
+	      ${line[4]} == 'x' ]]; then
     warn "unexpected format of xrandr connected line"
 else
     pixel_width="${BASH_REMATCH[1]}"
     pixel_height="${BASH_REMATCH[2]}"
     display_xoffset="${BASH_REMATCH[3]}"
-    display_yoffset="${BASH_REMATCH[3]}"
-    physical_width="${line[3]}"
-    physical_height="${line[3]}"
+    display_yoffset="${BASH_REMATCH[4]}"
 
     parse_xrandr_physical_dimension "${line[3]}"
     width_mm="$R"
     
-    parse_xrandr_physical_dimension "${line[4]}"
+    parse_xrandr_physical_dimension "${line[5]}"
     height_mm="$R"
 fi
 
-if [[ -z $warnings ]]; then
+if [[ $warnings ]]; then
+    # Print empty line to simplify usage in scripts with the read function
+    printf '\n'
 else
+    dpi="$((pixel_width * 254 / (width_mm * 10)))"
+    printf '%d %d %d %d %d %d %d\n' \
+	   "$dpi" "$pixel_width" "$pixel_height" "$width_mm" "$height_mm" \
+	   "$display_xoffset" "$display_yoffset"
 fi
