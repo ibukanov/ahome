@@ -1,0 +1,179 @@
+#!/bin/bash
+
+set -e -u
+
+log() {
+    printf "%s\n" "$*" 1>&2
+}
+
+warn() {
+    log "$@"
+}
+
+err() {
+    log "$@"
+    log "stack: ${FUNCNAME[*]}"
+    exit 1
+}
+
+cmd_log() {
+    test $# -ge 1 || err "command must be given"
+    log "$*"
+    "$@"
+}
+
+backup_paths=()
+backup_targets=()
+password_dir=
+
+check_single_required_arg() {
+    [[ ${#args[@]} -eq 1 && ${#args[0]} -ne 0 ]] || \
+	err "$cmd takes exactly one non-empty argument"
+}
+
+read_config() {
+    config="$1"
+    [[ -s $config ]] || err "$config is not a non-empty file"
+
+    read_config_lines < $config
+}
+
+read_config_lines() {
+    local -a line
+    while read -a line; do
+	# Skip blanks lines and comments
+	[[ ${#line[@]} -eq 0 || ${line[0]:0:1} == '#' ]] && continue
+	local cmd="${line[0]}"
+	local -a args=("${line[@]:1}")
+	case "$cmd" in
+	    BackupPath )
+		check_single_required_arg
+		local dir="${args[0]}"
+		[[ ${dir:0:1} != / ]] || \
+		    err "$cmd argument $dir is not a path relative to \$HOME"
+		backup_paths+=("$dir")
+		;;
+	    
+	    PasswordDir )
+		check_single_required_arg
+		password_dir="${args[0]}"
+		;;
+	    
+	    BackupTarget )
+		check_single_required_arg
+		backup_targets+=("${args[0]}")
+		;;
+	esac
+    done
+}
+
+check_config() {
+    [[ ${#backup_paths[@]} -ge 1 ]] || \
+	err "at least one BackupPath must be given"
+    [[ ${#backup_targets[@]} -ge 1 ]] || \
+	err "at least one BackupTarget must be given"
+    [[ $password_dir ]] || \
+	err "missing PasswordDir"
+
+    local path
+    for path in "${backup_paths[@]}"; do
+	[[ -d $path || -d $path ]] || \
+	    err "BackupPath $path is not a directory or a file"
+    done
+
+    [[ -d $password_dir ]] || \
+	err "PasswordDir $password_dir is not a directory"
+    password_hash_location="$password_dir/$password_hash_name"
+}
+
+calculate_password_hash() {
+    password_hash="$(printf "$1" | u-bcrypt-hash)"
+}
+
+change_password() {
+    read -p 'You are about to set new password hash to verify the password for future backups, yes? '
+    test "_$REPLY" != "_yes" && { echo "Password change was cancelled"; return; }
+    read -se -p 'New password:' password
+    echo
+    read -se -p 'Retype new password:'
+    echo
+    test "_$password" = "_$REPLY" || { echo "Password mistmatch"; return; }
+    password_hash="$(printf "$password" | u-bcrypt-hash)"
+    printf "$password_hash" > "$password_hash_location"
+}
+
+read_password() {
+    test -f "$password_hash_location" || \
+	err "$password_hash_location does not exist. Set it up using -P option."
+    read stored_password_hash < "$password_hash_location" || :
+    test -n "$stored_password_hash" || \
+	err "$password_hash_location is empty or cannot be read."
+    read -se -p 'Password for backup:' password
+    echo
+    test -n "$password" || err "Backup password cannot be empty."
+    calculate_password_hash "$password"
+    printf "$password" | u-bcrypt-hash -c "$stored_password_hash" || \
+	err "Password mismatch"
+}
+
+duplicity_create_local_backup() {
+
+    read_password
+
+    local top_dir="."
+    local -a args=()
+    local path
+    for path in "${backup_paths[@]}"; do
+	args+=(--include "$top_dir/$path")
+    done
+    args+=(--exclude  '**')
+    PASSPHRASE="$password" duplicity "${args[@]}" "$top_dir" "$BACKUP_URL"
+}
+
+copy_to_remote() {
+    local target
+    for target in "${backup_targets[@]}"; do
+	cmd_log rsync -rtl -P --delete-after "$LOCAL_BACKUP_ROOT" "$target" || :
+    done
+}
+
+password_hash_name=".password.backup"
+LOCAL_BACKUP_ROOT="$HOME/BACKUP/home"
+BACKUP_URL="file://$LOCAL_BACKUP_ROOT"
+#BACKUP_URL=gdocs://igor@mir2.org/backup/home
+
+usage() {
+    echo "To be written"
+}
+
+show_usage=
+change_password=
+
+
+while getopts ":fhlP" OPT; do
+
+    case "$OPT" in
+	h ) show_usage=1 ;;
+	P ) change_password=1 ;;
+	* ) err "unrecognized shell option - $OPTARG" ;;
+    esac
+
+done
+
+if [[ $show_usage ]]; then
+    usage
+    exit 0
+fi
+
+cd "$HOME"
+
+read_config .local/hsetup/backup.config
+check_config
+
+if [[ $change_password ]]; then
+    change_password
+    exit 0
+fi
+    
+duplicity_create_local_backup
+copy_to_remote 
