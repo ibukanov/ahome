@@ -14,5 +14,5 @@ if [[ $pixel_width -gt 1600 ]]; then
     cmd+=(--force-device-scale-factor=1.5)
 fi
 
-exec firejail --name="restricted-browser" --x11 --private="$d" --no3d \
+exec firejail --name="restricted-browser" --x11=xpra --private="$d" --no3d \
      --profile=/etc/firejail/brave.profile "${cmd[@]}" "$@"
