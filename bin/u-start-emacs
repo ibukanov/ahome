@@ -1,16 +1,7 @@
 #!/bin/bash
 
 set -e -u
-shopt -s lastpipe
 
-args=(--no-splash -bg '#F8F8FF' -fg '#000000')
-
-# Full height and try to fit 240 character colums
-geometry="240"
-u-display-dimensions | read _ _ _ _ _ display_xoffset _
-if [[ $display_xoffset -ne 0 ]]; then
-    geometry+="+$display_xoffset"
-fi
-args+=(--fullheight "--geometry=$geometry")
+args=(--no-splash -bg '#FFFFFF' -fg '#000000')
 
 exec emacs "${args[@]}"

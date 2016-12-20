@@ -655,6 +655,8 @@
 (when (fboundp 'savehist-mode)
   (savehist-mode 1))
 
+(desktop-save-mode 1)
+
 (load "my-faces")
 
 (defun my-initial-window-config(frame kind)
