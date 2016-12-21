@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e -u
+shopt -s nullglob
 
 log() {
     printf "%s\n" "$*" 1>&2
@@ -24,7 +25,15 @@ cmd_log() {
 
 backup_paths=()
 backup_targets=()
+backup_media_dir=
+
 password_dir=
+
+local_backup_root=
+backup_url=
+#backup_url=gdocs://igor@mir2.org/backup/home
+
+password_hash_name=".password.backup"
 
 check_single_required_arg() {
     [[ ${#args[@]} -eq 1 && ${#args[0]} -ne 0 ]] || \
@@ -63,6 +72,14 @@ read_config_lines() {
 		check_single_required_arg
 		backup_targets+=("${args[0]}")
 		;;
+
+	    BackupMediaDir )
+		check_single_required_arg
+		local dir="${args[0]}"
+		[[ ${dir:0:1} != / ]] || \
+		    err "$cmd argument $dir is not a relative path"
+		backup_media_dir="$dir"
+		;;
 	esac
     done
 }
@@ -70,10 +87,33 @@ read_config_lines() {
 check_config() {
     [[ ${#backup_paths[@]} -ge 1 ]] || \
 	err "at least one BackupPath must be given"
-    [[ ${#backup_targets[@]} -ge 1 ]] || \
-	err "at least one BackupTarget must be given"
+    [[ ${#backup_targets[@]} -ge 1 || $backup_media_dir ]] || \
+	err "at least one BackupTarget or BackupMediaDir must be given"
     [[ $password_dir ]] || \
 	err "missing PasswordDir"
+
+    if [[ $backup_media_dir ]]; then
+	local media_top="/run/media/$USER"
+	[[ -d $media_top ]] || media_top="/media/$USER"
+	[[ -d $media_top ]] || \
+	    err "failed to locate directory with external media"
+	local location found=
+	for location in "$media_top"/*; do
+	    [[ -d $location ]] || continue
+	    if [[ -d $location/$backup_media_dir ]]; then
+		[[ -z $found ]] || \
+		    err "$backup_media_dir exists both in $location and $found. Keep mounted only the desired media and try again."
+		found="$location"
+	    fi
+	done
+	[[ $found ]] || \
+	    err "failed to find in $media_top media with $backup_media_dir directory"
+	local_backup_root="$found/$backup_media_dir"
+    fi
+    if [[ -z $local_backup_root ]]; then
+	local_backup_root="$HOME/BACKUP/home"
+    fi
+    backup_url="file://$local_backup_root"
 
     local path
     for path in "${backup_paths[@]}"; do
@@ -127,20 +167,16 @@ duplicity_create_local_backup() {
 	args+=(--include "$top_dir/$path")
     done
     args+=(--exclude  '**')
-    PASSPHRASE="$password" duplicity "${args[@]}" "$top_dir" "$BACKUP_URL"
+    args+=(--progress)
+    PASSPHRASE="$password" duplicity "${args[@]}" "$top_dir" "$backup_url"
 }
 
 copy_to_remote() {
     local target
-    for target in "${backup_targets[@]}"; do
-	cmd_log rsync -rtl -P --delete-after "$LOCAL_BACKUP_ROOT" "$target" || :
+    for target in "${backup_targets[@]:+${backup_targets[@]}}"; do
+	cmd_log rsync -rtl -P --delete-after "$local_backup_root" "$target" || :
     done
 }
-
-password_hash_name=".password.backup"
-LOCAL_BACKUP_ROOT="$HOME/BACKUP/home"
-BACKUP_URL="file://$LOCAL_BACKUP_ROOT"
-#BACKUP_URL=gdocs://igor@mir2.org/backup/home
 
 usage() {
     echo "To be written"
