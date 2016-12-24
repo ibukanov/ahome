@@ -10,47 +10,45 @@ warn() {
     printf 'warning: %s\n' "$*" >&2
 }
 
-parse_xrandr_physical_dimension() {
-    R=
-    local value="$1"
-    if ! [[ $value =~ ^([0-9]+)(mm)$ ]]; then
-	warn "unexpected format of xrandr physical dimension: $value"
-    else
-	R="${BASH_REMATCH[1]}"
-    fi
+check_xrandr_line() {
+    # Look for a lines like:
+    # eDP-1 connected primary 3200x1800+0+0 (normal left inverted right x axis y axis) 294mm x 165mm
+    # XWAYLAND0 connected 3200x1800+0+0 290mm x 170mm
+
+    local units="mm" B="[[:blank:]]" D="[[:digit:]]"
+    local connect_re="\
+$B+connected$B+\
+(.*$B)?($D+)x($D+)(\+($D+)\+($D+))$B+?\
+(.*$B)?($D+)($units)?$B+x$B+($D+)($units)?\$"
+
+    [[ $1 =~ $connect_re ]] || return 0
+
+    # exec echo "${BASH_REMATCH[@]:1}"
+
+    local \
+	pixel_width="${BASH_REMATCH[2]}" \
+	pixel_height="${BASH_REMATCH[3]}" \
+	display_xoffset="${BASH_REMATCH[5]}" \
+	display_yoffset="${BASH_REMATCH[6]}" \
+	width_mm="${BASH_REMATCH[8]}" \
+	height_mm="${BASH_REMATCH[10]}"
+
+    local dpi="$((pixel_width * 254 / (width_mm * 10)))"
+    printf '%d %d %d %d %d %d %d\n' \
+	   "$dpi" "$pixel_width" "$pixel_height" "$width_mm" "$height_mm" \
+	   "$display_xoffset" "$display_yoffset"
+    exit 0
 }
+
+#connected primary 3200x1800+0+0 (normal left inverted right x axis y axis) 294mm x 165mm'
 
 # parse xrandr output to get both screen resolution and dimensions
-line=()
 xrandr -q | {
-    while read -a line a && [[ ${line[1]} != connected ]]; do :; done
+    while IFS='' read -r line; do check_xrandr_line "$line"; done
 }
-
-if [[ ${#line[@]} -eq 0 ]]; then
-    warn "xrandr generated no lines with connected status"
-elif ! [[ ${#line[@]} -eq 6 && \
-	      ${line[2]} =~ ^([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)$ && \
-	      ${line[4]} == 'x' ]]; then
-    warn "unexpected format of xrandr connected line"
-else
-    pixel_width="${BASH_REMATCH[1]}"
-    pixel_height="${BASH_REMATCH[2]}"
-    display_xoffset="${BASH_REMATCH[3]}"
-    display_yoffset="${BASH_REMATCH[4]}"
-
-    parse_xrandr_physical_dimension "${line[3]}"
-    width_mm="$R"
-    
-    parse_xrandr_physical_dimension "${line[5]}"
-    height_mm="$R"
-fi
+warn "xrandr generated no lines with connected status"
 
 if [[ $warnings ]]; then
     # Print empty line to simplify usage in scripts with the read function
     printf '\n'
-else
-    dpi="$((pixel_width * 254 / (width_mm * 10)))"
-    printf '%d %d %d %d %d %d %d\n' \
-	   "$dpi" "$pixel_width" "$pixel_height" "$width_mm" "$height_mm" \
-	   "$display_xoffset" "$display_yoffset"
 fi
