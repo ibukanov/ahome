@@ -7,6 +7,15 @@ d="$HOME/.cache/restricted-browser"
 
 [[ -d $d/Downloads ]] || mkdir -p "$d/Downloads"
 
+options=(
+    --profile=/etc/firejail/brave.profile
+    --name="restricted-browser"
+    --x11=xpra
+    --private="$d"
+    --no3d
+    --ipc-namespace
+)
+
 cmd=(brave)
 
 u-display-dimensions | read _ pixel_width _
@@ -14,5 +23,4 @@ if [[ $pixel_width -gt 1600 ]]; then
     cmd+=(--force-device-scale-factor=1.5)
 fi
 
-exec firejail --name="restricted-browser" --x11=xpra --private="$d" --no3d \
-     --profile=/etc/firejail/brave.profile "${cmd[@]}" "$@"
+exec firejail "${options[@]}" "${cmd[@]}" "$@"
