@@ -142,9 +142,8 @@
      ((string-match
        "/\\(netcat-openbsd[-.0-9a-z]*\\|nc\\)/.*\\.\\(cc?\\|h\\)" file-path)
       (c-set-style "c-tabs8"))
-     ((string-match
-       "/s/x\.cpp" file-path)
-      (c-set-style "c-indent2"))
+     ((string-match "/firejail/" file-path) (c-set-style "c-tabs8"))
+     ((string-match "/s/x\.cpp" file-path) (c-set-style "c-indent2"))
      ))
 
   ;; I like hungry-delete but dislike automatic new lines
