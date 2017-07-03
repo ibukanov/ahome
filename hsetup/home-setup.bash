@@ -9,7 +9,7 @@ log() {
 }
 
 err() {
-    if [[ $# -ne 0 ]]; then 
+    if [[ $# -ne 0 ]]; then
 	log "$@"
     else
 	log "error"
@@ -87,7 +87,7 @@ action_symlink() {
     shift $((OPTIND - 1))
 
     local from="$1" link_dir="$2"
-    [[ -n $link_dir ]] || err "empty link_dir" 
+    [[ -n $link_dir ]] || err "empty link_dir"
     local link_name="${3-${from##*/}}"
     local link_path="$link_dir/$link_name"
 
@@ -171,7 +171,7 @@ action_write_file() {
 	local -a lines
 	mapfile lines
 	printf -v text %s "${lines[@]:+${lines[@]}}"
-    elif [[ $# -eq 1 ]]; then 
+    elif [[ $# -eq 1 ]]; then
 	text="$1"
     else
 	err "unexpected arguments"
@@ -201,7 +201,7 @@ action_write_file() {
 	    fi
 	    mode_mismatch=1
 	fi
-	
+
 	if [[ $new_file ]]; then
 	    log "creating new file $path"
 	else
@@ -209,7 +209,7 @@ action_write_file() {
  		log "re-creating $path with new content"
 	    else
  		log "re-creating $path to ensure proper permissions"
-	    fi	    
+	    fi
 	fi
 
 	# removing the file first deals with symlinks amd special
@@ -291,23 +291,23 @@ write_setup_env() {
     path_dir opt/bin
 
     path_dir .local/bin
-    
+
     path_dir "opt/$platform/rust/bin"
-    
+
     path_dir "opt/virgil/bin"
-    
+
     path_dir "opt/node/bin"
-    
+
     path_dir "node_modules/.bin"
 
     path_dir .local/bin
-    
+
     env+=(TEXINPUTS "$HOME/a/dev/tex_lib:")
-    
+
     env_dir ELM_HOME "node_modules/elm/share"
-    
+
     env_dir PERL5LIB "a/perl/mylib"
-    
+
     local cygopt=/cygdrive/c/opt
     if [[ -d "$cygopt" ]]; then
 	if [[ -d "$cygopt/jdk8" ]]; then
@@ -319,15 +319,15 @@ write_setup_env() {
 	path_dir "$cygopt/haskell/bin"
 	path_dir "$cygopt/haskell/lib/extralibs/bin"
 	path_dir "$cygopt/nodejs"
-	
+
 	win_home="$(cygpath -u "$USERPROFILE")"
 	path_dir "$win_home/AppData/Roaming/npm"
 	path_dir "$win_home/node_modules/.bin"
-	
+
 	path_dir "$cygopt/go/bin"
 	env+=(GOROOT "$(cygpath -w "$cygopt/go")")
 	env+=(GOPATH "$(cygpath -w "$HOME/gocode")")
-	
+
     else
 	path_dir "$HOME/opt/$platform/jdk1.7/bin"
 	env+=(GOPATH "$HOME/gocode")
@@ -346,8 +346,8 @@ write_setup_env() {
     local path_value="$R"
 
     env+=(PATH "$path_value")
-    if [[ ${#manp_dirs[@]} -ne 0 ]]; then
-	array_join : "${manp_dirs[@]}"
+    if [[ ${#man_dirs[@]} -ne 0 ]]; then
+	array_join : "${man_dirs[@]}"
 	env+=(MANPATH "$R:")
     fi
 
@@ -355,7 +355,7 @@ write_setup_env() {
     for ((i=0; i<${#env[@]}; i+=2)); do
 	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
     done
-    
+
     action_write_file ".local/hsetup/env" "$s"
 }
 
@@ -363,7 +363,7 @@ setup_emacs() {
     local emacs_dir=.emacs.d
     local emacs_init="$emacs_dir/init.el"
     local emacs_load_command='(load "~/a/emacs/my-emacs.el" t t t)'"$NL"
-    
+
     action_dir "$emacs_dir/backup"
 
     if ! [[ -f $emacs_init ]]; then
@@ -378,33 +378,31 @@ setup_emacs() {
 	    if let Clean; then
 		log "removing custom init file into $emacs_init"
 		mapfile lines < $emacs_init
-		printf %s "${lines[@]:1}" > $emacs_init 
+		printf %s "${lines[@]:1}" > $emacs_init
 	    fi
 	    return 0
 	fi
 	if let Setup; then
 	    log "inserting custom init file into $emacs_init"
 	    mapfile lines < $emacs_init
-	    printf %s "$emacs_load_command" "${lines[@]:+${lines[@]}}" > $emacs_init 
+	    printf %s "$emacs_load_command" "${lines[@]:+${lines[@]}}" > $emacs_init
 	fi
     fi
 }
 
 setup_git_config() {
-    
+
     # Array of (section name value)
     local -a config_entries=(
-	user name "$USER_NAME"
-	user email "$USER_EMAIL"
 	push default simple
     )
-    
+
     local -a credential_helper_paths=()
     local desktop_session="${DESKTOP_SESSION-}"
     case "${desktop_session,,}" in
-	gnome | gnome-* | xubuntu | lubuntu ) 
+	gnome | gnome-* | xubuntu | lubuntu )
 	    credential_helper_paths+=(
-		"/usr/libexec/git-core/git-credential-gnome-keyring" 
+		"/usr/libexec/git-core/git-credential-gnome-keyring"
 		"/usr/share/doc/git/contrib/credential/gnome-keyring/git-credential-gnome-keyring"
 	    )
 	    ;;
@@ -430,7 +428,7 @@ setup_git_config() {
 	    while :; do
 		local name value
 		read -r section_and_name || break
-		read -r -d '' value 
+		read -r -d '' value
 		current_config_entries[$section_and_name]="$value"
 	    done
 	} < <(git config --global --list --null)
@@ -489,7 +487,7 @@ setup_lxde() {
     # First read the file and remove any marks with previously generated code
     local insert_start='<!-- #generated# -->'
     local insert_end='<!-- #/generated# -->'
-    
+
     local -a lines
     local -a without_inserts=()
     mapfile -t lines < $rc
@@ -544,7 +542,7 @@ setup_gnome() {
 	# disable blinking cursor in terminals
 	local profile_uuid
 	profile_uuid="$(gsettings get org.gnome.Terminal.ProfilesList default 2>/dev/null || :)"
-	if [[ $profile_uuid ]]; then 
+	if [[ $profile_uuid ]]; then
 	    [[ $profile_uuid =~ ^\'(.*)\'$ ]] && profile_uuid="${BASH_REMATCH[1]}"
 	    local p="org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$profile_uuid/"
 	    local value
@@ -586,14 +584,14 @@ main() {
 
     local -a path_dirs=()
     local -a manp_dirs=()
-    
+
     cd "$HOME"
 
     action_dir ".local/hsetup"
     action_dir ".local/hsetup/bin"
 
     path_dir a/bin
-    
+
     action_symlink -s p/git-subrepo/lib/git-subrepo .local/hsetup/bin
     man_dir p/git-subrepo/man
 
@@ -638,7 +636,7 @@ Comment=Start custom session script
     write_setup_env
 
     if let Clean; then
-	
+
 	if [[ ${#cleanup_files[@]} -ne 0 ]]; then
 	    cmd_log rm -f "${!cleanup_files[@]}"
 	fi
