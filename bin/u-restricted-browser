@@ -3,24 +3,65 @@
 set -e -u
 shopt -s lastpipe
 
-d="$HOME/.cache/restricted-browser"
+d="$HOME/.local/restricted-browser"
 
 [[ -d $d/Downloads ]] || mkdir -p "$d/Downloads"
 
-options=(
-    --profile=/etc/firejail/brave.profile
+kind=brave
+#kind=chromium
+#kind=chrome
+
+case "$kind" in
+brave )
+    options=(
+        --profile=/usr/local/etc/firejail/brave.profile
+        #--x11=xpra
+        #--x11=xorg
+        --shell=none
+    )
+    cmd=(brave)
+    cmd+=(--no-sandbox)
+
+    #u-display-dimensions | read _ pixel_width _
+    #if [[ $pixel_width -gt 1600 ]]; then
+    #    cmd+=(--force-device-scale-factor=2)
+    #fi
+    ;;
+
+firefox )
+    options=(
+        --profile=/usr/local/etc/firejail/firefox.profile
+#        --x11=xpra
+#        --x11=xorg
+    )
+
+    cmd=(firefox)
+    ;;
+
+chromium )
+    options=(
+        --profile=/usr/local/etc/firejail/chromium.profile
+#        --x11=xpra
+#        --x11=xorg
+    )
+    cmd=("/usr/local/opt/chromium-latest/chrome")
+    ;;
+
+chrome )
+    options=(
+        --profile=/usr/local/etc/firejail/chromium.profile
+#        --x11=xpra
+#        --x11=xorg
+    )
+    cmd=(google-chrome --site-per-process)
+    ;;
+esac
+
+options+=(
     --name="restricted-browser"
-    --x11=xpra
     --private="$d"
     --no3d
     --ipc-namespace
 )
-
-cmd=(brave)
-
-u-display-dimensions | read _ pixel_width _
-if [[ $pixel_width -gt 1600 ]]; then
-    cmd+=(--force-device-scale-factor=2)
-fi
 
 exec firejail "${options[@]}" "${cmd[@]}" "$@"
