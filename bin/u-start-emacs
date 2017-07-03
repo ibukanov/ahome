@@ -2,6 +2,8 @@
 
 set -e -u
 
-args=(--no-splash -bg '#FFFFFF' -fg '#000000')
+args=()
+args+=(--no-splash -bg '#FFFFFF' -fg '#000000')
 
-exec emacs "${args[@]}"
+emacs "${args[@]:+${args[@]}}" "$@" &
+disown emacs
