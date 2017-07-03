@@ -161,9 +161,3 @@ This works on the current region."
       (server-running-p)
     (file-exists-p (expand-file-name server-name server-socket-dir))))
 
-(defun my-toggle-fullscreen ()
-  (interactive)
-  (set-frame-parameter nil 'fullscreen
-		       (if (eq (frame-parameter nil 'fullscreen) 'fullboth)
-			   'maximized
-			 'fullboth)))

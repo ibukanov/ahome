@@ -531,8 +531,6 @@
    "i"
    (user-keys-make-command-wrap (lambda () (and (fboundp 'ispell-region) 'ispell-region))))
 
-  (user-keys-subkey "f" 'my-toggle-fullscreen)
-
   )
 
 ; Dynamic abbrev should copy the word it finds verbatim
@@ -662,9 +660,6 @@
 
   (let ((tty (frame-parameter frame 'tty)))
 
-    (when (and (not tty) (equal (getenv "DESKTOP_SESSION") "xfce"))
-      (set-frame-parameter frame 'fullscreen 'maximized))
-
     ;; Let terminal to decide the background color
     (when tty (set-face-background 'default "unspecified-bg" frame))
 
@@ -710,9 +705,9 @@
 (package-initialize)
 
 ;; This is for testing - normally pc-bufsw should be loaded as a package
-;;(push "~/p/pc-bufsw" load-path)
-;;(require 'pc-bufsw-autoloads)
-;;(pc-bufsw-default-keybindings)
+(push "~/p/pc-bufsw" load-path)
+(require 'pc-bufsw)
+(pc-bufsw-default-keybindings)
 ;;(global-set-key [f6] 'pc-bufsw-mru)
 ;;(global-set-key [f5] 'pc-bufsw-lru)
 
