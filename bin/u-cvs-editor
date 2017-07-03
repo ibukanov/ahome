@@ -1,35 +1,33 @@
-#!/bin/sh
+#!/bin/bash
 
-if test "$INSIDE_EMACS_CLIENT" != "true"; then
-  editor=$(which emacsclient 2>/dev/null)
-  if test "$?" -eq 0; then
-    export INSIDE_EMACS_CLIENT=true
+set -e -u
 
-    # If are already in Emacs frame, then do not try to open a new Emacs
-    # frame with the given terminal. Under Emacs either EMACS environment
-    # variable is set (we are run from the shell under emacs) or at TERM
-    # is dumb (we are run directly as a command).
-    if test -n "$EMACS" -o "$TERM" = dumb; then
-      exec "$editor" -a "$0" "$@"
+editor="$(type -P geany || :)"
+if [[ $editor ]]; then
+    exec "$editor" -imnst "$@"
+fi
+
+if [[ ${INSIDE_EMACS_CLIENT-} != true ]]; then
+    editor=$(type -P emacsclient || :)
+    if [[ $editor ]]; then
+        export INSIDE_EMACS_CLIENT=true
+
+        # Under Emacs either EMACS environment variable is set (we are
+        # run from the shell) or TERM is dumb (we are run directly as a
+        # command). In those cases do not create a new Emacs frame.
+        if [[ ${EMACS-} || ${TERM-} == dumb ]]; then
+            exec "$editor" -a "$0" "$@"
+        fi
+        exec "$editor" -a "$0" -t "$@"
     fi
-    exec "$editor" -a "$0" -t "$@"
-  fi
 fi
 
-# We are invoked recursively or emacsclient is not found.
-# Fallback to other editors.
+# Emacsclient is not found or we are invoked recursively by emacsclient
+# that cannot connect to emacs daemon. Fallback to other editors.
 
-editor=$(which jmacs 2>/dev/null)
-if test -z "$editor"; then
-  editor=$(which joe 2>/dev/null)
-fi
-if test "$editor"; then
-  exec "$editor" "$@"
-fi
-
-editor=$(which nano 2>/dev/null)
-if test "$editor"; then
-  exec "$editor" --nowrap "$@"
+editor=$(type -P nano || :)
+if [[ $editor ]]; then
+   exec "$editor" --nowrap "$@"
 fi
 
 exec vi "$@"
