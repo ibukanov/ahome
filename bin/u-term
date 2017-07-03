@@ -30,8 +30,9 @@ escape_for_shell() {
     done
 }
 
-check_xfce_terminal=
-check_lxterminal=
+check_xfce_terminal=0
+check_lxterminal=0
+check_xterm=0
 
 cmd=()
 declare -i maximize=0
@@ -142,11 +143,11 @@ fi
 
 term=
 
-if [[ $check_xfce_terminal ]]; then
-    term="$(which Terminal 2>/dev/null || true)"
-    [[ -n "$term" ]] || term="$(which xfce4-terminal 2>/dev/null || true)"
+if let check_xfce_terminal; then
+    term="$(type -p Terminal 2 || :)"
+    [[ -n $term ]] || term="$(type -p xfce4-terminal  || :)"
 fi
-if [[ -n "$term" ]]; then
+if [[ $term ]]; then
     args=(
 	"--working-directory=$HOME"
 	"--title=$title"
@@ -166,10 +167,10 @@ if [[ -n "$term" ]]; then
     exec "$term" "${args[@]}"
 fi
 
-if [[ $check_lxterminal ]]; then
-    term="$(which lxterminal 2>/dev/null || true)"
+if let check_lxterminal; then
+    term="$(type -p lxterminal || :)"
 fi
-if [[ -n "$term" ]]; then
+if [[ $term ]]; then
     args=(
 	--working-directory="$HOME"
 	--title="$title"
@@ -186,8 +187,10 @@ if [[ -n "$term" ]]; then
     exec "$term" "${args[@]}"
 fi
 
-term="$(which xterm 2>/dev/null || true)"
-if [[ -n "$term" ]]; then
+if let check_xterm; then
+    term="$(type -p xterm || :)"
+fi
+if [[ $term ]]; then
     res=(
 # fonts
 "*.renderFont: true"
@@ -264,7 +267,6 @@ fi
 args=(
     --hide-menubar
     --working-directory="$HOME"
-    --title="$title"
 )
 if let fullscreen; then
     args+=(--full-screen)
@@ -273,7 +275,11 @@ elif let maximize; then
 else
     args+=(--geometry ${width}x${height})
 fi
+
+# Workaround no-title support for gnome-terminal
 if [[ ${#cmd[@]} -ne 0 ]]; then
-    args+=(-x "${cmd[@]}")
+    args+=(
+	-x u-title "$title" "${cmd[@]}"
+    )
 fi
 exec gnome-terminal "${args[@]}"
