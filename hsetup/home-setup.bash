@@ -47,10 +47,10 @@ exit_hook() {
 trap exit_hook EXIT
 
 read_file() {
-    local path="$1" var_name="$2"
+    local path="$1"
     local -a lines
     mapfile lines < $path
-    printf -v "$var_name" %s "${lines[@]:+${lines[@]}}"
+    printf -v R %s "${lines[@]:+${lines[@]}}"
 }
 
 declare -A cleanup_files=()
@@ -178,10 +178,10 @@ action_write_file() {
     fi
 
     if let Setup; then
-	local new_file= mode_mismatch= old_text
+	local new_file= mode_mismatch=
 	if [[ ! -f "$path" || -h "$path" ]]; then
 	    new_file=1
-	elif read_file "$path" old_text && [[ $text == "$old_text" ]]; then
+	elif read_file "$path" && [[ $text == "$R" ]]; then
 	    # ensure the mode matches umask
 	    local expected_mode
 	    if [[ -n $mode ]]; then
@@ -330,8 +330,10 @@ write_setup_env() {
 
     else
 	path_dir "$HOME/opt/$platform/jdk1.7/bin"
-	env+=(GOPATH "$HOME/gocode")
+	env_dir GOPATH "$HOME/gocode"
+	env_dir GOPATH "/usr/share/gocode"
     fi
+
 
     local d
     for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
@@ -354,6 +356,14 @@ write_setup_env() {
     local s= i
     for ((i=0; i<${#env[@]}; i+=2)); do
 	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
+    done
+
+    local extra_file
+    for extra_file in "$HOME/.opam/opam-init/variables.sh"; do
+	if [[ -f $extra_file ]]; then
+	    read_file "$extra_file"
+	    s+="$NL$R"
+	fi
     done
 
     action_write_file ".local/hsetup/env" "$s"
