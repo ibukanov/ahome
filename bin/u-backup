@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e -u
-shopt -s nullglob
+shopt -s nullglob lastpipe
 
 log() {
     printf "%s\n" "$*" 1>&2
@@ -126,34 +126,23 @@ check_config() {
     password_hash_location="$password_dir/$password_hash_name"
 }
 
-calculate_password_hash() {
-    password_hash="$(printf "$1" | u-bcrypt-hash)"
-}
-
 change_password() {
-    read -p 'You are about to set new password hash to verify the password for future backups, yes? '
-    test "_$REPLY" != "_yes" && { echo "Password change was cancelled"; return; }
-    read -se -p 'New password:' password
-    echo
-    read -se -p 'Retype new password:'
-    echo
-    test "_$password" = "_$REPLY" || { echo "Password mistmatch"; return; }
-    password_hash="$(printf "$password" | u-bcrypt-hash)"
-    printf "$password_hash" > "$password_hash_location"
+    local sratus
+    u-kit set-password-hash --title backup "$password_hash_location" \
+	| IFS="" read -r status
+    [[ $status == "done" || $status == "canceled" ]] || \
+	err "unexpected u-kit output: $status"
 }
 
 read_password() {
-    test -f "$password_hash_location" || \
-	err "$password_hash_location does not exist. Set it up using -P option."
-    read stored_password_hash < "$password_hash_location" || :
-    test -n "$stored_password_hash" || \
-	err "$password_hash_location is empty or cannot be read."
-    read -se -p 'Password for backup:' password
-    echo
-    test -n "$password" || err "Backup password cannot be empty."
-    calculate_password_hash "$password"
-    printf "$password" | u-bcrypt-hash -c "$stored_password_hash" || \
-	err "Password mismatch"
+    u-kit ask-password --title backup "$password_hash_location" | {
+	local status
+	IFS="" read -r status
+	[[ $status == canceled ]] && exit 0
+	[[ $status == password ]] || \
+	    err "unexpected u-kit output: $status"
+ 	IFS="" read -rd '' password || :
+   }
 }
 
 duplicity_create_local_backup() {
