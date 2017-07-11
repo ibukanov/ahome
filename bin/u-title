@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e -u
+if [[ $# -eq 0 ]]; then
+    echo "${0##*/} requires a title argument" >&2
+    exit 1
+fi
+
+# see http://invisible-island.net/xterm/xterm.faq.html#how2_title
+title="$1"
+shift
+
+printf '\033]0;%s\007' "$title"
+[[ $# -eq 0 ]] && exit 0
+exec "$@"
