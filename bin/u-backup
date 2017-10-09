@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u
+set -e -u -o pipefail
 shopt -s nullglob lastpipe
 
 log() {
@@ -135,14 +135,7 @@ change_password() {
 }
 
 read_password() {
-    u-kit ask-password --title backup "$password_hash_location" | {
-	local status
-	IFS="" read -r status
-	[[ $status == canceled ]] && exit 0
-	[[ $status == password ]] || \
-	    err "unexpected u-kit output: $status"
- 	IFS="" read -rd '' password || :
-   }
+    password="$(u-kit ask-password -t backup -p "$password_hash_location")"
 }
 
 duplicity_create_local_backup() {
@@ -157,6 +150,7 @@ duplicity_create_local_backup() {
     done
     args+=(--exclude  '**')
     args+=(--progress)
+    args+=(--allow-source-mismatch)
     PASSPHRASE="$password" duplicity "${args[@]}" "$top_dir" "$backup_url"
 }
 

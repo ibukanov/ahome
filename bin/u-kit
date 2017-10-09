@@ -4,7 +4,7 @@ set -e -u -o pipefail
 
 self_path="$(readlink -e "${BASH_SOURCE[-1]}")"
 self_dir="${self_path%/*}"
-kit="$self_dir/localkit/ocaml/localkit.native"
+kit="$self_dir/localkit/c/build/localkit"
 
 [[ -x $kit ]] || {
     echo "$kit does not exist or is not executable" >&2
