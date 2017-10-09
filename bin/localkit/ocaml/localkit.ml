@@ -1,12 +1,6 @@
-open Lwt
 open Iokit
+open Iokit.Infix
 
-let str = Printf.sprintf
-
-let password_read_stdin () =
-  Iokit.read_descriptor_fully Lwt_unix.stdin
-
-let password_bcrypt_prefix = "bcrypt:"
 let password_bcrypt_cost = 11
 
 let password_get_title optional_title path =
@@ -14,71 +8,64 @@ let password_get_title optional_title path =
   | Some title -> title
   | None -> path
 
-let password_ask (title : string option) (path : string) : unit Lwt.t =
-  (* Start password has reading in parallel with asking the password *)
-  let password_hash_promise =
+let password_ask (title : string option) (path : string) : unit Iokit.t =
+  let get_hash =
     Iokit.read_file_fully path >>= fun hash_str ->
-    let nprefix = String.length password_bcrypt_prefix in
-    let nhash = String.length hash_str in
-    let prefix_match =
-      nhash >= nprefix
-      && password_bcrypt_prefix = String.sub hash_str 0 nprefix
+    return (Bcrypt.hash_of_string hash_str)
+  in
+  let check_password : string option Iokit.t =
+    let ask_on_tty fd =
+      let prompt =
+        str "Enter %s password: " (password_get_title title path)
+      in
+      tty_read_password fd prompt >>= fun password ->
+      if String.length password == 0 then user_cancel ()
+      else
+        get_hash >>= fun bcrypt_hash ->
+        if Bcrypt.verify password bcrypt_hash then
+           return_some password
+        else
+          tty_printl fd "Password does not match the hash." >>= fun () ->
+          return_none
     in
-    if not prefix_match then
-      err (str "Invalid password hash format - it must start with %s"
-           password_bcrypt_prefix)
-    else
-      let bcrypt_str = String.sub hash_str nprefix (nhash - nprefix) in
-      return (Bcrypt.hash_of_string bcrypt_str)
+    with_tty ask_on_tty >>= fun optional_tty_result ->
+    match optional_tty_result with
+    | Some tty_result -> return tty_result
+    | None -> err "Asking for password without tty is not supported"
   in
-  let write_result = function
-    | Some password -> write_stdout (str "password\n%s" password)
-    | None -> write_stdout "canceled\n"
+  let write_result password = match password with
+    (*
+     * We do not need the hash result as it is already consumed in
+     * check_password.
+     *)
+    | Some password -> write_stdout password
+    | None -> user_cancel ()
   in
-  let ask_on_tty fd =
-    let prompt =
-      str "Enter %s password: " (password_get_title title path)
-    in
-    read_tty_password fd prompt >>= fun password ->
-    password_hash_promise >>= fun bcrypt_hash ->
-    if Bcrypt.verify password bcrypt_hash then
-       return (Some password)
-    else
-      write_fd fd "Password does not match the hash.\n" >>= fun () ->
-      return_none
-  in
-  let ask () =
-    with_tty ask_on_tty >>= function
-    | Some result -> write_result result
-    | None -> err "Asking for password without tty is not implemented"
-  in
-  use_or_cancel password_hash_promise ask
+  let ignore_result promise = promise >>= fun _ -> return_unit in
+  safe_join2 (ignore_result get_hash) (check_password >>= write_result)
 
 let password_set_hash title path =
   let write_hash password =
     let bcrypt_hash =
       Bcrypt.hash ~count:password_bcrypt_cost password
     in
-    let hash_str =
-      password_bcrypt_prefix ^ Bcrypt.string_of_hash bcrypt_hash
-    in
-    write_file path hash_str
+    write_file path bcrypt_hash
   in
   let ask_new_on_tty fd =
     let title = password_get_title title path in
     let prompt = str "Enter a new password for %s: " title in
-    read_tty_password fd prompt >>= fun password ->
+    tty_read_password fd prompt >>= fun password ->
     if String.length password = 0 then
-        write_fd fd "Cancelled\n" >>= fun () -> return_false
+        tty_printl fd "Cancelled" >>= fun () -> return_false
     else
       let prompt =
         str "Repeat to confirm the new value for %s: " title
       in
-      read_tty_password fd prompt >>= fun password2 ->
+      tty_read_password fd prompt >>= fun password2 ->
       if String.length password2 = 0 then
-        write_fd fd "Cancelled\n" >>= fun () -> return_false
+        tty_printl fd "Cancelled" >>= fun () -> return_false
       else if password2 <> password then
-        write_fd fd "Password mismatch\n" >>= fun () -> return_false
+        tty_printl fd "Password mismatch" >>= fun () -> return_false
       else
         write_hash password >>= fun () -> return_true
   in
@@ -89,6 +76,20 @@ let password_set_hash title path =
 
 
 open Cmdliner
+
+let exit_status_io_error = 1
+let exit_status_user_cancel = 2
+
+let exit_codes =
+  let error_exit =
+    let doc = "IO error" in
+    Term.exit_info exit_status_io_error ~doc
+  in
+  let user_cancel_exit =
+    let doc = "The action of utility was canceled by user." in
+    Term.exit_info exit_status_user_cancel ~doc
+  in
+  error_exit :: user_cancel_exit :: Term.default_exits
 
 let password_terms =
   let hash_path =
@@ -111,7 +112,7 @@ let password_terms =
       the hash or if the user canceled the password entering"
     in
     Term.(const password_ask $ title $ hash_path),
-    Term.info "ask-password" ~doc
+    Term.info "ask-password" ~doc ~exits:exit_codes
   in
   let set_password_hash_cmd =
     let doc =
@@ -120,7 +121,7 @@ let password_terms =
       password."
     in
     Term.(const password_set_hash $ title $ hash_path),
-    Term.info "set-password-hash" ~doc
+    Term.info "set-password-hash" ~doc ~exits:exit_codes
   in
   [ ask_password_cmd; set_password_hash_cmd ]
 
@@ -129,13 +130,24 @@ let default_cmd =
   let doc =
     "Collection of utilities to call from shell scripts"
   in
-  Term.(ret (const (fun () -> `Help (`Pager, None)) $ const ())),
-  Term.info "u-kit" ~doc
+  Term.(ret (const (fun () -> `Help (`Auto, None)) $ const ())),
+  Term.info "u-kit" ~doc ~exits:Term.default_exits
 
-(*
- * TODO switch
- *)
+
 let () =
+  let report_exception exn = prerr_endline (Printexc.to_string exn) in
+  let evaluate_promise promise =
+    try
+      let () = run_io promise in 0
+    with
+    | UserCancelException -> exit_status_user_cancel
+    | exn ->
+      report_exception exn;
+      match exn with
+      | IOErrorException _ -> exit_status_io_error
+      | Unix.Unix_error _ -> exit_status_io_error
+      | exn -> Term.exit_status_internal_error
+  in
   match Term.eval_choice default_cmd password_terms with
-  | `Ok v -> Lwt_main.run v
-  | _ -> raise (Failure "NOT IMPLEMENTED error handling")
+  | `Ok promise -> exit (evaluate_promise promise)
+  | other_eval_result -> Term.exit other_eval_result

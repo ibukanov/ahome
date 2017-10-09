@@ -1,98 +1,158 @@
-open Lwt
-
 let max_memory_read_file_size = 1 lsl 30
 let max_io_chunk = 16 * 1024
 
-type error_kind = | Too_Big_Read [@@deriving sexp]
+type error_kind =
+  | Too_Big_Read [@@deriving sexp]
 
-exception Exception of error_kind [@@deriving sexp]
+exception IOErrorException of error_kind [@@deriving sexp]
+
+exception UserCancelException
 
 exception Exception_List of exn list [@@deriving sexp]
 
-let combine_exceptions a b =
-  if a = b then a
+type tty_handle = Lwt_unix.file_descr
+
+type 'a t = 'a Lwt.t
+
+open Lwt.Infix
+
+let run_io = Lwt_main.run
+
+let return = Lwt.return
+let return_unit = Lwt.return_unit
+let return_false = Lwt.return_false
+let return_true = Lwt.return_true
+let return_none = Lwt.return_none
+let return_some = Lwt.return_some
+let bind = Lwt.bind
+
+let user_cancel_flag = ref false
+
+let str = Printf.sprintf
+
+let combine_exceptions e1 e2 =
+  if e1 = e2 then e1
   else
-    let list = match (a, b) with
-      | (Exception_List list, Exception_List list2)
-        -> List.append list list2
-      | (Exception_List list, e) -> List.append list [e]
-      | (e, Exception_List list) -> e :: list
-      | (e1, e2) -> [e1; e2]
-    in
-    Exception_List list
+    match (e1, e2) with
+    | (Lwt.Canceled, e) -> e
+    | (e, Lwt.Canceled) -> e
+    | _ ->
+      (* TODO consider merging common exceptions from exception lists *)
+      let list = match (e1, e2) with
+        | (Exception_List list, Exception_List list2)
+          -> (List.append list list2)
+        | (Exception_List list, e) -> List.append list [e]
+        | (e, Exception_List list) -> e :: list
+        | (e1, e2) -> [e1; e2]
+      in
+      Exception_List list
 
-let ok_or_error (action: unit -> 'a Lwt.t) : ('a, exn) Result.result Lwt.t =
-  catch (fun () -> action () >>= fun x -> return (Result.Ok x))
-    (fun e -> return (Result.Error e))
-
-let safe_finalize body finalizer =
-  ok_or_error body >>= function
-  | Result.Ok x -> finalizer () >>= fun () -> return x
-  | Result.Error e ->
-    let handle_failed_finalizer e2 = fail (combine_exceptions e e2) in
-    catch finalizer handle_failed_finalizer >>= fun _ -> fail e
-
-let ok_or_unix_error action =
-  let action_wraper () = action () >>= fun x -> return (Result.Ok x) in
-  let error_handler = function
-    | Unix.Unix_error (e, _, _) -> return (Result.Error e)
-    | exn -> fail exn
+let with_cancel action =
+  let (cancel_notifier , _): ('a Lwt.t * 'a Lwt.u) = Lwt.task () in
+  let check_cancel () =
+    if Lwt.is_sleeping cancel_notifier then Lwt.return_unit
+    else Lwt.fail Lwt.Canceled
   in
-  catch action_wraper error_handler
+  let action_promise = action check_cancel in
+  let selector = Lwt.pick [cancel_notifier; action_promise ] in
+  Lwt_result.catch selector >>= fun selector_result ->
+    (*
+     * As pick cancels sleeping promises and the only way for
+     * cancel_notifier to resolve is via cancel, it must be
+     * canceled at this point.
+     *)
+    let () = match Lwt.state cancel_notifier with
+      | Lwt.Fail Lwt.Canceled -> ()
+      | _ -> assert false
+    in
+    match selector_result with
+    | Result.Ok value -> return value
+    | _ ->
+      (*
+       * The action failed or pick was canceled. In the latter case the
+       * action may has ignored the cancellation and continued to sleep,
+       * so ensure that we waits for the result after we canceled.
+       *)
+      action_promise >>= fun _ -> Lwt.fail Lwt.Canceled
+
+let error_cleanup action =
+  fun exn ->
+    let on_finalize_error exn2 =
+      Lwt.fail (combine_exceptions exn exn2)
+    in
+    Lwt.try_bind action (fun () -> Lwt.fail exn) on_finalize_error
+
+let with_cleanup cleanup body =
+  let on_body_result value = cleanup () >>= fun () -> return value in
+  Lwt.try_bind body on_body_result (error_cleanup cleanup)
 
 let use_or_cancel promise action =
   let close_promise () =
     (* Try to cancel promise and then wait for its result if any. *)
-    let () = cancel promise in
-    try_bind
+    let () = Lwt.cancel promise in
+    Lwt.try_bind
       (fun () -> promise)
       (fun _ -> return_unit)
-      (function | Canceled -> return_unit | e -> fail e)
+      (function | Lwt.Canceled -> return_unit | e -> Lwt.fail e)
   in
-  safe_finalize action close_promise
+  with_cleanup close_promise action
 
+let safe_join2 promise1 promise2 =
+  Lwt.catch (fun () -> Lwt.join [promise1; promise2]) @@ fun _ ->
 
-let err text = fail (Failure text)
+  (*
+   * We do not know which promised failed. So ignore the catch result
+   * and ask both for the result ensuring that we really waited until
+   * both promises are resolved.
+   *)
+  Lwt_result.catch promise1 >>= fun result1 ->
+  Lwt_result.catch promise2 >>= fun result2 ->
+  match (result1, result2) with
+  | (Result.Ok (), Result.Ok ()) -> assert false
+  | (Result.Ok (), Result.Error exn) -> Lwt.fail exn
+  | (Result.Error exn, Result.Ok ()) -> Lwt.fail exn
+  | (Result.Error exn1, Result.Error exn2) ->
+    Lwt.fail (combine_exceptions exn1 exn2)
+
+let err text = Lwt.fail (Failure text)
+
+let user_cancel () = Lwt.fail UserCancelException
 
 (*
  * Convenient function to close the file descriptor after some action.
  *)
 let with_fd_close fd action =
-  safe_finalize (fun () -> action fd) (fun () -> Lwt_unix.close fd)
-
-
-let with_opened_file path flags permissions action =
-  Lwt_unix.openfile path flags permissions >>= fun fd ->
-  with_fd_close fd action
+  with_cleanup (fun () -> Lwt_unix.close fd) action
 
 let read_file_fully path =
-    with_opened_file path Lwt_unix.([ O_RDONLY; O_NONBLOCK; O_CLOEXEC ]) 0 (fun fd ->
-      Lwt_unix.LargeFile.fstat fd >>= fun stats ->
-      let file_size = Lwt_unix.LargeFile.(stats.st_size) in
-      if Int64.compare file_size (Int64.of_int max_memory_read_file_size) > 0
-      then fail (Exception Too_Big_Read)
-      else
-        let n = Int64.to_int file_size in
-        if n = 0 then return ""
+  let read_flags = Lwt_unix.([ O_RDONLY; O_NONBLOCK; O_CLOEXEC ]) in
+  Lwt_unix.openfile path read_flags 0 >>= fun fd ->
+  with_fd_close fd @@ fun () ->
+  Lwt_unix.LargeFile.fstat fd >>= fun stats ->
+  let file_size = Lwt_unix.LargeFile.(stats.st_size) in
+  if Int64.compare file_size (Int64.of_int max_memory_read_file_size) > 0
+  then Lwt.fail (IOErrorException Too_Big_Read)
+  else
+    let n = Int64.to_int file_size in
+    if n = 0 then return ""
+    else
+      let buffer = Bytes.create n in
+      let offset = ref 0 in
+      let rec read_chunk () =
+        let chunk_size = min max_io_chunk (n - !offset) in
+        Lwt_unix.read fd buffer !offset chunk_size >>= process_read_result
+      and process_read_result nread =
+        if nread = 0 then
+          (* File was truncated while reading. *)
+          return (Bytes.sub_string buffer 0 !offset)
         else
-          let buffer = Bytes.create n in
-          let offset = ref 0 in
-          let rec read_chunk () =
-              let chunk_size = min max_io_chunk (n - !offset) in
-              Lwt_unix.read fd (Bytes.unsafe_to_string buffer) !offset chunk_size >>= process_read_result
-          and process_read_result nread =
-              if nread = 0 then
-                (* File was truncated while reading. *)
-                return (Bytes.sub_string buffer 0 !offset)
-              else
-                let new_offset = !offset + nread in
-                if new_offset = n then
-                  return (Bytes.unsafe_to_string buffer)
-                else
-                  Lwt_unix.yield () >>= read_chunk
-          in
-          read_chunk ()
-    )
+          let new_offset = !offset + nread in
+          if new_offset = n then
+            return (Bytes.unsafe_to_string buffer)
+          else
+            Lwt_unix.yield () >>= read_chunk
+      in
+      read_chunk ()
 
 let read_descriptor_fully fd =
     (*
@@ -124,7 +184,7 @@ let read_descriptor_fully fd =
     } in
     let rec read_chunk () =
         let remaining = Bytes.length data.chunk - data.size in
-        Lwt_unix.read fd (Bytes.unsafe_to_string data.chunk) data.size remaining >>= process_read_result
+        Lwt_unix.read fd data.chunk data.size remaining >>= process_read_result
     and process_read_result nread =
       if nread != 0 then
         let size = nread + data.size in
@@ -155,7 +215,7 @@ let read_descriptor_fully fd =
                 end
         in
         if not ok then
-          fail (Exception Too_Big_Read)
+          Lwt.fail (IOErrorException Too_Big_Read)
         else
           Lwt_unix.yield () >>= read_chunk
       else
@@ -189,11 +249,7 @@ let write_fd fd text =
         if remaining = 0 then
           return ()
         else
-          (*
-           * Lwt_unix.write_string is not available in older Lwt, so
-           * use Lwt_unix.write and assume bytes = string.
-           *)
-          Lwt_unix.write fd text !offset remaining >>= process_write_result
+          Lwt_unix.write_string fd text !offset remaining >>= process_write_result
     and process_write_result nwritten =
         let () = offset := !offset + nwritten in
         Lwt_unix.yield () >>= write_chunk
@@ -215,26 +271,30 @@ let write_file path text =
     in
     Lwt_unix.openfile tmp_path open_flags 0o666 >>= fun tmp_fd ->
     let write_rename () =
-        with_fd_close tmp_fd (fun fd -> write_fd fd text) >>= fun () ->
-        Lwt_unix.rename tmp_path path
-      in
-    catch write_rename (fun e -> Lwt_unix.unlink tmp_path >>= fun () -> fail e)
+      write_fd tmp_fd text >>= fun () ->
+      Lwt_unix.close tmp_fd >>= fun () ->
+      Lwt_unix.rename tmp_path path
+    in
+    let on_rename_error () =
+      (* close can fail with error from a previous write operation. *)
+      with_cleanup (fun () -> Lwt_unix.unlink tmp_path) @@ fun () ->
+      Lwt_unix.close tmp_fd
+    in
+    Lwt.catch write_rename (error_cleanup on_rename_error)
 
 let lwt_bytes_to_string buffer offset length =
-    let tmp = Bytes.create length in
+    let result = Bytes.create length in
+    let () = Lwt_bytes.blit_to_bytes buffer offset result 0 length in
+    Bytes.unsafe_to_string result
 
-    (* Compatibility with older LWT that assume string is bytes *)
-    let () = Lwt_bytes.blit_bytes_string buffer offset (Bytes.unsafe_to_string tmp) 0 length in
-    Bytes.unsafe_to_string tmp
-
-(*
+(**
  * utility to read a line from a tty terminal when the read does not
  * return anything extra after the new line. Return (full_line, str)
  * where full_line is true if the full line was read. false indicates
  * eol was hit before the end-of-line. str never includes the line
  * terminator.
  *)
-let read_tty_line fd : (bool * string) Lwt.t =
+let read_tty_line (fd: tty_handle): (bool * string) Lwt.t =
   let rec read_step buffer size =
     let remaining = Lwt_bytes.length buffer - size in
     let () = assert (remaining > 0) in
@@ -260,15 +320,23 @@ let read_tty_line fd : (bool * string) Lwt.t =
   read_step (Lwt_bytes.create 128) 0
 
 let with_tty action =
-  let open_tty () =
+  let do_open () =
     Lwt_unix.(openfile "/dev/tty" [O_NONBLOCK; O_CLOEXEC; O_RDWR] 0)
   in
-  ok_or_unix_error open_tty >>= function
-  | Result.Ok tty_fd -> with_fd_close tty_fd action >>= fun result ->
-    return (Some result)
-  | Result.Error _ -> return_none
+  let process_tty tty_fd =
+    with_fd_close tty_fd (fun () -> action tty_fd) >>= fun value ->
+    return_some value
+  in
+  let on_open_error = function
+    | Unix.Unix_error (e, _, _) -> Lwt.return_none
+    | exn -> Lwt.fail exn
+  in
+  Lwt.try_bind do_open process_tty on_open_error
 
-let read_tty_password fd prompt =
+let tty_printl handle string =
+  write_fd handle string
+
+let tty_read_password fd prompt =
   write_fd fd prompt >>= fun () ->
   Lwt_unix.tcgetattr fd >>= fun tio ->
 
@@ -287,8 +355,8 @@ let read_tty_password fd prompt =
                 }) in
   Lwt_unix.tcsetattr fd Lwt_unix.TCSAFLUSH no_echo >>= fun () ->
   let reset_tty () = Lwt_unix.tcsetattr fd Lwt_unix.TCSAFLUSH tio in
-  safe_finalize (fun () -> read_tty_line fd) reset_tty
-  >>= fun (full_line, str) ->
+  with_cleanup reset_tty @@ fun () ->
+  read_tty_line fd >>= fun (full_line, str) ->
 
   (*
    * The tail \n if any in str was not echoed. Do it now that we have
@@ -298,3 +366,9 @@ let read_tty_password fd prompt =
     write_fd fd "\n" >>= fun() -> return str
   else
     return str
+
+module Infix =
+struct
+  let (>>=) = Lwt.bind
+end
+include Infix
