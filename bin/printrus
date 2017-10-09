@@ -1,7 +1,0 @@
-#!/bin/sh
-
-enscript --encoding=koi8             \
-  --font=Textbook6 --indent=7 -2     \
-  --header-font=Textbook5            \
-  --media=A4                         \
-  --output - ${1:+"$@"}

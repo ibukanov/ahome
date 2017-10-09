@@ -1,6 +1,0 @@
-#!/bin/sh
-
-#export JLESSCHARSET=""
-#export LESSCHARSET="latin1"
-#export LANG=C
-exec /usr/bin/less -isR "$@"

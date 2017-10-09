@@ -1,8 +1,0 @@
-#!/bin/bash
-patch_name="$(ssh watson hg --cwd m/tm qtop)"
-test $? -gt 0 && { echo $patch_name 1>&2; exit 1; }
-
-file="/tmp/$patch_name"
-ssh watson bin/m-qdiff -o > "$file"
-echo "$file"
-l "$file"

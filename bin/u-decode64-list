@@ -1,7 +1,0 @@
-#!/bin/bash
-export  LC_ALL='C'
-sed -e 's/%2C/,/g' -e  's/%3[Dd]/=/g' -e 's|%2[fF]|/|g' -e 's|%2[bB]|+|g' | \
-( for i in $(tr , '\n'| sort -u); do
-  echo "$i" | base64 -d
-  echo
-done) | sort

@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e -u
-set -o pipefail
-
-if ! sudo virsh net-info default 2>/dev/null | grep -q -e '^Active:\s*yes$'; then
-    sudo virsh net-start default
-fi
-exec sudo virsh start "$1"
