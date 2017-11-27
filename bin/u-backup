@@ -30,7 +30,6 @@ backup_media_dir=
 password_dir=
 
 local_backup_root=
-backup_url=
 #backup_url=gdocs://igor@mir2.org/backup/home
 
 password_hash_name=".password.backup"
@@ -58,8 +57,6 @@ read_config_lines() {
 	    BackupPath )
 		check_single_required_arg
 		local dir="${args[0]}"
-		[[ ${dir:0:1} != / ]] || \
-		    err "$cmd argument $dir is not a path relative to \$HOME"
 		backup_paths+=("$dir")
 		;;
 
@@ -138,20 +135,26 @@ read_password() {
     password="$(u-kit ask-password -t backup -p "$password_hash_location")"
 }
 
-duplicity_create_local_backup() {
+create_local_backup() {
 
     read_password
 
-    local top_dir="."
-    local -a args=()
+    if [[ ! -d $local_backup_root ]]; then
+	rm -rf "$local_backup_root.tmp"
+	BORG_PASSPHRASE="$password" borg init -e repokey "$local_backup_root.tmp"
+	mv "$local_backup_root.tmp" "$local_backup_root"
+    fi
+
+    local -a args=(--progress --compress=zlib "$local_backup_root::home-{now}")
     local path
     for path in "${backup_paths[@]}"; do
-	args+=(--include "$top_dir/$path")
+	if [[ ${path:0:1} != / ]]; then
+	    path="$HOME/$path"
+	fi
+	args+=("$path")
     done
-    args+=(--exclude  '**')
-    args+=(--progress)
-    args+=(--allow-source-mismatch)
-    PASSPHRASE="$password" duplicity "${args[@]}" "$top_dir" "$backup_url"
+
+    BORG_PASSPHRASE="$password" borg create "${args[@]}"
 }
 
 copy_to_remote() {
@@ -199,5 +202,5 @@ if [[ $change_password ]]; then
     exit 0
 fi
 
-duplicity_create_local_backup
+create_local_backup
 copy_to_remote
