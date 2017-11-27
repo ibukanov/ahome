@@ -20,7 +20,7 @@ brave )
         --shell=none
     )
     cmd=(brave)
-    cmd+=(--no-sandbox)
+#    cmd+=(--no-sandbox)
 
     #u-display-dimensions | read _ pixel_width _
     #if [[ $pixel_width -gt 1600 ]]; then
