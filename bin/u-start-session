@@ -2,5 +2,7 @@
 
 set -e -u
 
+$HOME/a/hsetup/add-ssh-keys || :
+
 geany &
 u-term &
