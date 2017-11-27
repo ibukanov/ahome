@@ -28,9 +28,6 @@ struct {
     const char *hash_path;
     const char *gui_title;
 
-    char *buffer;
-    size_t buffer_capacity;
-
     int forced_exit;
 
     int quit_read_fd;
@@ -40,6 +37,9 @@ struct {
     .quit_read_fd = -1,
     .quit_write_fd = -1,
 };
+
+char *g_buffer;
+size_t g_buffer_capacity;
 
 __attribute__ ((noreturn))
 void cleanup_and_exit(int code) {
@@ -101,11 +101,11 @@ void check_forced_exit()
 
 void ensure_buffer(size_t preserve, size_t extra)
 {
-    assert(preserve <= ds.buffer_capacity);
+    assert(preserve <= g_buffer_capacity);
     if (extra >= (1 << 30) - preserve)
         bad_io("Too big buffer requested: preserve=%zu extra=%zu", preserve, extra);
 
-    size_t n = ds.buffer_capacity;
+    size_t n = g_buffer_capacity;
     size_t minimal_capacity = preserve + extra;
     if (n >= minimal_capacity)
         return;
@@ -115,39 +115,39 @@ void ensure_buffer(size_t preserve, size_t extra)
     do {
         n *= 2;
     } while (n < minimal_capacity);
-    if (preserve < ds.buffer_capacity) {
+    if (preserve < g_buffer_capacity) {
         if (preserve == 0) {
-            free(ds.buffer);
-            ds.buffer = NULL;
+            free(g_buffer);
+            g_buffer = NULL;
         } else {
             // Try to shrink if possible
-            void *tmp = realloc(ds.buffer, preserve);
+            void *tmp = realloc(g_buffer, preserve);
             if (tmp) {
-                ds.buffer = tmp;
+                g_buffer = tmp;
             }
         }
     }
-    ds.buffer = realloc(ds.buffer, n);
-    if (!ds.buffer)
+    g_buffer = realloc(g_buffer, n);
+    if (!g_buffer)
         bad_io("realloc size=%zu", n);
-    ds.buffer_capacity = n;
+    g_buffer_capacity = n;
 }
 
 __attribute__ ((format (printf, 2, 3)))
 size_t sprintf_buffer(size_t offset, const char *format, ...)
 {
-    assert(offset <= ds.buffer_capacity);
-    size_t available = ds.buffer_capacity - offset;
+    assert(offset <= g_buffer_capacity);
+    size_t available = g_buffer_capacity - offset;
     va_list ap;
     va_start(ap, format);
-    int n = vsnprintf(ds.buffer + offset, available, format, ap);
+    int n = vsnprintf(g_buffer + offset, available, format, ap);
     va_end(ap);
     if (n < 0)
         bad_io("vsnprintf");
     if ((size_t) n >= available) {
         ensure_buffer(offset, (size_t) n + 1);
         va_start(ap, format);
-        (void) vsnprintf(ds.buffer + offset, n + 1, format, ap);
+        (void) vsnprintf(g_buffer + offset, n + 1, format, ap);
         va_end(ap);
     }
     return offset + (size_t) n;
@@ -215,12 +215,12 @@ void wait_fd(int fd, int flags)
 
 void poll_write_all(int fd, size_t offset, size_t length)
 {
-    assert(offset <= ds.buffer_capacity);
-    assert(length <= ds.buffer_capacity - offset);
+    assert(offset <= g_buffer_capacity);
+    assert(length <= g_buffer_capacity - offset);
 
     while (length != 0) {
         wait_fd(fd, WAIT_WRITE);
-        ssize_t n = write(fd, ds.buffer + offset, length);
+        ssize_t n = write(fd, g_buffer + offset, length);
         if (n < 0) {
             if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
                 continue;
@@ -284,7 +284,7 @@ size_t ask_tty_password(int tty_fd, size_t offset)
         wait_fd(tty_fd, WAIT_READ | DELAY_ERROR_EXIT);
         if (ds.forced_exit)
             break;
-        ssize_t nread = read(tty_fd, ds.buffer + offset, MAX_PASSWORD_LENGTH + 1);
+        ssize_t nread = read(tty_fd, g_buffer + offset, MAX_PASSWORD_LENGTH + 1);
         if (nread < 0) {
             if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
                 continue;
@@ -301,7 +301,7 @@ size_t ask_tty_password(int tty_fd, size_t offset)
         bad_io("tcsetattr");
     check_forced_exit();
 
-    if (ds.buffer[offset + n - 1] == '\n') {
+    if (g_buffer[offset + n - 1] == '\n') {
         --n;
 
         // Write \n that was not echoed
@@ -311,7 +311,7 @@ size_t ask_tty_password(int tty_fd, size_t offset)
             MAX_PASSWORD_LENGTH);
     }
 
-    ds.buffer[offset + n] = '\0';
+    g_buffer[offset + n] = '\0';
     return n;
 }
 
@@ -361,7 +361,7 @@ void ask_password()
     char computed_hash[BCRYPT_HASHSIZE];
 
     const char *crypt_status = crypt_rn(
-        ds.buffer, stored_hash, computed_hash, BCRYPT_HASHSIZE
+        g_buffer, stored_hash, computed_hash, BCRYPT_HASHSIZE
     );
     if (!crypt_status) {
         fail("error when computing password hash using data from %s", ds.hash_path);
@@ -419,7 +419,7 @@ void set_password_hash()
             cleanup_and_exit(USER_CANCEL_EXIT);
         }
         if (password_length2 != password_length
-            || memcmp(ds.buffer, ds.buffer + offset, password_length) != 0) {
+            || memcmp(g_buffer, g_buffer + offset, password_length) != 0) {
             n = sprintf_buffer(0, "Password mismatch\n");
             poll_write_all(tty_fd, 0, n);
             cleanup_and_exit(1);
@@ -455,7 +455,7 @@ void set_password_hash()
         bad_io("crypt_gensalt_rn");
     }
     char computed_hash[BCRYPT_HASHSIZE];
-    crypt_status = crypt_rn(ds.buffer, salt, computed_hash, BCRYPT_HASHSIZE);
+    crypt_status = crypt_rn(g_buffer, salt, computed_hash, BCRYPT_HASHSIZE);
     if (!crypt_status) {
         bad_io("crypt_rn");
     }
