@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e -u
+
+systemctl --user is-active -q ssh-agent && exit 0
+
+if systemctl --user is-failed -q ssh-agent; then
+	systemctl --user reset-failed ssh-agent
+fi
+
+systemd-run --user --unit ssh-agent --service-type forking \
+	/usr/bin/ssh-agent -a "$SSH_AUTH_SOCK"
+
+shopt -s nullglob
+keys=(~/.local/hsetup/ssh-agent-keys/*_key)
+if let ${#keys[@]}; then
+	ssh-add "${keys[@]}"
+fi

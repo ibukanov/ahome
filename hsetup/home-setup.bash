@@ -53,25 +53,146 @@ read_file() {
     printf -v R %s "${lines[@]:+${lines[@]}}"
 }
 
-declare -A cleanup_files=()
-declare -A cleanup_dirs=()
+declare -a environment_lines=()
+declare -A pathnames=()
+
+declare -A historic_file_set=()
+declare -A current_file_set=()
+declare -A current_dir_set=()
+declare -a current_dir_list=()
+
+init_path_list() {
+    local f=.local/hsetup/list
+    if let Setup; then
+	if [[ -f .local/hsetup/list.new ]]; then
+	    log "Adding .local/hsetup/list.new left from a failed run into $f"
+	    cat .local/hsetup/list.new >> "$f"
+	    rm .local/hsetup/list.new
+	fi
+    fi
+    if [[ -e $f ]]; then
+	local -a lines
+	mapfile -t lines < "$f"
+	local i
+	for ((i=0; i<${#lines[@]}; i+=1)); do
+	    local line="${lines[i]}"
+	    local pattern='^([^[:blank:]]+)([[:blank:]]+(.+))?$'
+	    [[ $line =~ $pattern ]] || \
+		err "$f:$((i+1)): line does not match $pattern"
+	    local kind="${BASH_REMATCH[1]}"
+	    local value="${BASH_REMATCH[3]}"
+	    case "$kind" in
+	    file | symlink )
+		historic_file_set[$value]="$kind"
+		;;
+	    dir ) ;;
+	    * )
+		log "$f:$((i+1)): ignoring unknown entry $kind"
+		;;
+	    esac
+	done
+    fi
+}
+
+record_path_entry() {
+    local kind="$1"
+    [[ $kind =~ ^dir|file|symlink$ ]] || err "unknown kind '$kind'"
+    local path="$2"
+    [[ $path =~ $'\n' ]] && err "path contains newlines - '$path'"
+    [[ $path =~ "'" ]] && err "path contains single quotas - '$path'"
+    [[ $path =~ [[:blank:]] ]] && err "path contains blanks - '$path'"
+
+    if [[ $kind == dir ]]; then
+	[[ ${current_dir_set[$path]-} ]] && return 1
+	current_dir_set[$path]=1
+    else
+	[[ ${current_file_set[$path]-} ]] && return 1
+	current_file_set[$path]=1
+    fi
+    if let Setup; then
+	if [[ ! -d .local/hsetup ]]; then
+	    cmd_log mkdir -p .local/hsetup
+	fi
+	printf "%s %s\n" "$kind" "$path" >> .local/hsetup/list.new
+    fi
+    return 0
+}
+
+clean_files() {
+    local cleanup_list=()
+    if let Setup; then
+	local path
+	if let ${#historic_file_set[@]}; then
+	    for path in "${!historic_file_set[@]}"; do
+		if [[ ! ${current_file_set[$path]-} ]]; then
+		    local kind=${historic_file_set[$path]}
+		    case "$kind" in
+		    file )
+			if [[ -f $path && ! -h $path ]]; then
+			    cleanup_list+=("$path")
+			fi
+			;;
+		    symlink )
+			if [[ -e $path && -h $path ]]; then
+			    cleanup_list+=("$path")
+			fi
+			;;
+		    * ) err "unknown kind - $kind" ;;
+		    esac
+		fi
+	    done
+	    if let ${#cleanup_list[@]}; then
+		log "Removing ${#cleanup_list[@]} previously created but" \
+		    "no longer established files or symlinks"
+		cmd_log rm "${cleanup_list[@]}"
+	    fi
+	fi
+	mv .local/hsetup/list.new .local/hsetup/list
+    fi
+    if let Clean; then
+	# Try to remove both historic and this run files in case the historic
+	# DB was damaged or removed
+	if let ${#historic_file_set[@]}; then
+	    cleanup_list+=("${!historic_file_set[@]}")
+	fi
+	if let ${#current_file_set[@]}; then
+	    cleanup_list+=("${!current_file_set[@]}")
+	fi
+	cleanup_list+=(.local/hsetup/list)
+	cmd_log rm -f "${cleanup_list[@]}"
+    fi
+}
 
 action_dir() {
     local dir="$1"
-    if [[ $dir == . ]]; then
-	return 0
-    fi
-    if let Setup; then
-	[[ -d "$dir" ]] && return 0
-	[[ -e "$dir" ]] && err "$dir exists and is not directory"
-	cmd_log mkdir -p "$dir"
-    fi
-    if let Clean; then
-	if [[ -e "$dir" ]]; then
-	    [[ -d "$dir" ]] || err "$dir exists and is not directory"
-	    cleanup_dirs[$dir]=1
+    [[ $dir == . ]] && return 0
+    [[ $dir ]] || err "dir empty"
+    [[ dir =~ ^/ ]] && err "dir is absolute - $dir"
+    [[ dir =~ /$ ]] && err "dir ends with slash - $dir"
+    [[ dir =~ // ]] && err "dir contains double slash - $dir"
+    [[ dir =~ (^|/)\.(/|$) ]] && \
+	err "dir contains path component that is single dot - $dir"
+
+    local s=
+    while :; do
+	local name="${dir%%/*}"
+	s+="${s:+/}$name"
+	if record_path_entry dir "$s"; then
+	    if let Setup; then
+		if [[ ! -d "$s" ]]; then
+		    [[ -e "$s" ]] && err "$s exists and is not directory"
+		    cmd_log mkdir "$s"
+		fi
+	    fi
+	    if let Clean; then
+		if [[ -e "$s" ]]; then
+		    [[ -d "$s" ]] || err "$s exists and is not directory"
+		fi
+	    fi
 	fi
-    fi
+	[[ $name == "$dir" ]] && break
+	dir="${dir#*/}"
+    done
 }
 
 action_symlink() {
@@ -90,6 +211,9 @@ action_symlink() {
     [[ -n $link_dir ]] || err "empty link_dir"
     local link_name="${3-${from##*/}}"
     local link_path="$link_dir/$link_name"
+
+    record_path_entry symlink "$link_path" || \
+	err "duplicated action_symlink for $link_path"
 
     local target
     if [[ $link_dir == "." ]]; then
@@ -141,9 +265,6 @@ action_symlink() {
 	fi
 	cmd_log ln -s "$target" "$link_path"
     fi
-    if let Clean; then
-	cleanup_files[$link_path]=1
-    fi
 }
 
 # On failures this may remove the file or leave it with inconsistent
@@ -161,9 +282,8 @@ action_write_file() {
     shift $((OPTIND - 1))
     [[ -z $executable || -z $mode ]] || err "only one of -m, -x can be given"
 
-    [[ $# -ge 1 ]] || err "missing path argument"
-    local path="$1"
-    shift
+    local dir="$1" name="$2"
+    shift 2
 
     local text
     if [[ $# -eq 0 ]]; then
@@ -176,6 +296,12 @@ action_write_file() {
     else
 	err "unexpected arguments"
     fi
+
+    action_dir "$dir"
+    local path="$dir/$name"
+
+    record_path_entry file "$path" || \
+	err "duplicated action_file for $path"
 
     if let Setup; then
 	local new_file= mode_mismatch=
@@ -197,6 +323,7 @@ action_write_file() {
 	    local s
 	    s="$(exec find "$path" -maxdepth 0 -perm "$expected_mode" -printf 1)"
 	    if [[ -n $s ]]; then
+		R=
 		return 0
 	    fi
 	    mode_mismatch=1
@@ -224,9 +351,14 @@ action_write_file() {
 	    chmod +x "$path"
 	fi
     fi
-    if let Clean; then
-	cleanup_files[$path]=1
-    fi
+    R=1
+}
+
+add_env() {
+    local name="$1"
+    local value="$2"
+    printf -v value %q "$value"
+    environment_lines+=("export $name=$value")
 }
 
 check_dir() {
@@ -245,22 +377,37 @@ check_dir() {
 env_dir() {
     local name=$1 dir="$2"
     if check_dir "$dir"; then
-	env+=("$name" "$R")
+	add_env "$name" "$R"
     fi
 }
 
 path_dir() {
-    [[ $# -eq 1 ]] || err
-    if check_dir "$1"; then
-	path_dirs+=("$R")
+    local name value prev
+    if [[ $# -eq 1 ]]; then
+	name=PATH
+	value="$1"
+    elif [[ $# -eq 2 ]]; then
+	name="$1"
+	value="$2"
+    else
+	err
     fi
-}
 
-man_dir() {
-    [[ $# -eq 1 ]] || err
-    if check_dir "$1"; then
-	man_dirs+=("$R")
-    fi
+    local more=1
+    while let more; do
+	local s="${value%%:*}"
+	if [[ $s == "$value" ]]; then
+	    more=0
+	fi
+	if check_dir "$s"; then
+	    s="$R"
+	    prev="${pathnames[$name]-}"
+	    if [[ $prev ]]; then
+		s="$prev:$s"
+	    fi
+	    pathnames[$name]="$s"
+	fi
+    done
 }
 
 array_join() {
@@ -282,9 +429,7 @@ link_to_bin() {
     done
 }
 
-write_setup_env() {
-    local -a env=()
-
+setup_env() {
     local platform
     platform="$(uname -i)"
 
@@ -302,7 +447,7 @@ write_setup_env() {
 
     path_dir .local/bin
 
-    env+=(TEXINPUTS "$HOME/a/dev/tex_lib:")
+    add_env TEXINPUTS "$HOME/a/dev/tex_lib:"
 
     env_dir ELM_HOME "node_modules/elm/share"
 
@@ -325,8 +470,8 @@ write_setup_env() {
 	path_dir "$win_home/node_modules/.bin"
 
 	path_dir "$cygopt/go/bin"
-	env+=(GOROOT "$(cygpath -w "$cygopt/go")")
-	env+=(GOPATH "$(cygpath -w "$HOME/gocode")")
+	add_env GOROOT "$(cygpath -w "$cygopt/go")"
+	add_env GOPATH "$(cygpath -w "$HOME/gocode")"
 
     else
 	path_dir "$HOME/opt/$platform/jdk1.7/bin"
@@ -334,39 +479,38 @@ write_setup_env() {
 	env_dir GOPATH "/usr/share/gocode"
     fi
 
-
-    local d
-    for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
-	# Do not add /bin if it is a symlink to /usr/bin
-	if [[ $d != /usr/* && $(realpath -qm "$d") == "$(realpath -qm "/usr/$d")" ]]; then
-	    continue
-	fi
-	path_dir "$d"
-    done
-
-    array_join : "${path_dirs[@]}"
-    local path_value="$R"
-
-    env+=(PATH "$path_value")
-    if [[ ${#man_dirs[@]} -ne 0 ]]; then
-	array_join : "${man_dirs[@]}"
-	env+=(MANPATH "$R:")
-    fi
-
-    local s= i
-    for ((i=0; i<${#env[@]}; i+=2)); do
-	s+="export ${env[$i]}=$(printf %q "${env[$((i+1))]}")$NL"
-    done
-
     local extra_file
     for extra_file in "$HOME/.opam/opam-init/variables.sh"; do
 	if [[ -f $extra_file ]]; then
-	    read_file "$extra_file"
-	    s+="$NL$R"
+	    local -a lines
+	    mapfile -t lines < "$extra_file"
+	    local i
+	    for ((i=0; i<${#lines[@]}; i+=1)); do
+		local pattern='^([A-Z0-9_-]+)="([^"\\`!]*)"'
+		local line="${lines[i]}"
+		if ! [[ $line =~ $pattern ]]; then
+		    log "$extra_file:$((i+1)): line does not match $pattern for environment extraction"
+		else
+		    local name="${BASH_REMATCH[1]}"
+		    local value="${BASH_REMATCH[2]}"
+		    local extra_pattern=
+		    case "$name" in
+		    PATH ) extra_pattern='^(.*):\$PATH$' ;;
+		    MANPATH ) extra_pattern='^\$MANPATH:(.*)$' ;;
+		    PERL5LIB ) extra_pattern='^(.*):\$PERL5LIB$' ;;
+		    esac
+		    if [[ $extra_pattern && $value =~ $extra_pattern ]]; then
+			value="${BASH_REMATCH[1]}"
+		    fi
+		    if [[ $value =~ [\\``!''$] ]]; then
+			log "$extra_file:$((i+1)): value contains unexpected characters - $value"
+		    else
+			path_dir "$name" "$value"
+		    fi
+		fi
+	    done
 	fi
     done
-
-    action_write_file ".local/hsetup/env" "$s"
 }
 
 setup_emacs() {
@@ -412,7 +556,7 @@ setup_git_config() {
     case "${desktop_session,,}" in
 	gnome | gnome-* | xubuntu | lubuntu )
 	    credential_helper_paths+=(
-		"/usr/libexec/git-core/git-credential-gnome-keyring"
+		"/usr/libexec/git-core/git-credential-libsecret"
 		"/usr/share/doc/git/contrib/credential/gnome-keyring/git-credential-gnome-keyring"
 	    )
 	    ;;
@@ -485,11 +629,17 @@ setup_git_config() {
 }
 
 setup_lxde() {
-    local rc="$HOME/.config/openbox/lxde-rc.xml"
-    if [[ ! -s $rc ]]; then
-	rc="$HOME/.config/openbox/lubuntu-rc.xml"
-	[[ -s $rc ]] || return 0
+    local rc_dir=.config/openbox
+    local rc_name rc=
+    for rc_name in lxde-rc.xml lubuntu-rc.xml; do
+	rc="$rc_dir/$rc_name"
+	[[ -s $rc ]] && break
+	rc=
+    done
+    if [[ ! $rc ]]; then
+	return 0
     fi
+
     local -a keys=()
     # Send-to-untrusted the content of the keyboard
     keys+=("<keybind key='W-U'><action name='Execute'><command>$HOME/a/bin/stu</command></action></keybind>")
@@ -535,14 +685,13 @@ setup_lxde() {
 		lines+=("$insert_end")
 	    fi
 	done
-	action_write_file "$rc" "$(printf '%s\n' "${lines[@]}")"
+	printf '%s\n' "${lines[@]}" > "$rc.tmp"
+	mv "$rc.tmp" "$rc"
     fi
 
     if let Clean; then
-	local original
-	printf -v original '%s\n' "${without_inserts[@]}"
-	# Force write under clean
-	Setup=1 Clean=0 action_write_file "$rc" "$original"
+	printf '%s\n' "${without_inserts[@]}" > "$rc.tmp"
+	mv "$rc.tmp" "$rc"
     fi
 }
 
@@ -597,13 +746,15 @@ main() {
 
     cd "$HOME"
 
+    init_path_list
+
     action_dir ".local/hsetup"
     action_dir ".local/hsetup/bin"
 
     path_dir a/bin
 
     action_symlink -s p/git-subrepo/lib/git-subrepo .local/hsetup/bin
-    man_dir p/git-subrepo/man
+    path_dir MANPATH p/git-subrepo/man
 
     # dot files that are symlinked to home
     for i in "$hsetup_source_dir/"*.dot; do
@@ -619,7 +770,7 @@ main() {
     action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
     action_dir .config/autostart
-    action_write_file .config/autostart/u-autostart.desktop "\
+    action_write_file .config/autostart u-autostart.desktop "\
 [Desktop Entry]
 Type=Application
 Exec=$HOME/a/bin/u-start-session
@@ -630,6 +781,8 @@ Comment=Start custom session script
 "
 
     action_symlink "$hsetup_source_dir/u-term.desktop" .local/share/applications
+
+    setup_env
 
     setup_emacs
 
@@ -643,15 +796,38 @@ Comment=Start custom session script
 	extra_setup
     fi
 
-    write_setup_env
+    if let Setup; then
+	local d
+	for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
+	    # Do not add /bin if it is a symlink to /usr/bin
+	    if [[ $d != /usr/* && $(realpath -qm "$d") == "$(realpath -qm "/usr/$d")" ]]; then
+		continue
+	    fi
+	    path_dir "$d"
+	done
+	if [[ ${pathnames[MANPATH]-} ]]; then
+	    pathnames[MANPATH]+=":"
+	fi
+	local -a sorted_names
+	mapfile -t sorted_names < <(printf '%s\n' "${!pathnames[@]}" | sort)
+	local name
+	for name in ${sorted_names[@]}; do
+	    add_env "$name" "${pathnames[$name]}"
+	done
+
+	local s
+	printf -v s '%s\n' "${environment_lines[@]}"
+	action_write_file .local/hsetup env "$s"
+    fi
+
+    clean_files
 
     if let Clean; then
-
-	if [[ ${#cleanup_files[@]} -ne 0 ]]; then
-	    cmd_log rm -f "${!cleanup_files[@]}"
-	fi
-	if [[ ${#cleanup_dirs[@]} -ne 0 ]]; then
-	    cmd_log rmdir -p --ignore-fail-on-non-empty "${!cleanup_dirs[@]}"
+	if let ${#current_dir_set[@]}; then
+	    local -a reverse_sorted
+	    mapfile -t reverse_sorted < \
+		<(printf '%s\n' "${!current_dir_set[@]}" | sort -r)
+	    cmd_log rmdir --ignore-fail-on-non-empty "${reverse_sorted[@]}"
 	fi
 	if [[ -d .local/hsetup ]]; then
 	    cmd_log rm -rf .local/hsetup
