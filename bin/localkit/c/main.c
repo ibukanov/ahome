@@ -40,6 +40,30 @@ struct {
 
 char *g_buffer;
 size_t g_buffer_capacity;
+size_t g_buffer_end;
+
+typedef struct {
+    size_t pos;
+    size_t len;
+} str_loc_t;
+
+static inline char *bufptr(size_t offset)
+{
+    assert(offset <= g_buffer_end);
+    return g_buffer + offset;
+}
+
+static inline char bufchar(size_t offset)
+{
+    assert(offset < g_buffer_end);
+    return g_buffer[offset];
+}
+
+static inline void set_bufchar(size_t offset, char c)
+{
+    assert(offset < g_buffer_end);
+    g_buffer[offset] = c;
+}
 
 __attribute__ ((noreturn))
 void cleanup_and_exit(int code) {
@@ -99,58 +123,70 @@ void check_forced_exit()
         cleanup_and_exit(ds.forced_exit);
 }
 
-void ensure_buffer(size_t preserve, size_t extra)
+void ensure_buffer(size_t extra)
 {
-    assert(preserve <= g_buffer_capacity);
-    if (extra >= (1 << 30) - preserve)
-        bad_io("Too big buffer requested: preserve=%zu extra=%zu", preserve, extra);
+    assert(g_buffer_end <= g_buffer_capacity);
+    if (extra >= (1 << 30) - g_buffer_end)
+        bad_io("Too big buffer requested: preserve=%zu extra=%zu", g_buffer_end, extra);
 
-    size_t n = g_buffer_capacity;
-    size_t minimal_capacity = preserve + extra;
-    if (n >= minimal_capacity)
-        return;
-    if (n == 0) {
-        n = 64;
-    }
-    do {
-        n *= 2;
-    } while (n < minimal_capacity);
-    if (preserve < g_buffer_capacity) {
-        if (preserve == 0) {
-            free(g_buffer);
-            g_buffer = NULL;
-        } else {
+    size_t new_end = g_buffer_end + extra;
+    if (new_end > g_buffer_capacity) {
+        size_t new_capacity = g_buffer_capacity;
+        if (new_capacity == 0) {
+            new_capacity = 64;
+        }
+        do {
+            new_capacity *= 2;
+        } while (new_capacity < new_end);
+        if (g_buffer_end < g_buffer_capacity) {
             // Try to shrink if possible
-            void *tmp = realloc(g_buffer, preserve);
+            void *tmp = realloc(g_buffer, g_buffer_end);
             if (tmp) {
                 g_buffer = tmp;
+                g_buffer_capacity = g_buffer_end;
             }
         }
+        g_buffer = realloc(g_buffer, new_capacity);
+        if (!g_buffer)
+            bad_io("realloc size=%zu", new_capacity);
+        g_buffer_capacity = new_capacity;
     }
-    g_buffer = realloc(g_buffer, n);
-    if (!g_buffer)
-        bad_io("realloc size=%zu", n);
-    g_buffer_capacity = n;
 }
 
-__attribute__ ((format (printf, 2, 3)))
-size_t sprintf_buffer(size_t offset, const char *format, ...)
+size_t alloc_buffer(size_t size)
 {
-    assert(offset <= g_buffer_capacity);
-    size_t available = g_buffer_capacity - offset;
+    ensure_buffer(size);
+    size_t offset = g_buffer_end;
+    g_buffer_end += size;
+    memset(bufptr(offset), 0, size);
+    return offset;
+}
+
+__attribute__ ((format (printf, 1, 2)))
+str_loc_t sprintf_buffer(const char *format, ...)
+{
+    assert(g_buffer_end <= g_buffer_capacity);
+    size_t available = g_buffer_capacity - g_buffer_end;
     va_list ap;
     va_start(ap, format);
-    int n = vsnprintf(g_buffer + offset, available, format, ap);
+    int n = vsnprintf(bufptr(g_buffer_end), available, format, ap);
     va_end(ap);
     if (n < 0)
         bad_io("vsnprintf");
     if ((size_t) n >= available) {
-        ensure_buffer(offset, (size_t) n + 1);
+        ensure_buffer((size_t) n + 1);
         va_start(ap, format);
-        (void) vsnprintf(g_buffer + offset, n + 1, format, ap);
+        (void) vsnprintf(bufptr(g_buffer_end), n + 1, format, ap);
         va_end(ap);
     }
-    return offset + (size_t) n;
+
+    size_t offset = g_buffer_end;
+
+    // Include \0 into the buffer
+    g_buffer_end += (size_t) n + 1;
+
+    str_loc_t loc = { offset, (size_t) n };
+    return loc;
 }
 
 enum {
@@ -220,7 +256,7 @@ void poll_write_all(int fd, size_t offset, size_t length)
 
     while (length != 0) {
         wait_fd(fd, WAIT_WRITE);
-        ssize_t n = write(fd, g_buffer + offset, length);
+        ssize_t n = write(fd, bufptr(offset), length);
         if (n < 0) {
             if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
                 continue;
@@ -256,7 +292,7 @@ static const char *get_password_title()
     return get_program_name();
 }
 
-size_t ask_tty_password(int tty_fd, size_t offset)
+str_loc_t ask_tty_password(int tty_fd)
 {
     // getpass in glibc disables both ECHO and ISIG.
     // ssh.terminal.ReadPassword in Go disables ECHO and
@@ -277,14 +313,14 @@ size_t ask_tty_password(int tty_fd, size_t offset)
 
     const size_t MAX_PASSWORD_LENGTH = 80;
 
-    ensure_buffer(offset, MAX_PASSWORD_LENGTH + 1);
+    size_t offset = alloc_buffer(MAX_PASSWORD_LENGTH + 1);
 
     size_t n = 0;
     for (;;) {
         wait_fd(tty_fd, WAIT_READ | DELAY_ERROR_EXIT);
         if (ds.forced_exit)
             break;
-        ssize_t nread = read(tty_fd, g_buffer + offset, MAX_PASSWORD_LENGTH + 1);
+        ssize_t nread = read(tty_fd, bufptr(offset), MAX_PASSWORD_LENGTH + 1);
         if (nread < 0) {
             if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
                 continue;
@@ -301,7 +337,7 @@ size_t ask_tty_password(int tty_fd, size_t offset)
         bad_io("tcsetattr");
     check_forced_exit();
 
-    if (g_buffer[offset + n - 1] == '\n') {
+    if (bufchar(offset + n - 1) == '\n') {
         --n;
 
         // Write \n that was not echoed
@@ -311,24 +347,53 @@ size_t ask_tty_password(int tty_fd, size_t offset)
             MAX_PASSWORD_LENGTH);
     }
 
-    g_buffer[offset + n] = '\0';
-    return n;
+    set_bufchar(offset + n, '\0');
+    str_loc_t password = { offset, n };
+    return password;
+}
+
+str_loc_t get_gui_ask_password_prog()
+{
+    const char *env = "SSH_ASKPASS";
+    char *ask = getenv(env);
+    if (!ask || !*ask) {
+        fail("failed to find program to ask for password - %s is unset or empty", env);
+    }
+    return sprintf_buffer("%s", ask);
+}
+
+str_loc_t ask_gui_password(str_loc_t gui_prog, str_loc_t message)
+{
+    (void) gui_prog;
+    (void) message;
+    fail("not implemented");
+}
+
+void show_gui_message(str_loc_t gui_prog, str_loc_t message)
+{
+    (void) ask_gui_password(gui_prog, message);
 }
 
 void ask_password()
 {
-    size_t password_length;
-    int tty_fd = open_tty();
-    if (tty_fd >= 0) {
-        size_t n = sprintf_buffer(0, "Enter %s password: ", get_password_title());
-        poll_write_all(tty_fd, 0, n);
-        password_length = ask_tty_password(tty_fd, 0);
+    str_loc_t password;
+    str_loc_t gui_prog = {0, 0};
 
-    } else {
-        fail("%s without tty is not implemented", ds.command_name);
+    int tty_fd = open_tty();
+    if (tty_fd < 0) {
+        gui_prog = get_gui_ask_password_prog();
     }
 
-    char stored_hash[BCRYPT_HASHSIZE];
+    if (tty_fd >= 0) {
+        str_loc_t prompt = sprintf_buffer("Enter %s password: ", get_password_title());
+        poll_write_all(tty_fd, prompt.pos, prompt.len);
+        password = ask_tty_password(tty_fd);
+    } else {
+        str_loc_t prompt = sprintf_buffer("Enter %s password", get_password_title());
+        password = ask_gui_password(gui_prog, prompt);
+    }
+
+    size_t stored_hash = alloc_buffer(BCRYPT_HASHSIZE);
     int fd = open(ds.hash_path, O_RDONLY);
     if (fd < 0) {
         bad_io("open path=%s", ds.hash_path);
@@ -336,14 +401,14 @@ void ask_password()
 
     size_t hash_length;
     for (size_t cursor = 0;;) {
-        ssize_t n = read(fd, stored_hash + cursor, BCRYPT_HASHSIZE - cursor);
+        ssize_t n = read(fd, bufptr(stored_hash + cursor), BCRYPT_HASHSIZE - cursor);
         if (n < 0) {
             if (errno == EINTR)
                 continue;
             bad_io("read path=%s", ds.hash_path);
         }
         if (n == 0) {
-            stored_hash[cursor] = '\0';
+            set_bufchar(stored_hash + cursor, '\0');
             hash_length = cursor;
             break;
         }
@@ -358,70 +423,83 @@ void ask_password()
         bad_io("close fd=%d", fd);
     }
 
-    char computed_hash[BCRYPT_HASHSIZE];
+    size_t computed_hash = alloc_buffer(BCRYPT_HASHSIZE);
 
     const char *crypt_status = crypt_rn(
-        g_buffer, stored_hash, computed_hash, BCRYPT_HASHSIZE
+        bufptr(password.pos), bufptr(stored_hash),
+        bufptr(computed_hash), BCRYPT_HASHSIZE
     );
     if (!crypt_status) {
         fail("error when computing password hash using data from %s", ds.hash_path);
     }
-    if (hash_length != strlen(computed_hash)) {
-        info("\n'%s'\n'%s'", stored_hash, computed_hash);
+    if (hash_length != strlen(bufptr(computed_hash))) {
+        info("\n'%s'\n'%s'", bufptr(stored_hash), bufptr(computed_hash));
         fail(
             "computed password length mismatch, expected=%zu actual=%zu",
-            hash_length, strlen(computed_hash)
+            hash_length, strlen(bufptr(computed_hash))
         );
     }
 
     // Use context-independent compare to avoid timing attacks.
     unsigned diff = 0;
     for (size_t i = 0; i != hash_length; ++i) {
-        diff |= computed_hash[i] ^ stored_hash[i];
+        diff |= bufchar(computed_hash + i) ^ bufchar(stored_hash + i);
     }
-    assert(tty_fd);
     if (diff) {
-        size_t n = sprintf_buffer(0, "Password mismatch\n");
-        poll_write_all(tty_fd, 0, n);
+        if (tty_fd >= 0) {
+            str_loc_t msg = sprintf_buffer("Password mismatch\n");
+            poll_write_all(tty_fd, msg.pos, msg.len);
+        } else {
+            str_loc_t msg = sprintf_buffer("Password mismatch");
+            show_gui_message(gui_prog, msg);
+        }
         cleanup_and_exit(USER_CANCEL_EXIT);
     }
-    poll_write_all(1, 0, password_length);
+    poll_write_all(1, password.pos, password.len);
 
-    status = close(tty_fd);
-    if (status != 0)
-        bad_io("close fd=%d", tty_fd);
+    if (tty_fd >= 0) {
+        status = close(tty_fd);
+        if (status != 0)
+            bad_io("close fd=%d", tty_fd);
+    }
 }
 
 void set_password_hash()
 {
+    str_loc_t gui_prog = {0, 0};
     int tty_fd = open_tty();
+    if (tty_fd < 0) {
+        gui_prog = get_gui_ask_password_prog();
+    }
+
+    str_loc_t password;
     if (tty_fd >= 0) {
-        size_t n = sprintf_buffer(
-            0, "Enter a new password for %s: ", get_password_title()
+        str_loc_t prompt = sprintf_buffer(
+            "Enter a new password for %s: ", get_password_title()
         );
-        poll_write_all(tty_fd, 0, n);
-        size_t password_length = ask_tty_password(tty_fd, 0);
-        if (!password_length) {
-            fail("password cannot be empty");
+        poll_write_all(tty_fd, prompt.pos, prompt.len);
+        password = ask_tty_password(tty_fd);
+        if (!password.len) {
+            // Write on tty as this is a GUI message for the user.
+            str_loc_t msg = sprintf_buffer("Password cannot be empty\n");
+            poll_write_all(tty_fd, msg.pos, msg.len);
+            cleanup_and_exit(1);
         }
 
-        // Skip \0 in the buffer
-        size_t offset = password_length + 1;
-        n = sprintf_buffer(
-            offset, "Repeat to confirm the new value for %s: ", get_password_title()
+        str_loc_t prompt2 = sprintf_buffer(
+            "Repeat to confirm the new value for %s: ", get_password_title()
         );
-        poll_write_all(tty_fd, offset, n);
-        size_t password_length2 = ask_tty_password(tty_fd, offset);
-        if (password_length2 == 0) {
-            // Write on tty as this is a GUI message for the user.
-            n = sprintf_buffer(0, "Canceled\n");
-            poll_write_all(tty_fd, 0, n);
+        poll_write_all(tty_fd, prompt2.pos, prompt2.len);
+        str_loc_t password2 = ask_tty_password(tty_fd);
+        if (!password2.len) {
+            str_loc_t msg = sprintf_buffer("Canceled\n");
+            poll_write_all(tty_fd, msg.pos, msg.len);
             cleanup_and_exit(USER_CANCEL_EXIT);
         }
-        if (password_length2 != password_length
-            || memcmp(g_buffer, g_buffer + offset, password_length) != 0) {
-            n = sprintf_buffer(0, "Password mismatch\n");
-            poll_write_all(tty_fd, 0, n);
+        if (password2.len != password.len
+            || memcmp(bufptr(password2.pos), bufptr(password.pos), password.len) != 0) {
+            str_loc_t msg = sprintf_buffer("Password mismatch\n");
+            poll_write_all(tty_fd, msg.pos, msg.len);
             cleanup_and_exit(1);
         }
 
@@ -430,15 +508,36 @@ void set_password_hash()
             bad_io("close fd=%d", tty_fd);
 
     } else {
-        fail("%s without tty is not implemented", ds.command_name);
+        str_loc_t prompt = sprintf_buffer(
+            "Enter a new password for %s", get_password_title()
+        );
+        password = ask_gui_password(gui_prog, prompt);
+        if (!password.len) {
+            str_loc_t msg = sprintf_buffer("Password cannot be empty");
+            show_gui_message(gui_prog, msg);
+            cleanup_and_exit(1);
+        }
+        str_loc_t prompt2 = sprintf_buffer(
+            "Repeat to confirm the new value for %s", get_password_title()
+        );
+        str_loc_t password2 = ask_gui_password(gui_prog, prompt2);
+        if (!password2.len) {
+            cleanup_and_exit(USER_CANCEL_EXIT);
+        }
+        if (password2.len != password.len
+            || memcmp(bufptr(password2.pos), bufptr(password.pos), password.len) != 0) {
+            str_loc_t msg = sprintf_buffer("Password mismatch");
+            show_gui_message(gui_prog, msg);
+            cleanup_and_exit(1);
+        }
     }
 
     enum {
         RANDOM_BYTE_COUNT = 16,
     };
-    char random_input[RANDOM_BYTE_COUNT];
+    size_t random_input = alloc_buffer(RANDOM_BYTE_COUNT);
     for (size_t cursor = 0; cursor != RANDOM_BYTE_COUNT;) {
-        int n = getrandom(random_input + cursor, RANDOM_BYTE_COUNT - cursor, 0);
+        int n = getrandom(bufptr(random_input + cursor), RANDOM_BYTE_COUNT - cursor, 0);
         if (n < 0) {
             if (errno == EAGAIN)
                 continue;
@@ -447,26 +546,31 @@ void set_password_hash()
         cursor += n;
     }
 
-    char salt[BCRYPT_HASHSIZE];
+    size_t salt = alloc_buffer(BCRYPT_HASHSIZE);
     const char *crypt_status = crypt_gensalt_rn(
-        "$2y$", BCRYPT_PASSWORD_COST, random_input, sizeof random_input,
-        salt, BCRYPT_HASHSIZE);
+        "$2y$", BCRYPT_PASSWORD_COST,
+        bufptr(random_input), RANDOM_BYTE_COUNT,
+        bufptr(salt), BCRYPT_HASHSIZE
+    );
     if (!crypt_status) {
         bad_io("crypt_gensalt_rn");
     }
-    char computed_hash[BCRYPT_HASHSIZE];
-    crypt_status = crypt_rn(g_buffer, salt, computed_hash, BCRYPT_HASHSIZE);
+    size_t computed_hash = alloc_buffer(BCRYPT_HASHSIZE);
+    crypt_status = crypt_rn(
+        bufptr(password.pos), bufptr(salt),
+        bufptr(computed_hash), BCRYPT_HASHSIZE
+    );
     if (!crypt_status) {
         bad_io("crypt_rn");
     }
-    size_t hash_length = strlen(computed_hash);
+    size_t hash_length = strlen(bufptr(computed_hash));
 
     int fd = open(ds.hash_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd < 0) {
         bad_io("open path=%s", ds.hash_path);
     }
     for (size_t cursor = 0; cursor != hash_length;) {
-        ssize_t n = write(fd, computed_hash + cursor, hash_length - cursor);
+        ssize_t n = write(fd, bufptr(computed_hash + cursor), hash_length - cursor);
         if (n < 0) {
             if (errno == EINTR)
                 continue;
