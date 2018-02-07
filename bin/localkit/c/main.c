@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -10,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -20,6 +24,8 @@ enum {
 
     BCRYPT_HASHSIZE = 64,
     BCRYPT_PASSWORD_COST = 11,
+
+    MAX_PASSWORD_LENGTH = 80,
 };
 
 struct {
@@ -30,12 +36,21 @@ struct {
 
     int forced_exit;
 
-    int quit_read_fd;
-    int quit_write_fd;
+    int signal_read_fd;
+    int signal_write_fd;
+
+    int wait_read_fd;
+    int wait_write_fd;
+    pid_t wait_pid;
+    int wait_pid_status;
+    bool wait_quit_signal;
 
 } ds = {
-    .quit_read_fd = -1,
-    .quit_write_fd = -1,
+    .signal_read_fd = -1,
+    .signal_write_fd = -1,
+    .wait_read_fd = -1,
+    .wait_write_fd = -1,
+    .wait_pid = -1,
 };
 
 char *g_buffer;
@@ -189,27 +204,32 @@ str_loc_t sprintf_buffer(const char *format, ...)
     return loc;
 }
 
-enum {
-    WAIT_READ = 1,
-    WAIT_WRITE = 2,
-    DELAY_ERROR_EXIT = 4,
-};
-
-void wait_fd(int fd, int flags)
+void wait_event()
 {
-    assert((flags & ~(WAIT_READ | WAIT_WRITE | DELAY_ERROR_EXIT)) == 0);
-    assert(
-        (flags & (WAIT_READ | WAIT_WRITE)) == WAIT_READ
-        || (flags & (WAIT_READ | WAIT_WRITE)) == WAIT_WRITE
-    );
-    struct pollfd p[2];
-    p[0].fd = fd;
-    p[0].events = (flags & WAIT_READ) ? POLLIN : POLLOUT;
-    p[1].fd = ds.quit_read_fd;
-    p[1].events = POLLIN;
+    struct pollfd p[3];
+    p[0].fd = ds.signal_read_fd;
+    p[0].events = POLLIN;
+    size_t npolls = 1;
+    int poll_read_index = -1;
+    int poll_write_index = -1;
+    if (ds.wait_read_fd >= 0) {
+        poll_read_index = (int) npolls;
+        p[npolls].fd = ds.wait_read_fd;
+        p[npolls].events = POLLIN;
+        ++npolls;
+    }
+    if (ds.wait_write_fd >= 0) {
+        poll_write_index = (int) npolls;
+        p[npolls].fd = ds.wait_write_fd;
+        p[npolls].events = POLLOUT;
+        npolls++;
+    }
+    assert(npolls <= sizeof(p) / sizeof(p[0]));
+    assert(npolls >= 2 || ds.wait_pid >= 0);
 
-    for (;;) {
-        int n = poll(p, 2, -1);
+    bool got_event = false;
+    do {
+        int n = poll(p, npolls, -1);
         if (n < 0) {
             if (errno == EINTR)
                 continue;
@@ -222,30 +242,84 @@ void wait_fd(int fd, int flags)
         }
 
         // First check for any error on any fd
-        for (size_t i = 0; i != 2; ++i) {
+        for (size_t i = 0; i != npolls; ++i) {
             if (p[i].revents & (POLLERR | POLLNVAL)) {
                 log_bad_io("poll fd=%d revents=%d", p[i].fd, p[i].revents);
                 break;
             }
         }
-        if (p[1].revents & POLLIN) {
-            if (!ds.forced_exit) {
-                info("quitting on signal");
-                ds.forced_exit = 2;
-            }
-            break;
-        }
-        if (flags & WAIT_READ) {
-            if (p[0].revents & POLLIN)
-                return;
-        } else {
-            if (p[0].revents & (POLLOUT | POLLHUP))
-                return;
-        }
-    }
+        if (p[0].revents & (POLLIN | POLLHUP)) {
+            bool do_waitpid = false;
+            for (;;) {
+                uint8_t signal_number;
+                ssize_t nread = read(ds.signal_read_fd, &signal_number, 1);
+                if (nread < 0) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        // We emptied the signal pipe
+                        break;
+                    }
+                    log_bad_io("read fd=%d size=1", ds.signal_read_fd);
+                    goto after_wait;
+                }
+                if (nread == 0) {
+                    log_bad_io("unexpected EOF from signal pipe  fd=%d", ds.signal_read_fd);
+                    goto after_wait;
+                }
 
-    if (!(flags & DELAY_ERROR_EXIT)) {
-        check_forced_exit();
+                if (signal_number == SIGCHLD) {
+                    do_waitpid = true;
+                } else {
+                    assert(
+                        signal_number == SIGINT
+                        || signal_number == SIGQUIT
+                        || signal_number == SIGTERM
+                    );
+                    if (ds.wait_quit_signal) {
+                        ds.wait_quit_signal = false;
+                        got_event = true;
+                    } else if (!ds.forced_exit) {
+                        info("quitting on signal");
+                        ds.forced_exit = USER_CANCEL_EXIT;
+                        goto after_wait;
+                    }
+                }
+            }
+            if (do_waitpid) {
+                for (;;) {
+                    int status;
+                    pid_t pid = waitpid(-1, &status, WNOHANG);
+                    if (pid < 0) {
+                        if (errno == ECHILD)
+                            break;
+                        bad_io("waitpid pid=-1");
+                    }
+                    if (pid == 0)
+                        break;
+                    if (pid == ds.wait_pid) {
+                        ds.wait_pid_status = status;
+                        ds.wait_pid = -1;
+                        got_event = true;
+                    }
+                }
+            }
+        }
+        if (poll_read_index >= 0 && p[poll_read_index].revents & (POLLIN | POLLHUP)) {
+            ds.wait_read_fd = -1;
+            got_event = true;
+        }
+        if (poll_write_index >= 0 && p[poll_write_index].revents & (POLLOUT | POLLHUP)) {
+            ds.wait_write_fd = -1;
+            got_event = true;
+        }
+    } while (!got_event);
+
+after_wait:
+    if (ds.forced_exit) {
+        if (ds.wait_quit_signal) {
+            ds.wait_quit_signal = false;
+        } else {
+            check_forced_exit();
+        }
     }
 }
 
@@ -255,7 +329,11 @@ void poll_write_all(int fd, size_t offset, size_t length)
     assert(length <= g_buffer_capacity - offset);
 
     while (length != 0) {
-        wait_fd(fd, WAIT_WRITE);
+        assert(ds.wait_write_fd < 0);
+        ds.wait_write_fd = fd;
+        do {
+            wait_event();
+        } while (ds.wait_write_fd >= 0);
         ssize_t n = write(fd, bufptr(offset), length);
         if (n < 0) {
             if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
@@ -269,11 +347,22 @@ void poll_write_all(int fd, size_t offset, size_t length)
 
 int open_tty()
 {
+    // Follow ssh-add and try to open tty only if stdin is tty.
+    if (!isatty(0))
+        return -1;
+
     int fd = open("/dev/tty", O_RDWR | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
+        if (errno == ENXIO || errno == ENOENT)
+            return -1;
         bad_io("open path=/dev/tty");
     }
-    return fd;
+    if (isatty(fd))
+        return fd;
+    int status = close(fd);
+    if (status != 0)
+        bad_io("close fd=%d", fd);
+    return -1;
 }
 
 static const char *get_password_title()
@@ -292,8 +381,13 @@ static const char *get_password_title()
     return get_program_name();
 }
 
-str_loc_t ask_tty_password(int tty_fd)
+str_loc_t ask_tty_password(int tty_fd, str_loc_t title, bool *canceled)
 {
+    *canceled = false;
+
+    str_loc_t prompt = sprintf_buffer("%s: ", bufptr(title.pos));
+    poll_write_all(tty_fd, prompt.pos, prompt.len);
+
     // getpass in glibc disables both ECHO and ISIG.
     // ssh.terminal.ReadPassword in Go disables ECHO and
     // sets ICANON, ISIG, ICRNL. That seems more resonable,
@@ -311,25 +405,32 @@ str_loc_t ask_tty_password(int tty_fd)
     if (tc_status != 0)
         bad_io("tcsetattr");
 
-    const size_t MAX_PASSWORD_LENGTH = 80;
+    // One character for detecting too long entered password and 1 for extra \0
+    const size_t maxread = MAX_PASSWORD_LENGTH + 1;
+    str_loc_t password = { alloc_buffer(maxread + 1), 0 };
 
-    size_t offset = alloc_buffer(MAX_PASSWORD_LENGTH + 1);
-
-    size_t n = 0;
-    for (;;) {
-        wait_fd(tty_fd, WAIT_READ | DELAY_ERROR_EXIT);
-        if (ds.forced_exit)
-            break;
-        ssize_t nread = read(tty_fd, bufptr(offset), MAX_PASSWORD_LENGTH + 1);
-        if (nread < 0) {
-            if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
-                continue;
-            log_bad_io("read");
-            break;
+    while (!*canceled) {
+        assert(ds.wait_read_fd < 0);
+        ds.wait_read_fd = tty_fd;
+        ds.wait_quit_signal = true;
+        do {
+            wait_event();
+        } while (ds.wait_read_fd >= 0 && ds.wait_quit_signal);
+        if (!ds.wait_quit_signal) {
+            *canceled = true;
         }
-        if (nread != 0) {
-            n = (size_t) nread;
-            break;
+        if (ds.wait_read_fd < 0) {
+            ssize_t nread = read(tty_fd, bufptr(password.pos), maxread);
+            if (nread < 0) {
+                if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                    continue;
+                log_bad_io("read");
+                break;
+            }
+            if (nread != 0) {
+                password.len = (size_t) nread;
+                break;
+            }
         }
     }
     tc_status = tcsetattr(tty_fd, TCSAFLUSH, &saved_tio);
@@ -337,19 +438,25 @@ str_loc_t ask_tty_password(int tty_fd)
         bad_io("tcsetattr");
     check_forced_exit();
 
-    if (bufchar(offset + n - 1) == '\n') {
-        --n;
+    if (*canceled) {
+        // First \n closes the prompt line
+        str_loc_t msg = sprintf_buffer("\nCanceled\n");
+        poll_write_all(tty_fd, msg.pos, msg.len);
+        password.len = 0;
+    } else if (password.len > 0 && bufchar(password.pos + password.len - 1) == '\n') {
+        --password.len;
 
         // Write \n that was not echoed
-        poll_write_all(tty_fd, offset + n, 1);
-    } else if (n == MAX_PASSWORD_LENGTH + 1) {
-        fail("Too long password, its length must not exceed %zu bytes",
-            MAX_PASSWORD_LENGTH);
+        poll_write_all(tty_fd, password.pos + password.len, 1);
     }
-
-    set_bufchar(offset + n, '\0');
-    str_loc_t password = { offset, n };
+    set_bufchar(password.pos + password.len, '\0');
     return password;
+}
+
+void show_tty_message(int tty_fd, str_loc_t message)
+{
+    message = sprintf_buffer("%s\n", bufptr(message.pos));
+    poll_write_all(tty_fd, message.pos, message.len);
 }
 
 str_loc_t get_gui_ask_password_prog()
@@ -362,103 +469,208 @@ str_loc_t get_gui_ask_password_prog()
     return sprintf_buffer("%s", ask);
 }
 
-str_loc_t ask_gui_password(str_loc_t gui_prog, str_loc_t message)
+str_loc_t ask_gui_password(str_loc_t gui_prog, str_loc_t message, bool *canceled)
 {
-    (void) gui_prog;
-    (void) message;
-    fail("not implemented");
+    int password_pipe_fds[2];
+    int status = pipe2(password_pipe_fds, O_CLOEXEC);
+    if (status != 0)
+        bad_io("pipe");
+    {
+        pid_t child = fork();
+        if (child < 0)
+            bad_io("pipe");
+        if (child == 0) {
+            int fd = dup2(password_pipe_fds[1], 1);
+            if (fd < 0)
+                bad_io("dup2 f1=%d fd2=1", password_pipe_fds[1]);
+            (void) execlp(
+                bufptr(gui_prog.pos), bufptr(gui_prog.pos), bufptr(message.pos), NULL
+            );
+            fail("failed to execute %s - %s", bufptr(gui_prog.pos), strerror(errno));
+        }
+        assert(ds.wait_pid < 0);
+        ds.wait_pid = child;
+    }
+    int read_fd = password_pipe_fds[0];
+    status = close(password_pipe_fds[1]);
+    if (status != 0)
+        bad_io("close %d", password_pipe_fds[1]);
+
+    // One character for an optional extra \n returned by the program
+    // and one for detecting too long entered password.
+    enum {
+        max_read = MAX_PASSWORD_LENGTH + 2
+    };
+    str_loc_t password = { alloc_buffer(max_read), 0 };
+    for (;;) {
+        assert(ds.wait_read_fd < 0);
+        ds.wait_read_fd = read_fd;
+        do {
+            wait_event(0);
+        } while (ds.wait_read_fd >= 0);
+        ssize_t nread = read(
+            read_fd, bufptr(password.pos + password.len), max_read - password.len
+        );
+        if (nread < 0) {
+            if (errno == EINTR || errno == EAGAIN || EWOULDBLOCK)
+                continue;
+            log_bad_io("read");
+            break;
+        }
+        if (nread == 0) {
+            break;
+        }
+        password.len += (size_t) nread;
+        if (password.len == max_read) {
+            break;
+        }
+    }
+    if (password.len > 0 && bufchar(password.pos + password.len - 1) == '\n') {
+        password.len--;
+    }
+    if (password.len == max_read) {
+        static_assert(max_read == MAX_PASSWORD_LENGTH + 2, "");
+        password.len--;
+    }
+    status = close(read_fd);
+    if (status != 0)
+        bad_io("close %d", read_fd);
+    while (ds.wait_pid >= 0) {
+        wait_event(0);
+    }
+    if (!WIFEXITED(ds.wait_pid_status)) {
+        fail(
+            "%s terminated abnormally, status=%d",
+            bufptr(gui_prog.pos), ds.wait_pid_status
+        );
+    }
+    *canceled = false;
+    if (WEXITSTATUS(ds.wait_pid_status) != 0) {
+        *canceled = true;
+        password.len = 0;
+    }
+    set_bufchar(password.pos + password.len, '\0');
+    return password;
 }
 
 void show_gui_message(str_loc_t gui_prog, str_loc_t message)
 {
-    (void) ask_gui_password(gui_prog, message);
+    bool canceled;
+    (void) ask_gui_password(gui_prog, message, &canceled);
 }
 
 void ask_password()
 {
-    str_loc_t password;
-    str_loc_t gui_prog = {0, 0};
+    // Read the hash first not to bother the user with a password
+    // question in case of errors.
+    str_loc_t stored_hash = { alloc_buffer(BCRYPT_HASHSIZE), 0 };
+    {
+        int fd = open(ds.hash_path, O_RDONLY);
+        if (fd < 0) {
+            fail(
+                "failed to open the password hash file %s - %s",
+                ds.hash_path, strerror(errno)
+            );
+        }
+        for (;;) {
+            ssize_t n = read(
+                fd,
+                bufptr(stored_hash.pos + stored_hash.len),
+                BCRYPT_HASHSIZE - stored_hash.len
+            );
+            if (n < 0) {
+                if (errno == EINTR)
+                    continue;
+                bad_io("read path=%s", ds.hash_path);
+            }
+            if (n == 0) {
+                set_bufchar(stored_hash.pos + stored_hash.len, '\0');
+                break;
+            }
+            stored_hash.len += (size_t) n;
+            if (stored_hash.len == BCRYPT_HASHSIZE) {
+                fail("size of %s exceeds max supported length %d",
+                     ds.hash_path, BCRYPT_HASHSIZE);
+            }
+        }
+        int status = close(fd);
+        if (status != 0) {
+            bad_io("close fd=%d", fd);
+        }
+    }
 
+    str_loc_t gui_prog = {0, 0};
     int tty_fd = open_tty();
     if (tty_fd < 0) {
         gui_prog = get_gui_ask_password_prog();
     }
 
-    if (tty_fd >= 0) {
-        str_loc_t prompt = sprintf_buffer("Enter %s password: ", get_password_title());
-        poll_write_all(tty_fd, prompt.pos, prompt.len);
-        password = ask_tty_password(tty_fd);
-    } else {
-        str_loc_t prompt = sprintf_buffer("Enter %s password", get_password_title());
-        password = ask_gui_password(gui_prog, prompt);
-    }
-
-    size_t stored_hash = alloc_buffer(BCRYPT_HASHSIZE);
-    int fd = open(ds.hash_path, O_RDONLY);
-    if (fd < 0) {
-        bad_io("open path=%s", ds.hash_path);
-    }
-
-    size_t hash_length;
-    for (size_t cursor = 0;;) {
-        ssize_t n = read(fd, bufptr(stored_hash + cursor), BCRYPT_HASHSIZE - cursor);
-        if (n < 0) {
-            if (errno == EINTR)
-                continue;
-            bad_io("read path=%s", ds.hash_path);
+    str_loc_t password;
+    bool canceled = false;
+    str_loc_t message = {0, 0};
+    str_loc_t title = sprintf_buffer("Enter password for %s", get_password_title());
+    for (;;) {
+        if (tty_fd >= 0) {
+            password = ask_tty_password(tty_fd, title, &canceled);
+        } else {
+            password = ask_gui_password(gui_prog, title, &canceled);
         }
-        if (n == 0) {
-            set_bufchar(stored_hash + cursor, '\0');
-            hash_length = cursor;
+        if (canceled)
+            break;
+
+        if (password.len > MAX_PASSWORD_LENGTH) {
+            message = sprintf_buffer(
+                "Password length cannot exceed %d", MAX_PASSWORD_LENGTH
+            );
             break;
         }
-        cursor += n;
-        if (cursor == BCRYPT_HASHSIZE) {
-            fail("size of %s exceeds max supported length %d",
-                 ds.hash_path, BCRYPT_HASHSIZE);
+
+        size_t computed_hash = alloc_buffer(BCRYPT_HASHSIZE);
+
+        const char *crypt_status = crypt_rn(
+            bufptr(password.pos), bufptr(stored_hash.pos),
+            bufptr(computed_hash), BCRYPT_HASHSIZE
+        );
+        if (!crypt_status) {
+            fail("error when computing password hash using data from %s", ds.hash_path);
         }
-    }
-    int status = close(fd);
-    if (status != 0) {
-        bad_io("close fd=%d", fd);
-    }
+        if (stored_hash.len != strlen(bufptr(computed_hash))) {
+            info("\n'%s'\n'%s'", bufptr(stored_hash.pos), bufptr(computed_hash));
+            fail(
+                "computed password length mismatch, expected=%zu actual=%zu",
+                stored_hash.len, strlen(bufptr(computed_hash))
+            );
+        }
 
-    size_t computed_hash = alloc_buffer(BCRYPT_HASHSIZE);
-
-    const char *crypt_status = crypt_rn(
-        bufptr(password.pos), bufptr(stored_hash),
-        bufptr(computed_hash), BCRYPT_HASHSIZE
-    );
-    if (!crypt_status) {
-        fail("error when computing password hash using data from %s", ds.hash_path);
-    }
-    if (hash_length != strlen(bufptr(computed_hash))) {
-        info("\n'%s'\n'%s'", bufptr(stored_hash), bufptr(computed_hash));
-        fail(
-            "computed password length mismatch, expected=%zu actual=%zu",
-            hash_length, strlen(bufptr(computed_hash))
+        // Use context-independent compare to avoid timing attacks.
+        unsigned diff = 0;
+        for (size_t i = 0; i != stored_hash.len; ++i) {
+            diff |= bufchar(computed_hash + i) ^ bufchar(stored_hash.pos + i);
+        }
+        if (!diff)
+            break;
+        title = sprintf_buffer(
+            "Password mismatch, enter password for %s again",
+            get_password_title()
         );
     }
 
-    // Use context-independent compare to avoid timing attacks.
-    unsigned diff = 0;
-    for (size_t i = 0; i != hash_length; ++i) {
-        diff |= bufchar(computed_hash + i) ^ bufchar(stored_hash + i);
-    }
-    if (diff) {
-        if (tty_fd >= 0) {
-            str_loc_t msg = sprintf_buffer("Password mismatch\n");
-            poll_write_all(tty_fd, msg.pos, msg.len);
-        } else {
-            str_loc_t msg = sprintf_buffer("Password mismatch");
-            show_gui_message(gui_prog, msg);
-        }
+    if (canceled) {
         cleanup_and_exit(USER_CANCEL_EXIT);
     }
+    if (message.len) {
+        if (tty_fd >= 0) {
+            show_tty_message(tty_fd, message);
+        } else {
+            show_gui_message(gui_prog, message);
+        }
+        cleanup_and_exit(1);
+    }
+
     poll_write_all(1, password.pos, password.len);
 
     if (tty_fd >= 0) {
-        status = close(tty_fd);
+        int status = close(tty_fd);
         if (status != 0)
             bad_io("close fd=%d", tty_fd);
     }
@@ -473,63 +685,60 @@ void set_password_hash()
     }
 
     str_loc_t password;
-    if (tty_fd >= 0) {
-        str_loc_t prompt = sprintf_buffer(
-            "Enter a new password for %s: ", get_password_title()
-        );
-        poll_write_all(tty_fd, prompt.pos, prompt.len);
-        password = ask_tty_password(tty_fd);
-        if (!password.len) {
-            // Write on tty as this is a GUI message for the user.
-            str_loc_t msg = sprintf_buffer("Password cannot be empty\n");
-            poll_write_all(tty_fd, msg.pos, msg.len);
-            cleanup_and_exit(1);
-        }
-
-        str_loc_t prompt2 = sprintf_buffer(
-            "Repeat to confirm the new value for %s: ", get_password_title()
-        );
-        poll_write_all(tty_fd, prompt2.pos, prompt2.len);
-        str_loc_t password2 = ask_tty_password(tty_fd);
-        if (!password2.len) {
-            str_loc_t msg = sprintf_buffer("Canceled\n");
-            poll_write_all(tty_fd, msg.pos, msg.len);
-            cleanup_and_exit(USER_CANCEL_EXIT);
-        }
-        if (password2.len != password.len
-            || memcmp(bufptr(password2.pos), bufptr(password.pos), password.len) != 0) {
-            str_loc_t msg = sprintf_buffer("Password mismatch\n");
-            poll_write_all(tty_fd, msg.pos, msg.len);
-            cleanup_and_exit(1);
-        }
-
-        int status = close(tty_fd);
-        if (status != 0)
-            bad_io("close fd=%d", tty_fd);
-
-    } else {
-        str_loc_t prompt = sprintf_buffer(
+    bool canceled = false;
+    str_loc_t message = {0, 0};
+    do {
+        str_loc_t title = sprintf_buffer(
             "Enter a new password for %s", get_password_title()
         );
-        password = ask_gui_password(gui_prog, prompt);
-        if (!password.len) {
-            str_loc_t msg = sprintf_buffer("Password cannot be empty");
-            show_gui_message(gui_prog, msg);
-            cleanup_and_exit(1);
+        if (tty_fd >= 0) {
+            password = ask_tty_password(tty_fd, title, &canceled);
+        } else {
+            password = ask_gui_password(gui_prog, title, &canceled);
         }
-        str_loc_t prompt2 = sprintf_buffer(
+        if (canceled)
+            break;
+
+        if (!password.len) {
+            message = sprintf_buffer("Password cannot be empty");
+            break;
+        }
+        if (password.len > MAX_PASSWORD_LENGTH) {
+            message = sprintf_buffer(
+                "Password length cannot exceed %d", MAX_PASSWORD_LENGTH
+            );
+            break;
+        }
+        title = sprintf_buffer(
             "Repeat to confirm the new value for %s", get_password_title()
         );
-        str_loc_t password2 = ask_gui_password(gui_prog, prompt2);
-        if (!password2.len) {
-            cleanup_and_exit(USER_CANCEL_EXIT);
+
+        str_loc_t password2;
+        if (tty_fd >= 0) {
+            password2 = ask_tty_password(tty_fd, title, &canceled);
+        } else {
+            password2 = ask_gui_password(gui_prog, title, &canceled);
         }
+        if (canceled)
+            break;
+
         if (password2.len != password.len
             || memcmp(bufptr(password2.pos), bufptr(password.pos), password.len) != 0) {
-            str_loc_t msg = sprintf_buffer("Password mismatch");
-            show_gui_message(gui_prog, msg);
-            cleanup_and_exit(1);
+            message = sprintf_buffer("Password mismatch");
+            break;
         }
+    } while (false);
+
+    if (canceled) {
+        cleanup_and_exit(USER_CANCEL_EXIT);
+    }
+    if (message.len) {
+        if (tty_fd >= 0) {
+            show_tty_message(tty_fd, message);
+        } else {
+            show_gui_message(gui_prog, message);
+        }
+        cleanup_and_exit(1);
     }
 
     enum {
@@ -581,6 +790,12 @@ void set_password_hash()
     int status = close(fd);
     if (status != 0) {
         bad_io("close fd=%d", fd);
+    }
+
+    if (tty_fd >= 0) {
+        int status = close(tty_fd);
+        if (status != 0)
+            bad_io("close fd=%d", tty_fd);
     }
 }
 
@@ -634,8 +849,9 @@ static void quit_signal_handler(int signal)
 {
     uint8_t kind = (uint8_t) signal;
 
-    // XXX - handle write errors somehow
-    (void) write(ds.quit_write_fd, &kind, 1);
+    // TODO  handle write errors somehow
+    // In particular, deal with full signal pipe
+    (void) write(ds.signal_write_fd, &kind, 1);
 }
 
 int main(int argc, char **argv)
@@ -708,18 +924,18 @@ int main(int argc, char **argv)
     }
 
     int signal_pipe_fds[2];
-    int status = pipe(signal_pipe_fds);
+    int status = pipe2(signal_pipe_fds, O_CLOEXEC | O_NONBLOCK);
     if (status != 0)
         bad_io("pipe");
-    ds.quit_read_fd = signal_pipe_fds[0];
-    ds.quit_write_fd = signal_pipe_fds[1];
+    ds.signal_read_fd = signal_pipe_fds[0];
+    ds.signal_write_fd = signal_pipe_fds[1];
 
-    static const int quit_signals[] = { SIGINT, SIGQUIT, SIGTERM, 0 };
+    static const int signal_set[] = { SIGINT, SIGQUIT, SIGTERM, SIGCLD, 0 };
     struct sigaction sa;
     sa.sa_handler = quit_signal_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    for (const int *s = quit_signals; *s; ++s) {
+    for (const int *s = signal_set; *s; ++s) {
         int status = sigaction(*s, &sa, NULL);
         if (status != 0)
             bad_io("sigaction signal=%d", *s);

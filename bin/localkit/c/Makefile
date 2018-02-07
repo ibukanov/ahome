@@ -3,7 +3,7 @@
 all: build/localkit
 
 build/localkit: main.c build/crypt_blowfish/ready
-	gcc -Wall -Wextra -o $@ main.c build/crypt_blowfish/*.o
+	gcc -Wall -Wextra -Werror -g -o $@ main.c build/crypt_blowfish/*.o
 
 build/crypt_blowfish/ready: $(wildcard /vendor/crypt_blowfish/*) | build/crypt_blowfish
 	cp -s -f $(PWD)/vendor/crypt_blowfish/* build/crypt_blowfish && \
