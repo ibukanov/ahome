@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#define _GNU_SOURCE
 
 #include <assert.h>
 #include <errno.h>
@@ -28,30 +29,11 @@ enum {
     MAX_PASSWORD_LENGTH = 80,
 };
 
-struct {
-    const char *arg0;
-    const char *command_name;
-    const char *hash_path;
-    const char *gui_title;
-
-    int forced_exit;
-
-    int signal_read_fd;
-    int signal_write_fd;
-
-    int wait_read_fd;
-    int wait_write_fd;
-    pid_t wait_pid;
-    int wait_pid_status;
-    bool wait_quit_signal;
-
-} ds = {
-    .signal_read_fd = -1,
-    .signal_write_fd = -1,
-    .wait_read_fd = -1,
-    .wait_write_fd = -1,
-    .wait_pid = -1,
-};
+typedef enum {
+    CMD_HELP = 1,
+    CMD_ASK_PASSWORD,
+    CMD_SET_PASSWORD_HASH,
+} command_id_t;
 
 char *g_buffer;
 size_t g_buffer_capacity;
@@ -79,6 +61,42 @@ static inline void set_bufchar(size_t offset, char c)
     assert(offset < g_buffer_end);
     g_buffer[offset] = c;
 }
+
+struct ask_password {
+    str_loc_t stored_hash;
+};
+
+struct {
+    const char *arg0;
+    const char *command_name;
+    const char *hash_path;
+    const char *gui_title;
+
+    command_id_t command_id;
+
+    int forced_exit;
+
+    int signal_read_fd;
+    int signal_write_fd;
+
+    int wait_read_fd;
+    int wait_write_fd;
+    pid_t wait_pid;
+    int wait_pid_status;
+    bool wait_quit_signal;
+
+    union {
+        struct ask_password ask_password;
+    };
+
+} ds = {
+    .signal_read_fd = -1,
+    .signal_write_fd = -1,
+    .wait_read_fd = -1,
+    .wait_write_fd = -1,
+    .wait_pid = -1,
+};
+
 
 __attribute__ ((noreturn))
 void cleanup_and_exit(int code) {
@@ -345,24 +363,55 @@ void poll_write_all(int fd, size_t offset, size_t length)
     }
 }
 
-int open_tty()
-{
-    // Follow ssh-add and try to open tty only if stdin is tty.
-    if (!isatty(0))
-        return -1;
+static struct {
+    int tty_fd;
+    str_loc_t gui_prog;
+} user_prompt = {
+    .tty_fd = -1,
+};
 
-    int fd = open("/dev/tty", O_RDWR | O_NONBLOCK | O_CLOEXEC);
-    if (fd < 0) {
-        if (errno == ENXIO || errno == ENOENT)
-            return -1;
-        bad_io("open path=/dev/tty");
+void open_user_prompt()
+{
+    assert(user_prompt.tty_fd < 0);
+    assert(user_prompt.gui_prog.len == 0);
+    assert(user_prompt.gui_prog.pos == 0);
+
+    // Follow ssh-add and try to open tty only if stdin is tty.
+    do {
+        if (!isatty(0))
+            break;
+        int fd = open("/dev/tty", O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        if (fd < 0) {
+            if (errno == ENXIO || errno == ENOENT)
+                break;
+            bad_io("open path=/dev/tty");
+        }
+        if (isatty(fd)) {
+            user_prompt.tty_fd = fd;
+            return;
+        }
+        int status = close(fd);
+        if (status != 0)
+            bad_io("close fd=%d", fd);
+    } while (false);
+
+    const char *env = "SSH_ASKPASS";
+    char *ask = getenv(env);
+    if (!ask || !*ask) {
+        fail("failed to find program to ask for password - %s is unset or empty", env);
     }
-    if (isatty(fd))
-        return fd;
-    int status = close(fd);
-    if (status != 0)
-        bad_io("close fd=%d", fd);
-    return -1;
+    user_prompt.gui_prog = sprintf_buffer("%s", ask);
+}
+
+void close_user_prompt()
+{
+    if (user_prompt.tty_fd >= 0) {
+        int status = close(user_prompt.tty_fd);
+        if (status != 0)
+            bad_io("close fd=%d", user_prompt.tty_fd);
+        user_prompt.tty_fd = -1;
+    }
+    memset(&user_prompt.gui_prog, 0, sizeof user_prompt.gui_prog);
 }
 
 static const char *get_password_title()
@@ -381,7 +430,7 @@ static const char *get_password_title()
     return get_program_name();
 }
 
-str_loc_t ask_tty_password(int tty_fd, str_loc_t title, bool *canceled)
+str_loc_t prompt_tty_password(int tty_fd, str_loc_t title, bool *canceled)
 {
     *canceled = false;
 
@@ -453,12 +502,6 @@ str_loc_t ask_tty_password(int tty_fd, str_loc_t title, bool *canceled)
     return password;
 }
 
-void show_tty_message(int tty_fd, str_loc_t message)
-{
-    message = sprintf_buffer("%s\n", bufptr(message.pos));
-    poll_write_all(tty_fd, message.pos, message.len);
-}
-
 str_loc_t get_gui_ask_password_prog()
 {
     const char *env = "SSH_ASKPASS";
@@ -469,7 +512,7 @@ str_loc_t get_gui_ask_password_prog()
     return sprintf_buffer("%s", ask);
 }
 
-str_loc_t ask_gui_password(str_loc_t gui_prog, str_loc_t message, bool *canceled)
+str_loc_t prompt_gui_password(str_loc_t gui_prog, str_loc_t message, bool *canceled)
 {
     int password_pipe_fds[2];
     int status = pipe2(password_pipe_fds, O_CLOEXEC);
@@ -553,18 +596,34 @@ str_loc_t ask_gui_password(str_loc_t gui_prog, str_loc_t message, bool *canceled
     return password;
 }
 
-void show_gui_message(str_loc_t gui_prog, str_loc_t message)
+str_loc_t prompt_user_password(str_loc_t title, bool *canceled)
 {
-    bool canceled;
-    (void) ask_gui_password(gui_prog, message, &canceled);
+    if (user_prompt.tty_fd >= 0) {
+        return prompt_tty_password(user_prompt.tty_fd, title, canceled);
+    } else {
+        return prompt_gui_password(user_prompt.gui_prog, title, canceled);
+    }
 }
 
-void ask_password()
+void prompt_user_message(str_loc_t message)
 {
-    // Read the hash first not to bother the user with a password
-    // question in case of errors.
-    str_loc_t stored_hash = { alloc_buffer(BCRYPT_HASHSIZE), 0 };
-    {
+    if (user_prompt.tty_fd >= 0) {
+        message = sprintf_buffer("%s\n", bufptr(message.pos));
+        poll_write_all(user_prompt.tty_fd, message.pos, message.len);
+    } else {
+        bool canceled;
+        (void) prompt_gui_password(user_prompt.gui_prog, message, &canceled);
+    }
+}
+
+void ask_password_cmd()
+{
+    struct ask_password *s = &ds.ask_password;
+
+    if (s->stored_hash.len == 0) {
+        // Read the hash first not to bother the user with a password
+        // question in case of errors.
+        s->stored_hash.pos = alloc_buffer(BCRYPT_HASHSIZE);
         int fd = open(ds.hash_path, O_RDONLY);
         if (fd < 0) {
             fail(
@@ -575,8 +634,8 @@ void ask_password()
         for (;;) {
             ssize_t n = read(
                 fd,
-                bufptr(stored_hash.pos + stored_hash.len),
-                BCRYPT_HASHSIZE - stored_hash.len
+                bufptr(s->stored_hash.pos + s->stored_hash.len),
+                BCRYPT_HASHSIZE - s->stored_hash.len
             );
             if (n < 0) {
                 if (errno == EINTR)
@@ -584,11 +643,11 @@ void ask_password()
                 bad_io("read path=%s", ds.hash_path);
             }
             if (n == 0) {
-                set_bufchar(stored_hash.pos + stored_hash.len, '\0');
+                set_bufchar(s->stored_hash.pos + s->stored_hash.len, '\0');
                 break;
             }
-            stored_hash.len += (size_t) n;
-            if (stored_hash.len == BCRYPT_HASHSIZE) {
+            s->stored_hash.len += (size_t) n;
+            if (s->stored_hash.len == BCRYPT_HASHSIZE) {
                 fail("size of %s exceeds max supported length %d",
                      ds.hash_path, BCRYPT_HASHSIZE);
             }
@@ -599,22 +658,14 @@ void ask_password()
         }
     }
 
-    str_loc_t gui_prog = {0, 0};
-    int tty_fd = open_tty();
-    if (tty_fd < 0) {
-        gui_prog = get_gui_ask_password_prog();
-    }
+    open_user_prompt();
 
     str_loc_t password;
     bool canceled = false;
     str_loc_t message = {0, 0};
     str_loc_t title = sprintf_buffer("Enter password for %s", get_password_title());
     for (;;) {
-        if (tty_fd >= 0) {
-            password = ask_tty_password(tty_fd, title, &canceled);
-        } else {
-            password = ask_gui_password(gui_prog, title, &canceled);
-        }
+        password = prompt_user_password(title, &canceled);
         if (canceled)
             break;
 
@@ -628,24 +679,24 @@ void ask_password()
         size_t computed_hash = alloc_buffer(BCRYPT_HASHSIZE);
 
         const char *crypt_status = crypt_rn(
-            bufptr(password.pos), bufptr(stored_hash.pos),
+            bufptr(password.pos), bufptr(s->stored_hash.pos),
             bufptr(computed_hash), BCRYPT_HASHSIZE
         );
         if (!crypt_status) {
             fail("error when computing password hash using data from %s", ds.hash_path);
         }
-        if (stored_hash.len != strlen(bufptr(computed_hash))) {
-            info("\n'%s'\n'%s'", bufptr(stored_hash.pos), bufptr(computed_hash));
+        if (s->stored_hash.len != strlen(bufptr(computed_hash))) {
+            info("\n'%s'\n'%s'", bufptr(s->stored_hash.pos), bufptr(computed_hash));
             fail(
                 "computed password length mismatch, expected=%zu actual=%zu",
-                stored_hash.len, strlen(bufptr(computed_hash))
+                s->stored_hash.len, strlen(bufptr(computed_hash))
             );
         }
 
         // Use context-independent compare to avoid timing attacks.
         unsigned diff = 0;
-        for (size_t i = 0; i != stored_hash.len; ++i) {
-            diff |= bufchar(computed_hash + i) ^ bufchar(stored_hash.pos + i);
+        for (size_t i = 0; i != s->stored_hash.len; ++i) {
+            diff |= bufchar(computed_hash + i) ^ bufchar(s->stored_hash.pos + i);
         }
         if (!diff)
             break;
@@ -659,30 +710,18 @@ void ask_password()
         cleanup_and_exit(USER_CANCEL_EXIT);
     }
     if (message.len) {
-        if (tty_fd >= 0) {
-            show_tty_message(tty_fd, message);
-        } else {
-            show_gui_message(gui_prog, message);
-        }
+        prompt_user_message(message);
         cleanup_and_exit(1);
     }
 
     poll_write_all(1, password.pos, password.len);
 
-    if (tty_fd >= 0) {
-        int status = close(tty_fd);
-        if (status != 0)
-            bad_io("close fd=%d", tty_fd);
-    }
+    close_user_prompt();
 }
 
 void set_password_hash()
 {
-    str_loc_t gui_prog = {0, 0};
-    int tty_fd = open_tty();
-    if (tty_fd < 0) {
-        gui_prog = get_gui_ask_password_prog();
-    }
+    open_user_prompt();
 
     str_loc_t password;
     bool canceled = false;
@@ -691,11 +730,7 @@ void set_password_hash()
         str_loc_t title = sprintf_buffer(
             "Enter a new password for %s", get_password_title()
         );
-        if (tty_fd >= 0) {
-            password = ask_tty_password(tty_fd, title, &canceled);
-        } else {
-            password = ask_gui_password(gui_prog, title, &canceled);
-        }
+        password = prompt_user_password(title, &canceled);
         if (canceled)
             break;
 
@@ -713,12 +748,7 @@ void set_password_hash()
             "Repeat to confirm the new value for %s", get_password_title()
         );
 
-        str_loc_t password2;
-        if (tty_fd >= 0) {
-            password2 = ask_tty_password(tty_fd, title, &canceled);
-        } else {
-            password2 = ask_gui_password(gui_prog, title, &canceled);
-        }
+        str_loc_t password2 = prompt_user_password(title, &canceled);
         if (canceled)
             break;
 
@@ -733,11 +763,7 @@ void set_password_hash()
         cleanup_and_exit(USER_CANCEL_EXIT);
     }
     if (message.len) {
-        if (tty_fd >= 0) {
-            show_tty_message(tty_fd, message);
-        } else {
-            show_gui_message(gui_prog, message);
-        }
+        prompt_user_message(message);
         cleanup_and_exit(1);
     }
 
@@ -792,11 +818,7 @@ void set_password_hash()
         bad_io("close fd=%d", fd);
     }
 
-    if (tty_fd >= 0) {
-        int status = close(tty_fd);
-        if (status != 0)
-            bad_io("close fd=%d", tty_fd);
-    }
+    close_user_prompt();
 }
 
 __attribute__ ((format (printf, 1, 2)))
@@ -839,12 +861,6 @@ void show_usage()
     cleanup_and_exit(0);
 }
 
-typedef enum {
-    CMD_HELP,
-    CMD_ASK_PASSWORD,
-    CMD_SET_PASSWORD_HASH,
-} CommandId;
-
 static void quit_signal_handler(int signal)
 {
     uint8_t kind = (uint8_t) signal;
@@ -868,7 +884,7 @@ int main(int argc, char **argv)
         "help\0"
         "--help\0"
         "-h\0";
-    static const CommandId command_ids[] = {
+    static const command_id_t command_ids[] = {
         CMD_ASK_PASSWORD,
         CMD_SET_PASSWORD_HASH,
         CMD_HELP,
@@ -887,8 +903,8 @@ int main(int argc, char **argv)
         }
     }
 
-    CommandId command_id = command_ids[index];
-    if (command_id == CMD_HELP) {
+    ds.command_id = command_ids[index];
+    if (ds.command_id == CMD_HELP) {
         show_usage();
     }
 
@@ -941,9 +957,9 @@ int main(int argc, char **argv)
             bad_io("sigaction signal=%d", *s);
     }
 
-    switch (command_ids[index]) {
+    switch (ds.command_id) {
         case CMD_ASK_PASSWORD:
-            ask_password();
+            ask_password_cmd();
             break;
         case CMD_SET_PASSWORD_HASH:
             set_password_hash();

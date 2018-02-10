@@ -1,6 +1,6 @@
-.PHONY: all clean
+.PHONY: compile clean test
 
-all: build/localkit
+compile: build/localkit
 
 build/localkit: main.c build/crypt_blowfish/ready
 	gcc -Wall -Wextra -Werror -g -o $@ main.c build/crypt_blowfish/*.o
@@ -16,3 +16,5 @@ build/crypt_blowfish:
 clean:
 	rm -rf build
 
+test: compile
+	./test.sh
