@@ -1,0 +1,108 @@
+#!/bin/bash
+
+set -e -u
+
+config="$HOME/.config/remcmd"
+
+host="$1"
+remote_dir="$2"
+shift 2
+
+log() {
+	printf "%s" "$*" >&2
+}
+
+err() {
+	log "$@"
+	exit 1
+}
+
+read_config() {
+	[[ -f $config ]] || return
+	local lineno=0
+	{
+		local line
+		while IFS= read -r "$line"; do
+			let lineno+=1
+			parse_config_line "$line"
+		done
+	} < "$config"
+}
+
+parse_config_line() {
+	local s="$1"
+
+	local BLANK='[[:blank:]]'
+	local UNQUOTED_WORD_CHAR='[a-zA-Z0-9._-]'
+	local JSON_QUOTE='"'
+	local JSON_STRING_BODY='"[^"\]*(\\?[^"\]*)*'
+	local JSON_STRING_UNESCAPED_CHAR='[^[:cntrl:]\"]'
+
+	local tokens=()
+	if [[ $s =~ ^$BLANK+(.*) ]]; then
+		s="${BASH_REMATCH[1]}"
+	fi
+	while [[ $s ]]; do
+		local token=
+		if [[ $s =~ ^($UNQUOTED_WORD_CHAR+)(.*) ]]; then
+			token="${BASH_REMATCH[1]}"
+			s="${BASH_REMATCH[2]}"
+		elif [[ $s =~ ^$JSON_QUOTE ]]; then
+			[[ $s =~ ^$JSON_QUOTE($JSON_STRING_BODY)$JSON_QUOTE(.*) ]] || \
+				config_err "unterminated JSON string"
+			token="${BASH_REMATCH[1]}"
+			s="${BASH_REMATCH[2]}"
+			parse_json_string "${BASH_REMATCH[1]}"
+			token="$R"
+		elif [[ $s =~ ^# ]]; then
+			break
+		else
+			config_err "unexpected token start"
+		fi
+		if [[ $s =~ ^$BLANK+(.*) ]]; then
+			s="${BASH_REMATCH[1]}"
+		fi
+		tokens+=("$token")
+	done
+}
+
+config_err() {
+	err "$config:$lineno: $*"
+}
+
+
+# Execute remote command via bash login shell to ensure properly setup
+# environment. That needs some escaping
+
+# Escape argument using single quotas with with each single quote in
+# arg replaced by '"'"'
+escape_for_shell() {
+    local s= arg
+    for arg in "$@"; do
+		if ! [[ $arg =~ ^[-_./a-zA-Z0-9]+$ ]]; then
+			local escaped=
+			while : ; do
+				local before_quote="${arg%%\'*}"
+				[[ $arg == "$before_quote" ]] && break
+				escaped="$escaped$before_quote'\"'\"'"
+				arg="${arg#*\'}"
+			done
+			arg="'$escaped$arg'"
+		fi
+		s+="${s:+ }$arg"
+	done
+	R="$s"
+}
+
+escape_for_shell "$remote_dir"
+escaped_dir="$R"
+escape_for_shell "$@"
+escaped_cmd="$R"
+escape_for_shell "cd $escaped_dir && exec $escaped_cmd"
+src="$R"
+ssh_cmd=(ssh)
+if [[ -t 0 ]]; then
+	ssh_cmd+=(-t)
+fi
+
+exec "${ssh_cmd[@]}" "$host" "exec bash -l -c $src"
