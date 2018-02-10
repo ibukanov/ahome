@@ -10,6 +10,7 @@ d="$HOME/.local/restricted-browser"
 kind=brave
 #kind=chromium
 #kind=chrome
+#kind=firefox
 
 case "$kind" in
 brave )
@@ -60,7 +61,7 @@ esac
 options+=(
     --name="restricted-browser"
     --private="$d"
-    --no3d
+#    --no3d
     --ipc-namespace
 )
 
