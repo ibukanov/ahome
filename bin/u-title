@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/bin/sh
+
 set -e -u
-if [[ $# -eq 0 ]]; then
+
+if test 0 -eq "$#"; then
     echo "${0##*/} requires a title argument" >&2
     exit 1
 fi
@@ -10,5 +12,7 @@ title="$1"
 shift
 
 printf '\033]0;%s\007' "$title"
-[[ $# -eq 0 ]] && exit 0
+if test 0 -eq "$#"; then
+    exit 0
+fi
 exec "$@"

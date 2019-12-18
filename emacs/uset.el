@@ -1,17 +1,23 @@
 ;;; uset - user Emacs setup -*- lexical-binding: t; -*-
 
-(defvar uset--missing-package-list ()
+(defvar uset--missing-package-list nil
   "List of package that should be installed.")
 
 (defun uset--report-missing-packages ()
   (when uset--missing-package-list
     (nreverse uset--missing-package-list)
-    (message "Missing packages: %s" uset--missing-package-list)))
+    (message
+     (concat "Missing packages were detected."
+	     " Use the following code to install them:\n"
+	     "(progn\n%s)")
+     (mapconcat (lambda (package) (format "  (package-install '%s)" package))
+		uset--missing-package-list "\n"))
+    (setq uset--missing-package-list nil)))
 
-(defun uset-check-package (name)
-  (if (package-installed-p name)
+(defun uset-check-package (package)
+  (if (package-installed-p package)
       t
-    (setq uset--missing-package-list (cons name uset--missing-package-list))
+    (setq uset--missing-package-list (cons package uset--missing-package-list))
     (add-hook 'after-init-hook 'uset--report-missing-packages)
     nil))
 
@@ -221,17 +227,25 @@ then just show that file."
   (show-paren-mode t))
 
 (defun uset--sh-mode-hook ()
-  (message "****** sh-basic-offset=%d" sh-basic-offset)
   (setq sh-basic-offset 2)
   (setq sh-indent-for-case-label 0)
   (setq sh-indent-for-case-alt '+)
+  (setq sh-indent-after-continuation 'always)
+  (setq sh-indent-for-continuation '++)
   (setq indent-tab-mode nil))
   
+(defun uset--init-ocaml ()
+  (uset-check-package 'tuareg)
+  )
+
 (defun uset--init-ptogramming ()
   (add-hook 'prog-mode-hook 'uset--common-programming-hook)
 
   ;; At the tail to run after the default value
   (add-hook 'sh-mode-hook 'uset--sh-mode-hook t)
+
+  (uset--init-ocaml)
+
   )
 
 ;;; GUI SETUP
@@ -259,10 +273,15 @@ then just show that file."
 
 (defun uset--wrap-command (lookup)
   (lambda (&rest args)
-    "Wraped command"
-    (interactive (advice-eval-interactive-spec
-		  (let ((cmd (funcall lookup)))
-		    (when cmd (cadr (interactive-form cmd))))))
+    "Lookup and call a function interactively.  The lookup should
+be a function that return an interactive function. Typically the
+lookup calls lookup-keys etc. to get the current bindings for a
+particular key that `uset-keys-mode-map` hides or overrides."
+    (interactive (let ((cmd (funcall lookup)))
+		   (when cmd
+		     (let ((interactive-spec (cadr (interactive-form cmd))))
+		       (when interactive-spec
+			 (advice-eval-interactive-spec interactive-spec))))))
     (let ((cmd (funcall lookup)))
       (when cmd (apply cmd args)))))
 
@@ -272,7 +291,7 @@ then just show that file."
       uset-keys-mode-map
       (kbd alias-key-string)
       (uset--wrap-command
-       (lambda () (lookup-key (current-global-map) global-key))))))
+       (lambda () (key-binding global-key))))))
 
 (defun uset--add-subkey (subkey-string command)
   (define-key uset-keys-mode-map (vconcat (kbd uset--main-prefix) (kbd subkey-string)) command))
@@ -315,9 +334,9 @@ then just show that file."
 
   ;; C-x k <enter> is too long for buffer kill, so make "prefix k" as
   ;; shortcut.
-  ;;
-  ;; (uset--add-subkey "k" (lambda () (interactive) (kill-buffer nil)))
-
+  (when nil
+    (uset--add-subkey "k" (lambda () (interactive) (kill-buffer nil))))
+  
   (uset--add-subkey "t" (lambda () (interactive) (uset--run-term "term")))
 
   (mapc (lambda (subkey-string)
@@ -368,9 +387,14 @@ then just show that file."
 
   (uset-keys-mode t)
 
-  ;; Activate standard copy-paste
-  (cua-mode t)
-  ;;(transient-mark-mode 1)
+  ;; Use Emacs default cut-and-paste but show the region when it is active.
+  (cua-mode nil)
+  (cua-selection-mode nil)
+  (transient-mark-mode 1)
+
+  ;; Map Ctrl-z to the undo. Note that the default action for Ctrl-z
+  ;; is also bound to C-x C-z, so use that to suspends Emacs frames.
+  (uset--alias-key "C-/" "C-z")
 
   (setq set-mark-command-repeat-pop 1)
   (setq undo-limit 2000000)
@@ -478,18 +502,24 @@ vertically.
 
 Return the new window.
 "
-  (let* ((window (selected-window))
-	 (frame (window-frame window))
-	 (width (frame-width frame))
-	 (decoration-width (if window-system 3 2))
-	 (usable-width (max 1 (- width decoration-width))))
-    (if (< usable-width 140)
-	(split-window-vertically)
-      (let ((left-width (+ 80 decoration-width)))
-	(when (> usable-width (+ 160 decoration-width))
-	  (setq left-width (min (+ 100 decoration-width) (- usable-width 80))))
-	(split-window-horizontally left-width)))))
-
+  (let*
+      ((window (selected-window))
+       (frame (window-frame window))
+       (width (frame-width frame))
+       (decoration-width (if window-system 3 2))
+       (usable-width (max 1 (- width decoration-width)))
+       (new-window
+	(if (< usable-width 140)
+	    (split-window-vertically)
+	  (let ((left-width (+ 80 decoration-width)))
+	    (when (> usable-width (+ 160 decoration-width))
+	      (setq left-width (min (+ 100 decoration-width) (- usable-width 80))))
+	    (split-window-horizontally left-width))))
+       ;; Show the scratch buffer in the new window for now
+       (new-window-buffer (get-buffer "*scratch*")))
+    (when new-window-buffer
+      (set-window-buffer new-window new-window-buffer))))
+    
 (defun uset--2-window-split ()
   (interactive)
   (delete-other-windows)
@@ -516,10 +546,15 @@ Return the new window.
 	(get-mru-window)
       window)))
 
+(defun uset--file-like-buffer (buffer)
+  (or (buffer-file-name buffer)
+      (let ((name (buffer-name buffer)))
+	(string-equal name "*Locate*"))))
+
 (defun uset--get-window-to-show-buffer (buffer)
   "Select or create window to show a buffer without window."
   (cond
-   ((buffer-file-name buffer)
+   ((uset--file-like-buffer buffer)
     (uset--get-main-source-window))
    ((one-window-p)
     (uset--split-window-in-two))

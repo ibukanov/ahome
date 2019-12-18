@@ -10,12 +10,12 @@ if [[ $self == ${SSH_ASKPASS-} ]]; then
 fi
 
 cd "$HOME/.local/hsetup/ssh-agent-keys"
-readonly key_group_dir_prefix="key-group-"
+readonly key_set_dir_prefix="set-"
 
 get_key_group_socket() {
 	local key_group_dir="$1"
 	local dir_name="${key_group_dir##*/}"
-	local group_name="${key_group_dir##$key_group_dir_prefix}"
+	local group_name="${key_group_dir##$key_set_dir_prefix}"
 	R="$XDG_RUNTIME_DIR/ssh-agent-$group_name.socket"
 }
 
@@ -23,7 +23,7 @@ if [[ ${1-} == --start-agents ]]; then
 	shift
 	rm -f "$SSH_AUTH_SOCK"
 	/usr/bin/ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
-	for key_group in "$key_group_dir_prefix"*; do
+	for key_group in "$key_set_dir_prefix"*; do
 		get_key_group_socket "$key_group"
 		socket="$R"
 		rm -f "$socket"
@@ -57,8 +57,8 @@ ensure_agent_keys() {
 	fi
 }
 
-ensure_agent_keys . "$SSH_AUTH_SOCK"
-for key_group in "$key_group_dir_prefix"*; do
+ensure_agent_keys common "$SSH_AUTH_SOCK"
+for key_group in "$key_set_dir_prefix"*; do
 	get_key_group_socket "$key_group"
 	ensure_agent_keys "$key_group" "$R"
 done

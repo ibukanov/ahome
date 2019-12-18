@@ -1,4 +1,6 @@
 defutf8 on
-escape ^Ll
+#escape ^Ll
 vbell off
 bell_msg ""
+term screen-256color
+

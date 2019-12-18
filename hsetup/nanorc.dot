@@ -1,7 +1,7 @@
-set speller /usr/bin/hunspell
+set speller hunspell
 unset backup
-#set backupdir /tmp
-#set const
-set nowrap
+set softwrap
+set fill 72
 set smarthome
+set autoindent
 set morespace
