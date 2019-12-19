@@ -513,6 +513,10 @@ setup_env() {
             done
         fi
     done
+
+    if test -S /etc/systemd/system/tliset-ssh-agent.socket; then
+        add_env SSH_AUTH_SOCK /run/tliset-ssh-agent/common.sock
+    fi
 }
 
 setup_emacs() {
