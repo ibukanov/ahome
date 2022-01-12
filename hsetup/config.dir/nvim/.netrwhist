@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =9
+let g:netrw_dirhist_9='/home/igor/a'
+let g:netrw_dirhist_8='/home/igor/a/hippyru'
+let g:netrw_dirhist_7='/home/igor/a'
+let g:netrw_dirhist_6='/home/igor/a/bin'
+let g:netrw_dirhist_5='/home/igor/a/bin/localkit'
+let g:netrw_dirhist_4='/home/igor/a/bin'
+let g:netrw_dirhist_3='/home/igor/Private/util/bin'
+let g:netrw_dirhist_2='/home/igor/p/bergenrabbit/static/calendar'
+let g:netrw_dirhist_1='/home/igor/p/bergenrabbit/static'
+let g:netrw_dirhist_0='/home/igor/p/bergenrabbit'
