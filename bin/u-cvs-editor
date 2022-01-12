@@ -1,33 +1,51 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e -u
 
-editor="$(type -P geany || :)"
-if [[ $editor ]]; then
-    exec "$editor" -imnst "$@"
+has_editor() {
+    local name
+    name="$1"
+    type "${name}" > /dev/null 2>&1
+}
+
+if test -c /dev/tty || ! test -d /dev; then
+    if has_editor vimx; then
+        exec vimx "$@"
+    fi
+    if has_editor vim; then
+        exec vim "$@"
+    fi
+    exec vi "$@"
 fi
 
-if [[ ${INSIDE_EMACS_CLIENT-} != true ]]; then
-    editor=$(type -P emacsclient || :)
-    if [[ $editor ]]; then
+if has_editor gvim; then
+    exec gvim "$@"
+fi
+
+if has_editor geany; then
+    exec geany -imnst "$@"
+fi
+
+if has_editor geany; then
+    exec geany -imnst "$@"
+fi
+
+if test "${INSIDE_EMACS_CLIENT-}" != true; then
+    if has_editor emacsclient; then
         export INSIDE_EMACS_CLIENT=true
 
         # Under Emacs either EMACS environment variable is set (we are
         # run from the shell) or TERM is dumb (we are run directly as a
         # command). In those cases do not create a new Emacs frame.
         if [[ ${EMACS-} || ${TERM-} == dumb ]]; then
-            exec "$editor" -a "$0" "$@"
+            exec emacsclient -a "$0" "$@"
         fi
-        exec "$editor" -a "$0" -t "$@"
+        exec emacsclient -a "$0" -t "$@"
     fi
 fi
 
+
 # Emacsclient is not found or we are invoked recursively by emacsclient
 # that cannot connect to emacs daemon. Fallback to other editors.
-
-editor=$(type -P nano || :)
-if [[ $editor ]]; then
-   exec "$editor" --nowrap "$@"
-fi
 
 exec vi "$@"
