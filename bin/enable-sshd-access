@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e -u
-
-exec ssh -p 2022 -R 21028:127.0.0.1:22 -N \
-    -o CheckHostIP=no br-user@bergenrabbit.net

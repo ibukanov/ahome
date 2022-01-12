@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -e -u
+
+# Use the following to enable logging directly to the current VNC screen on MAC
+# sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCAlwaysStartOnConsole -bool true
+
+err() {
+    printf '%s\n' "$*" >&2
+    exit 1
+}
+
+ssh_login=br-user@bergenrabbit.net
+server_port=
+
+if type system_profiler > /dev/null 2>&1; then
+    s="$(system_profiler SPHardwareDataType | \
+        egrep '^ +Serial Number' || :)"
+    if test "${s}"; then
+        s="${s#*:}"
+        s="${s## }"
+        case "${s}" in
+        C02RP3HXG8WP)
+            # MacBook Pro 15" from 2016
+            server_port=21028
+            ;;
+        esac
+    fi
+fi
+
+if ! test "${server_port}"; then
+    echo "Неизвестный компьютер," \
+        "используется порт для ssh доступа по умолчанию." >&2
+    server_port=21027
+fi
+
+set -- ssh
+set -- "$@" -R "${server_port}:127.0.0.1:22"
+set -- "$@" -o ExitOnForwardFailure=yes
+set -- "$@" -o CheckHostIP=no
+set -- "$@" -N
+set -- "$@" "${ssh_login}"
+
+echo "Открытие удаленного ssh доступа через порт ${server_port}" \
+    "на сервере ${ssh_login#*@} ..." >&2
+code=0
+"$@" || code="$?"
+echo "Удаленный доступ завершился с кодом ${code}" >&2
