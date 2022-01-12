@@ -4,5 +4,5 @@ set -e -u
 
 $HOME/a/hsetup/add-ssh-keys || :
 
-geany &
+#geany &
 u-term &
