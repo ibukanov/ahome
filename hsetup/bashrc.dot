@@ -11,7 +11,7 @@ export LANG="C.UTF-8"
 #export LC_ALL="C"
 
 if [[ -f "$HOME/.local/hsetup/env" ]]; then
-    source "$HOME/.local/hsetup/env"
+  source "$HOME/.local/hsetup/env"
 fi
 
 export CVSEDITOR=u-cvs-editor
@@ -21,6 +21,12 @@ export SVN_EDITOR=u-cvs-editor
 ### INTERACTIVE-ONLY SETTINGS when PS1 is set
 if test -n "${PS1+1}"; then
 
-    # Disable blinking cursor in linux console
-    test "$TERM" = linux && echo -e '\033[?17;0;64c'
+  #set -o vi
+
+  HISTFILESIZE=10000
+  HISTSIZE=10000
+  HISTCONTROL=erasedups:ignorespace
+
+  # Disable blinking cursor in linux console
+  test "$TERM" = linux && echo -e '\033[?17;0;64c'
 fi
