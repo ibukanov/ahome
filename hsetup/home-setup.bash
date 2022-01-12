@@ -514,8 +514,8 @@ setup_env() {
         fi
     done
 
-    if test -f /etc/systemd/system/tliset-ssh-agent.socket; then
-        add_env SSH_AUTH_SOCK /run/tliset-ssh-agent/common.sock
+    if test -S /run/tliset-ssh-agent/common/socket; then
+        add_env SSH_AUTH_SOCK /run/tliset-ssh-agent/common/socket
     fi
 }
 
@@ -570,7 +570,6 @@ setup_git_config() {
 	gnome | gnome-* | xubuntu | lubuntu )
 		credential_helper_paths+=(
 			"/usr/libexec/git-core/git-credential-libsecret"
-			"/usr/share/doc/git/contrib/credential/gnome-keyring/git-credential-gnome-keyring"
 		)
 		;;
     esac
@@ -584,7 +583,7 @@ setup_git_config() {
                 credential_helper=""
             done
             [[ $credential_helper ]] || \
-                err "none of credential helpers for git from (${credential_helper_paths[@]}) exists or executable"
+                err "none of credential helpers for git from (${credential_helper_paths[@]}) exists or executable. You may need to install git-credential-libsecret or similar package."
         fi
         config_entries+=(credential helper "$credential_helper")
     fi
@@ -784,7 +783,7 @@ main() {
     path_dir MANPATH p/git-subrepo/man
 
     # dot files that are symlinked to home
-    for i in "$hsetup_source_dir/"*.dot; do
+    for i in "${hsetup_source_dir}/"*.dot; do
         name="${i##*/}"
         action_symlink "$i" . ".${name%.dot}"
     done
@@ -795,6 +794,17 @@ main() {
     action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 
     action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
+
+    #action_symlink -d "$hsetup_source_dir/vim" . .vim
+    action_dir ".local/vim"
+    action_dir ".local/vim/backup"
+    action_dir ".local/vim/swap"
+    action_dir ".local/vim/undo"
+
+    for i in "${hsetup_source_dir}/config.dir/"*; do
+    	test -d "${i}" || continue
+        action_symlink -d "${i}" .config "${i##*/}"
+    done
 
     action_dir .config/autostart
     action_write_file .config/autostart u-autostart.desktop "\
