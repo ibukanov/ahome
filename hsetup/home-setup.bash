@@ -564,16 +564,16 @@ setup_git_config() {
 		)
     fi
 
-    local -a credential_helper_paths=()
+    local credential_helper
+    credential_helper=
     local desktop_session="${DESKTOP_SESSION-}"
     case "${desktop_session,,}" in
 	gnome | gnome-* | xubuntu | lubuntu )
-		credential_helper_paths+=(
-			"/usr/libexec/git-core/git-credential-libsecret"
-		)
+		# Disabled for now as Debian does not ship a helper binary, only the source.
+		: credential_helper="/usr/libexec/git-core/git-credential-libsecret"
 		;;
     esac
-    if [[ ${#credential_helper_paths[@]} -ne 0 ]]; then
+    if test "$credential_helper"; then
         local credential_helper=""
         if let Setup; then
             for credential_helper in "${credential_helper_paths[@]}"; do
@@ -582,8 +582,10 @@ setup_git_config() {
                 fi
                 credential_helper=""
             done
-            [[ $credential_helper ]] || \
-                err "none of credential helpers for git from (${credential_helper_paths[@]}) exists or executable. You may need to install git-credential-libsecret or similar package."
+            test -x "$credential_helper" || \
+                err "the credential helpers for git from $credential_helper"\
+                	"does not exists or is not an executable. You may need"\
+                	"to install git-credential-libsecret or similar package."
         fi
         config_entries+=(credential helper "$credential_helper")
     fi
@@ -794,6 +796,8 @@ main() {
     action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 
     action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
+
+    action_symlink -d "$hsetup_source_dir/wezterm" .config wezterm
 
     #action_symlink -d "$hsetup_source_dir/vim" . .vim
     action_dir ".local/vim"
