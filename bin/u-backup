@@ -58,9 +58,6 @@ read_config_lines() {
 		check_single_required_arg
 		local dir
 		dir="${args[0]}"
-		if [[ ${dir:0:1} != / ]]; then
-		    dir="${home}/${dir}"
-		fi
 		backup_paths+=("${dir}")
 		;;
 
@@ -112,9 +109,16 @@ check_config() {
 	    err "failed to find in $media_top media with $backup_media_dir directory"
 	local_backup_root="$found/$backup_media_dir"
     fi
-    if [[ -z $local_backup_root ]]; then
-	local_backup_root="/var/lib/u-backup"
+    if ! test "$local_backup_root"; then
+	local_backup_root="$HOME/.backup"
     fi
+    if ! test -e "$local_backup_root" && ! test -h "$local_backup_root"; then
+	mkdir "$local_backup_root"
+    elif ! test -d "$local_backup_root"; then
+	err "$local_backup_root exists and is not a directory"
+    fi
+    local_backup_root="$local_backup_root/borg"
+
     backup_url="file://$local_backup_root"
 
     local path
@@ -137,12 +141,12 @@ change_password() {
 }
 
 read_password() {
-    password="$("${home}/a/bin/u-kit" ask-password -t backup -p "$password_hash_location")"
+    password="$(a/bin/u-kit ask-password -t backup -p "$password_hash_location")"
 }
 
 create_local_backup() {
 
-    if [[ ! -d $local_backup_root ]]; then
+    if test ! -d "$local_backup_root"; then
 	rm -rf "$local_backup_root.tmp"
 	printf %s "$password" | \
 	    BORG_PASSPHRASE_FD=0 borg init -e repokey "$local_backup_root.tmp"
@@ -160,31 +164,13 @@ create_local_backup() {
 	borg create "${args[@]}"
 }
 
-create_full_tar_backup() {
-    local -a tar_args
-    tar_args=(-C / -cf - --checkpoint=1000)
-    local path
-    for path in "${backup_paths[@]}"; do
-	tar_args+=("${path#/}")
-    done
-
-    local date path
-    date="$(date +%Y-%m-%d)"
-    path="${home}/Downloads/ubackup-${date}.tar.enc"
-
-    tar "${tar_args[@]}" | \
-	{ gpg --batch --passphrase-fd 3 -c >"${path}.tmp" 3<<<"${password}"; }
-    mv "${path}.tmp" "${path}"
-
-}
-
 copy_to_remote() {
     local i target ssh_sock
     for ((i=0; i<${#backup_targets[@]}; i+=2)); do
 	target="${backup_targets[i]}"
 	ssh_sock="${backup_targets[i+1]}"
 	SSH_AUTH_SOCK="${ssh_sock}" \
-	    cmd_log rsync -rtl -P --delete-after "$local_backup_root" "$target" || :
+	    cmd_log rsync -rtl -Pv --delete-after "$local_backup_root" "$target" || :
     done
 }
 
@@ -194,47 +180,27 @@ usage() {
 
 self="$(realpath "${BASH_SOURCE[-1]}")"
 
-if [[ ${1-} = "--under-sudo-create-backup" ]]; then
-    IFS= read -r password
-    create_local_backup
-
-fi
-
 show_usage=
 change_password=
-full_tar_backup=
 
 while getopts ":hPt" OPT; do
     case "$OPT" in
-	h ) show_usage=1 ;;
-	P ) change_password=1 ;;
-	t ) full_tar_backup=1 ;;
-	* ) err "unrecognized shell option - $OPTARG" ;;
+    h ) show_usage=1 ;;
+    P ) change_password=1 ;;
+    * ) err "unrecognized shell option - $OPTARG" ;;
     esac
-
 done
-shift $(($OPTIND - 1))
+shift "$((OPTIND - 1))"
 
-if [[ $show_usage ]]; then
+if test "$show_usage"; then
     usage
     exit 0
 fi
 
-[[ $# -eq 0 ]] || err "unexpected argument"
+test $# -eq 0 || err "unexpected argument"
 
-if [[ $change_password ]]; then
-    user="${USER}"
-    home="${HOME}"
-else
-    [[ ${UID} -eq 0 ]] || err "the command must run as root"
-    [[ ${SUDO_USER-} ]] || err "the command must run undo sudo"
-    user="${SUDO_USER}"
-    s="$(getent passwd "${SUDO_USER}")"
-    s="${s#*:*:*:*:*:}"
-    home="${s%%:*}"
-fi
 
-cd "${home}"
+cd "$HOME"
 read_config ".local/hsetup/backup.config"
 check_config
 
@@ -244,11 +210,6 @@ if [[ $change_password ]]; then
 fi
 
 read_password
-
-if [[ $full_tar_backup ]]; then
-    create_full_tar_backup
-    exit 0
-fi
 
 create_local_backup
 copy_to_remote
