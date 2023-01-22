@@ -61,56 +61,56 @@ declare -A current_file_set=()
 declare -A current_dir_set=()
 declare -a current_dir_list=()
 
+user_systemd_unit_change=
+
 init_path_list() {
     local f=.local/hsetup/list
-    if let Setup; then
-        if [[ -f .local/hsetup/list.new ]]; then
+    if is_setup; then
+        if test -f .local/hsetup/list.new; then
             log "Adding .local/hsetup/list.new left from a failed run into $f"
             cat .local/hsetup/list.new >> "$f"
             rm .local/hsetup/list.new
         fi
     fi
-    if [[ -e $f ]]; then
-        local -a lines
-        mapfile -t lines < "$f"
-        local i
-        for ((i=0; i<${#lines[@]}; i+=1)); do
-            local line="${lines[i]}"
-            local pattern='^([^[:blank:]]+)([[:blank:]]+(.+))?$'
-            [[ $line =~ $pattern ]] || \
-                err "$f:$((i+1)): line does not match $pattern"
-            local kind="${BASH_REMATCH[1]}"
-            local value="${BASH_REMATCH[3]}"
+    if test -e "$f"; then
+        local lineno kind value
+        lineno=0
+        while read -r kind value; do
+            : "$((lineno += 1))"
             case "$kind" in
             file | symlink )
                 historic_file_set[$value]="$kind"
                 ;;
             dir ) ;;
             * )
-                log "$f:$((i+1)): ignoring unknown entry $kind"
+                log "$f:$lineno: ignoring unknown entry $kind"
                 ;;
             esac
-        done
+        done < "$f"
     fi
 }
 
 record_path_entry() {
-    local kind="$1"
-    [[ $kind =~ ^dir|file|symlink$ ]] || err "unknown kind '$kind'"
-    local path="$2"
-    [[ $path =~ $'\n' ]] && err "path contains newlines - '$path'"
-    [[ $path =~ "'" ]] && err "path contains single quotas - '$path'"
-    [[ $path =~ [[:blank:]] ]] && err "path contains blanks - '$path'"
+    local kind path
+    kind="$1"
+    path="$2"
+    case "$kind" in
+    dir | file | symlink ) : ;;
+    *) err "unknown kind '$kind'" ;;
+    esac
+    case "$path" in
+    *[!/a-zA-Z0-9._-]* ) "path contains unsupported characters - '$path'";;
+    esac
 
-    if [[ $kind == dir ]]; then
+    if test "$kind" = dir; then
         [[ ${current_dir_set[$path]-} ]] && return 1
         current_dir_set[$path]=1
     else
         [[ ${current_file_set[$path]-} ]] && return 1
         current_file_set[$path]=1
     fi
-    if let Setup; then
-        if [[ ! -d .local/hsetup ]]; then
+    if is_setup; then
+        if ! test -d .local/hsetup; then
             cmd_log mkdir -p .local/hsetup
         fi
         printf "%s %s\n" "$kind" "$path" >> .local/hsetup/list.new
@@ -120,7 +120,7 @@ record_path_entry() {
 
 clean_files() {
     local cleanup_list=()
-    if let Setup; then
+    if is_setup; then
         local path
         if let ${#historic_file_set[@]}; then
             for path in "${!historic_file_set[@]}"; do
@@ -149,7 +149,7 @@ clean_files() {
         fi
         mv .local/hsetup/list.new .local/hsetup/list
     fi
-    if let Clean; then
+    if is_clean; then
         # Try to remove both historic and this run files in case the historic
         # DB was damaged or removed
         if let ${#historic_file_set[@]}; then
@@ -164,33 +164,38 @@ clean_files() {
 }
 
 action_dir() {
-    local dir="$1"
-    [[ $dir == . ]] && return 0
-    [[ $dir ]] || err "dir empty"
-    [[ dir =~ ^/ ]] && err "dir is absolute - $dir"
-    [[ dir =~ /$ ]] && err "dir ends with slash - $dir"
-    [[ dir =~ // ]] && err "dir contains double slash - $dir"
-    [[ dir =~ (^|/)\.(/|$) ]] && \
+    local dir
+    dir="$1"
+    test "$dir" = . && return 0
+    test "$dir" || err "dir empty"
+    case "$dir" in
+    /* ) "dir is absolute - $dir" ;;
+    */ ) "dir ends with slash - $dir" ;;
+    *//* ) "dir contains double slash - $dir" ;;
+    \./* | */\. | */\./* )
         err "dir contains path component that is single dot - $dir"
+        ;;
+    esac
 
     local s=
     while :; do
-        local name="${dir%%/*}"
+        local name
+        name="${dir%%/*}"
         s+="${s:+/}$name"
         if record_path_entry dir "$s"; then
-            if let Setup; then
-                if [[ ! -d "$s" ]]; then
-                    [[ -e "$s" ]] && err "$s exists and is not directory"
+            if is_setup; then
+                if ! test -d "$s"; then
+                    test -e "$s" && err "$s exists and is not directory"
                     cmd_log mkdir "$s"
                 fi
             fi
-            if let Clean; then
-                if [[ -e "$s" ]]; then
-                    [[ -d "$s" ]] || err "$s exists and is not directory"
+            if is_clean; then
+                if test -e "$s"; then
+                    test -d "$s" || err "$s exists and is not directory"
                 fi
             fi
         fi
-        [[ $name == "$dir" ]] && break
+        test "$name" = "$dir" && break
         dir="${dir#*/}"
     done
 }
@@ -207,60 +212,65 @@ action_symlink() {
     done
     shift $((OPTIND - 1))
 
-    local from="$1" link_dir="$2"
-    [[ -n $link_dir ]] || err "empty link_dir"
-    local link_name="${3-${from##*/}}"
-    local link_path="$link_dir/$link_name"
+    local from link_dir link_name link_path
+    from="$1"
+    link_dir="$2"
+    link_name="${3-${from##*/}}"
+    link_path="$link_dir/$link_name"
+    test "$link_dir" || err "empty link_dir"
 
     record_path_entry symlink "$link_path" || \
         err "duplicated action_symlink for $link_path"
 
     local target
-    if [[ $link_dir == "." ]]; then
+    if test "$link_dir" = "."; then
         target="$from"
     else
         local s="$link_dir"
         target=""
         while :; do
-            local name="${s%%/*}"
-            [[ name != . && name != .. ]] || err "link_dir contains . or .. as path component"
-            target+="../"
-            s="${s:$((${#name}+1))}"
-            if [[ -z $s ]]; then
-                break
-            fi
+            local name
+            name="${s%%/*}"
+            test "$name" != . && test "$name" != .. \
+                || err "link_dir contains . or .. as path component"
+            target="$target../"
+            case "$s" in
+            */* ) : ;;
+            * ) break ;;
+            esac
+            s="${s#*/}"
         done
         target="$target$from"
     fi
 
-    if let Setup; then
-        if [[ ! -e $from ]]; then
-            if [[ $skip_if_not_found ]]; then
+    if is_setup; then
+        if ! test -e "$from"; then
+            if test "$skip_if_not_found"; then
                 return 0
             fi
             err "$from does not exist"
         fi
-        [[ -h $from ]] && err "$from is symbolic link"
-        if [[ -n $link_is_dir ]]; then
-            [[ -d $from ]] || err "$from is not an existing directory"
+        test -h "$from" && err "$from is symbolic link"
+        if test "$link_is_dir"; then
+            test -d "$from" || err "$from is not an existing directory"
         else
-            [[ -f $from ]] || err "$from is not an existing regular file"
+            test -f "$from" || err "$from is not an existing regular file"
         fi
     fi
 
     action_dir "$link_dir"
 
-    if let Setup; then
-        if [[ -h "$link_path" ]]; then
-            [[ "$(readlink "$link_path")" == "$target" ]] && return 0
+    if is_setup; then
+        if test -h "$link_path"; then
+            test "$(readlink "$link_path")" = "$target" && return 0
             cmd_log rm "$link_path"
-        elif [[ -d "$link_path" ]]; then
-            [[ -z "$(ls -A "$link_path")" ]] ||\
+        elif test -d "$link_path"; then
+            test -z "$(ls -A "$link_path")" ||\
                 err "$link_path is non-empty directory, remove it manually and re-run"
             cmd_log rmdir "$link_path"
-        elif [[ -f "$link_path" ]]; then
+        elif test -f "$link_path"; then
             cmd_log rm "$link_path"
-        elif [[ -e "$link_path" ]]; then
+        elif test -e "$link_path"; then
             err "$link_path is a socket or other special file, remove it manually and re-run"
         fi
         cmd_log ln -s "$target" "$link_path"
@@ -270,6 +280,8 @@ action_symlink() {
 # On failures this may remove the file or leave it with inconsistent
 # content. This is fine as the script should be rerun in this case.
 action_write_file() {
+    R=
+
     local OPTIND opt executable= mode=
 
     while getopts m:x opt; do
@@ -280,18 +292,20 @@ action_write_file() {
         esac
     done
     shift $((OPTIND - 1))
-    [[ -z $executable || -z $mode ]] || err "only one of -m, -x can be given"
+    test -z "$executable" || test -z "$mode" \
+        || err "only one of -m, -x can be given"
 
-    local dir="$1" name="$2"
+    local dir name
+    dir="$1" name="$2"
     shift 2
 
     local text
-    if [[ $# -eq 0 ]]; then
+    if test $# -eq 0; then
         # Read stdin
         local -a lines
         mapfile lines
         printf -v text %s "${lines[@]:+${lines[@]}}"
-    elif [[ $# -eq 1 ]]; then
+    elif test $# -eq 1; then
         text="$1"
     else
         err "unexpected arguments"
@@ -303,18 +317,18 @@ action_write_file() {
     record_path_entry file "$path" || \
         err "duplicated action_file for $path"
 
-    if let Setup; then
+    if is_setup; then
         local new_file= mode_mismatch=
-        if [[ ! -f "$path" || -h "$path" ]]; then
+        if ! test -f "$path" || test -h "$path"; then
             new_file=1
-        elif read_file "$path" && [[ $text == "$R" ]]; then
+        elif read_file "$path" && test "$text" = "$R"; then
             # ensure the mode matches umask
             local expected_mode
-            if [[ -n $mode ]]; then
+            if test "$mode"; then
                 expected_mode="$mode"
             else
                 expected_mode=666
-                if [[ -n $executable ]]; then
+                if test "$executable"; then
                     expected_mode=777
                 fi
                 # prefix with 0 to force octal interpretation
@@ -322,17 +336,16 @@ action_write_file() {
             fi
             local s
             s="$(exec find "$path" -maxdepth 0 -perm "$expected_mode" -printf 1)"
-            if [[ -n $s ]]; then
-                R=
+            if test "$s"; then
                 return 0
             fi
             mode_mismatch=1
         fi
 
-        if [[ $new_file ]]; then
+        if test "$new_file"; then
             log "creating new file $path"
         else
-            if [[ -z $mode_mismatch ]]; then
+            if ! test "$mode_mismatch"; then
                  log "re-creating $path with new content"
             else
                  log "re-creating $path to ensure proper permissions"
@@ -345,14 +358,46 @@ action_write_file() {
         rm -f "$path"
 
         printf %s "$text" > $path
-        if [[ -n $mode ]]; then
+        if test "$mode"; then
             chmod "$mode" "$path"
-        elif [[ -n $executable ]]; then
+        elif test "$executable"; then
             chmod +x "$path"
         fi
     fi
     R=1
 }
+
+
+action_write_user_systemd_unit() {
+    local OPTIND opt enable
+    enable=
+    while getopts e opt; do
+        case "$opt" in
+        e ) enable=1;;
+        * ) err "unknown option '$opt'";;
+        esac
+    done
+    shift $((OPTIND - 1))
+    local unit text
+    unit="$1"
+    text="$2"
+
+    if is_clean && test "$enable"; then
+        if systemctl --quiet is-enabled "$unit"; then
+            cmd_log systemctl disable "$unit"
+        fi
+    fi
+    action_write_file .config/systemd/user "$unit" "$text"
+    if test "$R" && is_setup; then
+        user_systemd_unit_change=1
+    fi
+    if is_setup && test "$enable"; then
+        if ! systemctl --quiet is-enabled "$unit"; then
+            cmd_log systemctl enable "$unit"
+        fi
+    fi
+}
+
 
 add_env() {
     local name="$1"
@@ -395,8 +440,9 @@ path_dir() {
 
     local more=1
     while let more; do
-        local s="${value%%:*}"
-        if [[ $s == "$value" ]]; then
+        local s
+        s="${value%%:*}"
+        if test "$s" = "$value"; then
             more=0
         fi
         if check_dir "$s"; then
@@ -513,10 +559,6 @@ setup_env() {
             done
         fi
     done
-
-    if test -S /run/tliset-ssh-agent/common/socket; then
-        add_env SSH_AUTH_SOCK /run/tliset-ssh-agent/common/socket
-    fi
 }
 
 setup_emacs() {
@@ -527,7 +569,7 @@ setup_emacs() {
     action_dir "$emacs_dir/backup"
 
     if ! [[ -f $emacs_init ]]; then
-        if let Setup; then
+        if is_setup; then
             log "creating $emacs_init"
             printf %s "$emacs_load_command" > $emacs_init
         fi
@@ -535,14 +577,14 @@ setup_emacs() {
         local -a lines
         mapfile -n 1 lines < $emacs_init
         if [[ ${#lines[@]} -eq 1 && ${lines[0]} == "$emacs_load_command" ]]; then
-            if let Clean; then
+            if is_clean; then
                 log "removing custom init file into $emacs_init"
                 mapfile lines < $emacs_init
                 printf %s "${lines[@]:1}" > $emacs_init
             fi
             return 0
         fi
-        if let Setup; then
+        if is_setup; then
             log "inserting custom init file into $emacs_init"
             mapfile lines < $emacs_init
             printf %s "$emacs_load_command" "${lines[@]:+${lines[@]}}" > $emacs_init
@@ -575,7 +617,7 @@ setup_git_config() {
     esac
     if test "$credential_helper"; then
         local credential_helper=""
-        if let Setup; then
+        if is_setup; then
             for credential_helper in "${credential_helper_paths[@]}"; do
                 if [[ -x "$credential_helper" ]]; then
                     break
@@ -590,7 +632,7 @@ setup_git_config() {
         config_entries+=(credential helper "$credential_helper")
     fi
 
-    if let Setup; then
+    if is_setup; then
         local -A current_config_entries=()
         {
             while :; do
@@ -612,7 +654,7 @@ setup_git_config() {
         let mismatch || return 0
     fi
 
-    if let Setup || let Clean; then
+    if is_setup || is_clean; then
         local -A section_set=()
         local i
         for ((i=0; i<${#config_entries[@]}; i+=3)); do
@@ -631,7 +673,7 @@ setup_git_config() {
         done
     fi
 
-    if let Setup; then
+    if is_setup; then
         local i
         for ((i=0; i<${#config_entries[@]}; i+=3)); do
             local section="${config_entries[$((i+0))]}"
@@ -668,27 +710,27 @@ setup_lxde() {
     local line inside_insert=
     for line in "${lines[@]}"; do
         if [[ -z $inside_insert ]]; then
-            if [[ $line == "$insert_start" ]]; then
+            if test "$line" = "$insert_start"; then
                 inside_insert=1
             else
                 without_inserts+=("$line")
             fi
         else
-            if [[ $line == "$insert_end" ]]; then
+            if test "$line" = "$insert_end"; then
                 inside_insert=
             fi
         fi
     done
-    [[ -z $inside_insert ]] || err "$rc contains $insert_start without $insert_end"
+    test -z "$inside_insert" || err "$rc contains $insert_start without $insert_end"
 
     [[ ${#without_inserts[@]} -ne 0 ]] || err "$rc contains only previusly generated lines"
 
-    if let Setup; then
+    if is_setup; then
         lines=()
         local found_keyboard=
         for line in "${without_inserts[@]}"; do
             lines+=("$line")
-            if [[ $line == "  <keyboard>" ]]; then
+            if test "$line" = "  <keyboard>"; then
                 [[ -z $found_keyboard ]] || err "$rc contains duplicated <keyboard> sections"
                 found_keyboard=1
                 lines+=("$insert_start")
@@ -703,7 +745,7 @@ setup_lxde() {
         mv "$rc.tmp" "$rc"
     fi
 
-    if let Clean; then
+    if is_clean; then
         printf '%s\n' "${without_inserts[@]}" > "$rc.tmp"
         mv "$rc.tmp" "$rc"
     fi
@@ -715,18 +757,18 @@ setup_gnome() {
         # disable blinking cursor in terminals
         local profile_uuid
         profile_uuid="$(gsettings get org.gnome.Terminal.ProfilesList default 2>/dev/null || :)"
-        if [[ $profile_uuid ]]; then
+        if test "$profile_uuid"; then
             [[ $profile_uuid =~ ^\'(.*)\'$ ]] && profile_uuid="${BASH_REMATCH[1]}"
             local p="org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$profile_uuid/"
             local value
             value="$(gsettings get "$p" cursor-blink-mode || :)"
-            if [[ -z $value ]]; then
+            if ! test "$value"; then
                 log "failed to read cursor-blink-mode for gnome terminal"
             else
-                if let Setup; then
-                    [[ $value == "'off'" ]] || gsettings set "$p" cursor-blink-mode off
+                if is_setup; then
+                    test "$value" = "'off'" || gsettings set "$p" cursor-blink-mode off
                 fi
-                if let Clean; then
+                if is_clean; then
                     gsettings reset "$p" cursor-blink-mode
                 fi
             fi
@@ -748,21 +790,29 @@ setup_ask_pass() {
 	done
 }
 
+is_setup() {
+    test "$Setup" -ne 0
+}
+
+is_clean() {
+    test "$Clean" -ne 0
+}
+
 main() {
     local i
     local Setup=0
     local Clean=0
 
-    if [[ $# -eq 0 ]]; then
+    if test $# -eq 0; then
         Setup=1
     else
-        case $1 in
-            clean ) Clean=1 ;;
-            setup ) Setup=1 ;;
-            * ) err "unknown action $1" ;;
+        case "$1" in
+        clean ) Clean=1 ;;
+        setup ) Setup=1 ;;
+        * ) err "unknown action $1" ;;
         esac
         shift
-        [[ $# -eq 0 ]] || err "unexpected extra action argument $1"
+        test $# -eq 0 || err "unexpected extra action argument $1"
     fi
 
     local hsetup_source_dir
@@ -839,12 +889,14 @@ Comment=Start custom session script
         extra_setup
     fi
 
-    if let Setup; then
+    if is_setup; then
         local d
         for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
             # Do not add /bin if it is a symlink to /usr/bin
-            if [[ $d != /usr/* && $(realpath -qm "$d") == "$(realpath -qm "/usr/$d")" ]]; then
-                continue
+            if test "${d#/usr/}" = "$d"; then
+                if test $(realpath -qm "$d") = "$(realpath -qm "/usr/$d")"; then
+                    continue
+                fi
             fi
             path_dir "$d"
         done
@@ -863,16 +915,22 @@ Comment=Start custom session script
         action_write_file .local/hsetup env "$s"
     fi
 
+    if is_setup; then
+        if test "$user_systemd_unit_change"; then
+            cmd_log systemctl --user daemon-reload
+        fi
+    fi
+
     clean_files
 
-    if let Clean; then
+    if is_clean; then
         if let ${#current_dir_set[@]}; then
             local -a reverse_sorted
             mapfile -t reverse_sorted < \
                 <(printf '%s\n' "${!current_dir_set[@]}" | sort -r)
             cmd_log rmdir --ignore-fail-on-non-empty "${reverse_sorted[@]}"
         fi
-        if [[ -d .local/hsetup ]]; then
+        if test -d .local/hsetup; then
             cmd_log rm -rf .local/hsetup
         fi
     fi

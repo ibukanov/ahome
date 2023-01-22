@@ -1,7 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
-set -e -u -o pipefail
-shopt -s nullglob lastpipe
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2250,SC2249
+
+set -e -u
 
 log() {
     printf "%s\n" "$*" 1>&2
@@ -13,7 +16,6 @@ warn() {
 
 err() {
     log "$@"
-    log "stack: ${FUNCNAME[*]}"
     exit 1
 }
 
@@ -23,89 +25,112 @@ cmd_log() {
     "$@"
 }
 
-backup_paths=()
-backup_targets=()
+# Append to eargs space-separated arguments with spaces and other special
+# characters escaped.
+earg() {
+  local arg do_escape escaped before_quote
+  for arg in "$@"; do
+    do_escape=
+    case "${arg}" in
+    "" | *[!A-Z0-9a-z_.,/:-]*) do_escape=1 ;;
+    *) ;;
+    esac
+    if test -n "${do_escape}"; then
+      escaped=
+      while : ; do
+        before_quote="${arg%%\'*}"
+        if test "x${arg}" = "x${before_quote}"; then
+          break
+        fi
+        escaped="${escaped}${before_quote}'\\''"
+        arg="${arg#*\'}"
+      done
+      arg="'${escaped}${arg}'"
+    fi
+    eargs="${eargs}${eargs:+ }${arg}"
+  done
+}
+
+escaped_backup_paths=
+escaped_backup_targets=
 backup_media_dir=
 
 password_dir=
 
 local_backup_root=
-#backup_url=gdocs://igor@mir2.org/backup/home
 
 password_hash_name=".password.backup"
 
 check_single_required_arg() {
-    [[ ${#args[@]} -eq 1 && ${#args[0]} -ne 0 ]] || \
+    { test "$arg1" && ! test "$arg2"; } || \
 	err "$cmd takes exactly one non-empty argument"
 }
 
 read_config() {
     config="$1"
-    [[ -s $config ]] || err "$config does not exist or empty"
+    test -s "$config" || err "$config does not exist or empty"
 
-    read_config_lines < $config
-}
-
-read_config_lines() {
-    local -a line
-    while read -a line; do
-	# Skip blanks lines and comments
-	[[ ${#line[@]} -eq 0 || ${line[0]:0:1} == '#' ]] && continue
-	local cmd="${line[0]}"
-	local -a args=("${line[@]:1}")
+    local cmd arg1 arg2 eargs
+    while read -r cmd arg1 arg2; do
 	case "$cmd" in
-	    BackupPath )
-		check_single_required_arg
-		local dir
-		dir="${args[0]}"
-		backup_paths+=("${dir}")
-		;;
+	# Skip blanks lines and comments
+	'' | '#'* ) continue ;;
 
-	    PasswordDir )
-		check_single_required_arg
-		password_dir="${args[0]}"
-		;;
+	BackupPath )
+	    check_single_required_arg
+	    eargs="$escaped_backup_targets"
+	    earg "$arg1"
+	    escaped_backup_paths="$eargs"
+	    ;;
 
-	    BackupTarget )
-		[[ ${#args[@]} -ge 1 && ${#args[@]} -le 2 ]] || \
-		    err "$cmd takes one or two arguments"
-		backup_targets+=("${args[0]}" "${args[1]-}")
-		;;
+	PasswordDir )
+	    check_single_required_arg
+	    password_dir="$arg1"
+	    ;;
 
-	    BackupMediaDir )
-		check_single_required_arg
-		local dir="${args[0]}"
-		[[ ${dir:0:1} != / ]] || \
-		    err "$cmd argument $dir is not a relative path"
-		backup_media_dir="$dir"
-		;;
+	BackupTarget )
+	    check_single_required_arg
+	    eargs="$escaped_backup_targets"
+	    earg "$arg1"
+	    escaped_backup_targets="$eargs"
+	    ;;
+
+	BackupMediaDir )
+	    check_single_required_arg
+	    case "$arg1" in
+	    /* ) "$cmd argument $arg1 is not a relative path" ;;
+	    esac
+	    backup_media_dir="$arg1"
+	    ;;
 	esac
-    done
+    done < "$config"
 }
 
 check_config() {
-    [[ ${#backup_paths[@]} -ge 1 ]] || \
+    test "$escaped_backup_paths" || \
 	err "at least one BackupPath must be given"
-    [[ ${#backup_targets[@]} -ge 1 || $backup_media_dir ]] || \
+    test "$escaped_backup_targets" || test "$backup_media_dir" || \
 	err "at least one BackupTarget or BackupMediaDir must be given"
-    [[ $password_dir ]] || \
+    test "$password_dir" || \
 	err "missing PasswordDir"
 
-    if [[ $backup_media_dir ]]; then
-	local media_top="/run/media/$user"
-	[[ -d $media_top ]] || media_top="/media/$user"
-	[[ -d $media_top ]] || \
+    if test "$backup_media_dir"; then
+	local user media_top
+	user="$(id -un)"
+	media_top="/run/media/$user"
+	test -d "$media_top" || media_top="/media/$user"
+	test -d "$media_top" || \
 	    err "failed to locate directory with external media"
 	local location found=
 	for location in "$media_top"/*; do
-	    [[ -d $location ]] || continue
-	    if [[ -d $location/$backup_media_dir ]]; then
-		[[ -z $found ]] || \
+	    test -d "$location" || continue
+	    if test -d "$location/$backup_media_dir"; then
+		test -z "$found" || \
 		    err "$backup_media_dir exists both in $location and $found. Keep mounted only the desired media and try again."
 		found="$location"
 	    fi
 	done
-	[[ $found ]] || \
+	test "$found" || \
 	    err "failed to find in $media_top media with $backup_media_dir directory"
 	local_backup_root="$found/$backup_media_dir"
     fi
@@ -119,24 +144,23 @@ check_config() {
     fi
     local_backup_root="$local_backup_root/borg"
 
-    backup_url="file://$local_backup_root"
-
-    local path
-    for path in "${backup_paths[@]}"; do
-	[[ -d $path || -d $path ]] || \
+    local escaped_path
+    for escaped_path in $escaped_backup_paths; do
+	local path
+	eval "path=$escaped_path"
+	test -d "$path" || test -d "$path" || \
 	    err "BackupPath $path is not a directory or a file"
     done
 
-    [[ -d $password_dir ]] || \
+    test -d "$password_dir" || \
 	err "PasswordDir $password_dir is not a directory"
     password_hash_location="$password_dir/$password_hash_name"
 }
 
 change_password() {
-    local sratus
-    u-kit set-password-hash --title backup "$password_hash_location" \
-	| IFS="" read -r status
-    [[ $status == "done" || $status == "canceled" ]] || \
+    local status
+    status="$(u-kit set-password-hash --title backup "$password_hash_location")"
+    test "$status" = 'done' || test "$status" = 'canceled' || \
 	err "unexpected u-kit output: $status"
 }
 
@@ -153,32 +177,32 @@ create_local_backup() {
 	mv "$local_backup_root.tmp" "$local_backup_root"
     fi
 
-    local -a args=(--progress --compress=zlib "$local_backup_root::home-{now}")
-    local path
-    for path in "${backup_paths[@]}"; do
-	args+=("$path")
+    set --
+    set -- "$@" --progress --compress=zlib "$local_backup_root::home-{now}"
+    local escaped_path
+    for escaped_path in $escaped_backup_paths; do
+	local path
+	eval "path=$escaped_path"
+	set -- "$@" "$path"
     done
 
     printf '%s\n' "$password" | \
 	BORG_PASSPHRASE_FD=0 BORG_RELOCATED_REPO_ACCESS_IS_OK=yes \
-	borg create "${args[@]}"
+	borg create "$@"
 }
 
+# shellcheck disable=SC2120
 copy_to_remote() {
-    local i target ssh_sock
-    for ((i=0; i<${#backup_targets[@]}; i+=2)); do
-	target="${backup_targets[i]}"
-	ssh_sock="${backup_targets[i+1]}"
-	SSH_AUTH_SOCK="${ssh_sock}" \
-	    cmd_log rsync -rtl -Pv --delete-after "$local_backup_root" "$target" || :
+    eval "set -- $escaped_backup_targets"
+    local target
+    for target in "$@"; do
+	cmd_log rsync -rtl -Pv --delete-after "$local_backup_root" "$target" || :
     done
 }
 
 usage() {
     echo "To be written"
 }
-
-self="$(realpath "${BASH_SOURCE[-1]}")"
 
 show_usage=
 change_password=
@@ -204,7 +228,7 @@ cd "$HOME"
 read_config ".local/hsetup/backup.config"
 check_config
 
-if [[ $change_password ]]; then
+if test "$change_password"; then
     change_password
     exit 0
 fi
