@@ -489,6 +489,8 @@ setup_env() {
     local platform
     platform="$(uname -i)"
 
+    add_env HSETUP_TOP "$self_top"
+
     path_dir opt/bin
 
     path_dir .local/bin

@@ -20,14 +20,21 @@ rc_setup_env() {
   #rc_set_env LC_ALL C
 
   if test -f "$HOME/.local/hsetup/env"; then
-    . "$HOME/.local/hsetup/env"
+    "$HOME/.local/hsetup/env"
   fi
 
-  if test "${DESKTOP_SESSION-}"; then
-    rc_set_env SSH_AUTH_SOCK "$XDG_RUNTIME_DIR/ssh-agent.socket"
-    rc_set_env SSH_ASKPASS u-ssh-askpass
-    rc_set_env SSH_ASKPASS_REQUIRE prefer
-    #rc_set_env SSH_ASKPASS_REQUIRE force
+  if test "${XDG_RUNTIME_DIR-}"; then
+    local default_agent_link
+    default_agent_link="$XDG_RUNTIME_DIR/ssh-agent.socket"
+    if test "${DISPLAY-}"; then
+      rc_set_env SSH_AUTH_SOCK "$default_agent_link"
+      rc_set_env SSH_ASKPASS u-ssh-askpass
+      rc_set_env SSH_ASKPASS_REQUIRE prefer
+      #rc_set_env SSH_ASKPASS_REQUIRE force
+    elif ! test "${SSH_AUTH_SOCK-}"; then
+      rc_set_env SSH_AUTH_SOCK "$default_agent_link"
+      u-ssh-ensure-agent &
+    fi
   fi
 }
 
