@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2250,SC2034
+
+set -e -u
+
+log() {
+  printf '%s: %s\n' "${0##*/}" "$*" >&2
+}
+
+err() {
+  log "error:" "$@"
+  exit 1
+}
+
+ensure_ssh_agent() {
+  local agent_socket status
+  test "${XDG_RUNTIME_DIR-}" || err "XDG_RUNTIME_DIR is unset"
+  agent_socket="$XDG_RUNTIME_DIR/ssh-agent.socket"
+  if test -h "$agent_socket"; then
+    status=0
+    ssh-add -l > /dev/null 2>&1 || status="$?"
+    if test "$status" -ne 2; then
+      log "Keeping existing $(readlink "$agent_socket") agent"
+      return 0
+    fi
+    log "warning: Failed to communicate with $(readlink "$agent_socket") agent"
+    rm "$agent_socket"
+  elif test -e "$agent_socket"; then
+    err "$agent_socket exists and is not a link"
+  fi
+  local s
+  s="$(ssh-agent -s)"
+  unset SSH_AUTH_SOCK SSH_AGENT_PID
+  { eval "$s"; } > /dev/null
+  test "${SSH_AUTH_SOCK-}" || err "ssh-agent failed to define SSH_AUTH_SOCK"
+  status=0
+  ssh-add -l > /dev/null 2>&1 || status="$?"
+  if test "$status" -eq 2; then
+    log "error: Failed to communicate with the newly started $SSH_AUTH_SOCK agent, killing it"
+    test "${SSH_AGENT_PID-}" && kill "$SSH_AGENT_PID"
+    exit 1
+  fi
+  if ! ln -sT "$SSH_AUTH_SOCK" "$agent_socket"; then
+    log "Lost the race to establish $agent_socket, killing the new agent ${SSH_AGENT_PID-}"
+    test "${SSH_AGENT_PID-}" && kill "$SSH_AGENT_PID"
+    return 0
+  fi
+  log "Started a new $SSH_AUTH_SOCK agent"
+}
+
+exec 2> /tmp/agent.log
+
+ensure_ssh_agent

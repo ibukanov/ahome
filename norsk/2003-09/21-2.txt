@@ -1,6 +1,0 @@
-
-Forleden leste jeg en fagbok som hetter "Sikker programmering". Jeg tror at nåtildags høyer enhver om datamaskin viruser og "bager". Den bok forklarer hvorfor vi har disse problemer og hva må bli forandret hvis de vil bli solvt. 
-
-Naturli boks forfaterene skriver om mange teknikal examplerer og teknikker at man kan bruker til å lagge sikkerhet kode til datamaskiner. Dessvere er eksemplere ofte veldi spesiel og mange praktisk problemer og denne kjenne løsningene er forsåmt. Jeg tror det er det svakest siden av boka.
-
-Men boka beste siden   

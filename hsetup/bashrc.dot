@@ -1,32 +1,153 @@
-#!/bin/bash
 
 # Read Fedora-specific startup file. On Debian and Ubuntu bash is
 # compiled to read system-wide files automatically.
-[[ -f /etc/bashrc ]] && source /etc/bashrc
+test -f /etc/bashrc && . /etc/bashrc
 
-### SET ENVIROMMENT VARIABLES
+rc_set_env() {
+  local name value
+  name="$1"
+  value="$2"
 
-export LANG="en_US.UTF-8"
-export LANG="C.UTF-8"
-#export LC_ALL="C"
+  # Even dash supports export a=b, so use that
+  #eval $name='"$value"'
+  export "$name=$value"
+}
 
-if [[ -f "$HOME/.local/hsetup/env" ]]; then
-  source "$HOME/.local/hsetup/env"
+rc_setup_env() {
+
+  #rc_set_env LANG en_US.UTF-8
+  rc_set_env LANG C.UTF-8
+  #rc_set_env LC_ALL C
+
+  if test -f "$HOME/.local/hsetup/env"; then
+    . "$HOME/.local/hsetup/env"
+  fi
+
+  if test "${DESKTOP_SESSION-}"; then
+    rc_set_env SSH_AUTH_SOCK "$XDG_RUNTIME_DIR/ssh-agent.socket"
+    rc_set_env SSH_ASKPASS u-ssh-askpass
+    rc_set_env SSH_ASKPASS_REQUIRE prefer
+    #rc_set_env SSH_ASKPASS_REQUIRE force
+  fi
+}
+
+rc_setup_env
+
+### Interactive-only settings when PS1 is set
+if ! test "${PS1+1}"; then
+  return 0
 fi
 
-export CVSEDITOR=u-cvs-editor
-export GIT_EDITOR="u-cvs-editor"
-export SVN_EDITOR=u-cvs-editor
+rc_history() {
+  # don't put duplicate lines or lines starting with space in the history.
+  # See bash(1) for more options
+  HISTCONTROL=ignoreboth
 
-### INTERACTIVE-ONLY SETTINGS when PS1 is set
-if test -n "${PS1+1}"; then
+  # append to the history file, don't overwrite it
+  shopt -s histappend
 
-  #set -o vi
-
-  HISTFILESIZE=10000
+  # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
   HISTSIZE=10000
-  HISTCONTROL=erasedups:ignorespace
+  HISTFILESIZE=20000
+}
+
+rc_print_git_branch_for_prompt() {
+	local branch
+  # Filter rev-parse result to avoid surprises as this goes to the terminal
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr -dc 'a-zA-Z0-9 .:%=/_-' || :)"
+	test "$branch" || return 0
+	printf ' (%s)' "$branch"
+}
+
+rc_prompt() {
+	local color_prompt
+	# set a fancy prompt (non-color, unless we know we "want" color)
+	case "$TERM" in
+	xterm-color|*-256color) color_prompt=1;;
+	esac
+
+  if test -x /usr/bin/tput && tput setaf 1 >&/dev/null; then
+		# We have color support; assume it's compliant with Ecma-48
+		# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+		# a case would tend to support setf rather than setaf.)
+		color_prompt=1
+  else
+		color_prompt=
+  fi
+
+	local s
+	if test "$color_prompt"; then
+    	s='\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]'
+	else
+    	s='\u@\h:\w'
+	fi
+
+	# Add Git branch
+	if test "$color_prompt"; then
+		s="$s"'\[\e[01;32m\]'
+	fi
+    s="$s"'$(rc_print_git_branch_for_prompt)'
+	if test "$color_prompt"; then
+		s="$s"'\[\e[00m\]'
+	fi
+
+    s="$s"'\n\$ '
+
+	# If this is an xterm set the title to user@host:dir
+	case "$TERM" in
+	xterm*|rxvt*)
+    s='\[\e]0;\u@\h: \w\a\]'"$s"
+    ;;
+	*) ;;
+	esac
+	PS1="$s"
+}
+
+rc_aliases() {
+	# enable color support of ls and also add handy aliases
+	if test -x /usr/bin/dircolors; then
+    local s
+    if test -r "$HOME/.dircolors"; then
+      s="$(dircolors -b "$HOME/.dircolors")"
+    else
+      s="$(dircolors -b)"
+    fi
+    # Avoid eval, just extract the value between single quotes
+    s="${s#*'}"
+    LS_COLORS="${s%'*}"
+    export LS_COLORS
+  fi
+
+  alias ls='ls --color=auto'
+  alias grep='grep --color=auto'
+  alias fgrep='fgrep --color=auto'
+  alias egrep='egrep --color=auto'
+}
+
+rc_completion() {
+	# enable programmable completion features (you don't need to enable
+	# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+	# sources /etc/bash.bashrc).
+	if ! shopt -oq posix; then
+	  if [ -f /usr/share/bash-completion/bash_completion ]; then
+	    . /usr/share/bash-completion/bash_completion
+	  elif [ -f /etc/bash_completion ]; then
+	    . /etc/bash_completion
+	  fi
+	fi
+}
+
+rc_misc() {
+	# check the window size after each command and, if necessary,
+	# update the values of LINES and COLUMNS.
+	shopt -s checkwinsize
 
   # Disable blinking cursor in linux console
   test "$TERM" = linux && echo -e '\033[?17;0;64c'
-fi
+}
+
+rc_history
+rc_prompt
+rc_aliases
+rc_completion
+rc_misc

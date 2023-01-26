@@ -1,8 +1,0 @@
-#!/bin/sh
-
-if ! hg summary | grep -q 'commit: .*(clean)' ; then
-  echo "Cannot push with uncommited changes " 1>&2
-  exit 1
-fi
-
-exec hg push -f ssh://hg.mozilla.org/try

@@ -1,8 +1,0 @@
-#!/bin/sh
-
-exec /usr/bin/ssh -aN \
-  -i ~/.ssh/mozilla_rsa \
-  -L19022:sm-valgrind01:22 \
-  -L5902:sm-valgrind01:5902 \
-  -o ServerAliveCountMax=1 -o ServerAliveInterval=20 \
-  igor@mpt-vpn.mozilla.com

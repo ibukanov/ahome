@@ -1,8 +1,13 @@
-#!/bin/bash -l
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2249,SC2034
 
 set -e -u
 
-$HOME/a/hsetup/add-ssh-keys || :
+u-ssh-ensure-agent &
 
 #geany &
+
 u-term &

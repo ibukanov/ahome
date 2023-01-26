@@ -6,6 +6,9 @@
 
 set -e -u
 
+self="$(realpath "$0")"
+self_top="${self%/*/*}"
+
 log() {
     printf "%s\n" "$*" 1>&2
 }
@@ -67,8 +70,13 @@ check_single_required_arg() {
 }
 
 read_config() {
-    config="$1"
-    test -s "$config" || err "$config does not exist or empty"
+    local config
+    config="$self_top/local/hsetup/print-backup-config"
+    test -x "$config" || err "$config does not exist or is not an executable file"
+
+    # Workaround for the lack of lastpipe
+    local config_text
+    config_text="$("$config")"
 
     local cmd arg1 arg2 eargs
     while read -r cmd arg1 arg2; do
@@ -103,7 +111,9 @@ read_config() {
 	    backup_media_dir="$arg1"
 	    ;;
 	esac
-    done < "$config"
+    done <<EOF
+$config_text
+EOF
 }
 
 check_config() {
@@ -225,7 +235,9 @@ test $# -eq 0 || err "unexpected argument"
 
 
 cd "$HOME"
-read_config ".local/hsetup/backup.config"
+
+# Workaround for the lack of lastpipe
+read_config
 check_config
 
 if test "$change_password"; then
