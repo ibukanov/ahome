@@ -18,7 +18,7 @@ export LANG
 
 log() {
   local s
-  s="${0##*/}:"
+  s="${0##*/}"
   printf '%s: %s\n' "$s" "$*" >&2
 }
 
@@ -34,6 +34,15 @@ err() {
   fi
   printf '%s %s\n' "$s" "$*" >&2
   exit 1
+}
+
+warn() {
+  log "WARNING:" "$@"
+}
+
+cmd_log() {
+  log "$*"
+  "$@"
 }
 
 getopts_err() {

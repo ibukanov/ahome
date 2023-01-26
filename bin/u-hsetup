@@ -736,7 +736,8 @@ main() {
     done
 
     # extra bash symlinks besides .bashrc
-    action_symlink "$hsetup_source_dir/bashrc.dot" . .bash_profile
+    action_symlink "$hsetup_source_dir/rc.sh" . .bash_profile
+    action_symlink "$hsetup_source_dir/rc.sh" . .bashrc
 
     action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 

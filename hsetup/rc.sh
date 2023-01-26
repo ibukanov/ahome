@@ -20,7 +20,7 @@ rc_setup_env() {
   #rc_set_env LC_ALL C
 
   if test -f "$HOME/.local/hsetup/env"; then
-    "$HOME/.local/hsetup/env"
+    . "$HOME/.local/hsetup/env"
   fi
 
   if test "${XDG_RUNTIME_DIR-}"; then
@@ -34,6 +34,8 @@ rc_setup_env() {
     elif ! test "${SSH_AUTH_SOCK-}"; then
       rc_set_env SSH_AUTH_SOCK "$default_agent_link"
       u-ssh-ensure-agent &
+      test "${BASH_VERSION-}" && disown
+
     fi
   fi
 }

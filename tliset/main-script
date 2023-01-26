@@ -141,6 +141,7 @@ get_host_options() {
     with_ssh_agent_service=1
     ssh_agent_container_sets=vwork
     with_firejail_desktop_rules=1
+    with_firewalld=1
     ;;
 
   rhea )
@@ -242,15 +243,6 @@ log() {
     : $((i+=1))
   done
   printf '%s%s\n' "${indent}" "$*" 1>&2
-}
-
-warn() {
-  log "WARNING:" "$@"
-}
-
-cmd_log() {
-  log "$*"
-  "$@"
 }
 
 inc_log_level() {
@@ -600,11 +592,12 @@ ensure_user() {
     esac
   done
   shift $((OPTIND - 1))
-  user="$1"
+  local user_name
+  user_name="$1"
 
   # TODO update on mismatch
   local s
-  s="$(getent passwd "$user" 2>/dev/null || :)"
+  s="$(getent passwd "$user_name" 2>/dev/null || :)"
   if test -z "$s"; then
     set --
     if test "$create_home"; then
@@ -631,6 +624,25 @@ ensure_user() {
       set -- "$@" -u "$uid"
     fi
     cmd_log useradd "$@" "$user"
+  else
+    local old_name old_uid old_home old_shell
+    IFS=: read -r old_name _ old_uid _ _ old_home old_shell <<EOF
+$s
+EOF
+    set --
+    test "$old_name" != "$user_name" && \
+      err "Unexpected user name: '$old_name' != '$user_name'"
+    test "$uid" && test "$uid" != "$old_uid" && \
+      err "Change manually user id for the user $user_name from $old_uid to $uid"
+    test "$shell" && test "$shell" != "$old_shell" && \
+      set -- "$@" -s "$shell"
+    test "$home_dir" && test "$home_dir" != "$old_home" && \
+      set -- "$@" -d "$home_dir"
+    if test $# -ne 0; then
+      cmd_log usermod "$@" "$user_name"
+    fi
+
+    # TODO: cheeck groups
   fi
 }
 
@@ -1087,7 +1099,7 @@ deb http://deb.debian.org/debian $codename-backports main
     #earg libglib2.0-dev
     #earg libgnome-keyring-dev
     earg ffmpeg
-    #earg xpra
+    earg xpra
     #earg xephyr
   fi
 
@@ -1132,6 +1144,9 @@ deb http://deb.debian.org/debian $codename-backports main
     earg ratpoison gnome-terminal
     earg firefox-esr
     earg lxde-core lxterminal openbox openbox-lxde-session
+    #earg dbus-x11
+    earg vim-gtk3
+    earg geany
   fi
 
   if test "$with_gui_container_role"; then
@@ -2666,17 +2681,18 @@ Slice=user-$user_id.slice
 
 #Restart=on-failure
 
-#ExecStart=dbus-daemon --session --print-pid=2 --print-address=2  --nofork
-
+# Allow to run a user-level systemd instance
 ExecStartPre=+chown $user_name -R \
   /sys/fs/cgroup/user.slice/user-$user_id.slice/$service_unit
 
+# X11 including its usage under VNC needs this
+ExecStartPre=+mkdir -p -m 01777 /tmp/.X11-unix
+
 ExecStart=systemd
-Environment=SYSTEMD_LOG_LEVEL=debug
+#Environment=SYSTEMD_LOG_LEVEL=debug
 
-# Hide /run/user/id from the host
-#TemporaryFileSystem=/run/user/$user_id:mode=0700,uid=$user_id
-
+# The runtime directory is shared with the host so sshd user session process can
+# access it.
 RuntimeDirectory=user/$user_id
 RuntimeDirectoryMode=0700
 
