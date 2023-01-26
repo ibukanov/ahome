@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e -u
+
+d="$HOME/.local/lms-test-browser"
+if test ! -d "${d}/Downloads"; then
+  mkdir -p "${d}/Downloads"
+fi
+
+profile=/etc/firejail/firefox.profile
+if test ! -f "${profile}"; then
+  profile=/usr/local/etc/firejail/firefox.profile
+fi
+
+set -- firejail
+
+set -- "$@" --profile="${profile}"
+set -- "$@" --private="$d"
+set -- "$@" --name="lms-test-firefox"
+
+set -- "$@" firefox
+set -- "$@" -new-instance
+
+exec "$@"

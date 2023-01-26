@@ -1,0 +1,15 @@
+settings {
+   insist = 1
+}
+
+sync {
+   default.rsync,
+   source = "/home/user/p",
+   target = "thip:/vol/projects",
+   exclude = "/bergenrabbit",
+   delay = 1,
+   rsync = {
+      perms = true,
+      chmod = "D775,F664,Fugo+X"
+   }
+}

@@ -1,0 +1,416 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2249,SC2034
+
+set -f -e -u
+
+self_path="$(realpath "$0")"
+self_dir="${self_path%/*}"
+self_name="${self_path##*/}"
+readonly self_path self_dir self_name
+
+
+# shellcheck source=./utils.sh
+. "${self_path%/*}/utils.sh"
+
+# shellcheck source=./container-kit.sh
+. "${0%/*}/container-kit.sh"
+
+log() {
+    printf '%s\n' "$*" >&2
+}
+
+cmd_log() {
+    log "  $*"
+    "$@"
+}
+
+configure() {
+    containers_dir="${HOME}/containers"
+    container_name=vwork
+    container_top="${containers_dir}/${container_name}"
+    base_image="ubuntu:20.04"
+
+    container_user_name=user
+    host_user_name=vwork-user
+
+    container_id_shift=12000
+    container_id_amount=2000
+    container_common_id_start=2000
+    container_common_id_amount=100
+
+    host_port=11022
+}
+
+setup_tree() {
+    ! test -s "${container_top}/os/etc/tliset.name" || return 0
+
+    log "Preparing initial ${container_top}"
+
+    if ! test -d "${containers_dir}"; then
+        cmd_log mkdir "${containers_dir}"
+    fi
+
+    if ! test -d "${container_top}"; then
+        cmd_log mkdir "${container_top}"
+    fi
+
+    local eargs
+    if ! test -d "${container_top}/os"; then
+        eargs=
+        earg podman unshare "${self_path}" --internal
+        earg "container_id_shift=${container_id_shift}"
+        earg "container_top=${container_top}"
+        earg action_setup_container_top
+        eval "${eargs}"
+
+        # Run a script to extract the image.
+        eargs=
+        earg_add_default_run_options
+        earg -v "${container_top}/os.tmp:/mnt"
+        earg -v "${self_dir}:/run/host/tliset:ro"
+        earg --rm -ti "${base_image}"
+        earg sh "/run/host/tliset/${self_name}" --internal
+        earg "container_name=${container_name}"
+        earg "container_user_name=${container_user_name}"
+        earg action_export_image
+        eval "cmd_log ${eargs}"
+
+        podman unshare mv "${container_top}/os.tmp" "${container_top}/os"
+    fi
+
+    # Initialize the initial os
+    eargs=
+    earg_add_default_run_options
+    earg_add_default_mounts
+
+    earg -v "${self_path%/*}:/run/host/tliset:ro"
+    earg --rm -ti "${base_image}"
+    earg "/run/host/tliset/host-setup" -I "${container_name}"
+    eval "cmd_log ${eargs}"
+}
+
+action_setup_container_top() {
+    local shift tmp
+
+    # Compensate that here uid 0 corresponds to the user and the rest for
+    # container subgid ranges.
+    shift="$((container_id_shift + 1))"
+    if test ! -d "${container_top}/user"; then
+        log "Setting up home directory storage ${container_top}/user"
+        tmp="${container_top}/user.tmp"
+        if test -d "${tmp}"; then
+            cmd_log rm -rf "${tmp}"
+        fi
+
+        # The permissions will be adjusted when the user is created.
+        cmd_log mkdir "${tmp}"
+        cmd_log chown "${shift}:${shift}" "${tmp}"
+        cmd_log mv "${tmp}" "${container_top}/user"
+    fi
+    if test ! -d "${container_top}/os"; then
+        tmp="${container_top}/os.tmp"
+        if test -d "${tmp}"; then
+            rm -rf "${tmp}"
+        fi
+        mkdir -p 0755 "${tmp}"
+        chown "${shift}:${shift}" "${tmp}"
+
+        # tmp content will be initialized in the separated container call
+    fi
+}
+
+action_export_image() {
+    log "Exporting initial container image"
+
+    local i
+    for i in bin etc home lib lib64 opt root sbin srv usr var; do
+        test -d "${i}" && ! test -h "${i}" || continue
+        tar -cf - "${i}" | tar -C /mnt -xf -
+    done
+
+    # Fix nobody permission coming from the bind-mounted files.
+    cd /mnt/etc
+    chown root:root resolv.conf hosts hostname
+
+    # Create directory to bind-mount real user home
+    mkdir -m 0700 "/mnt/home/${container_user_name}"
+}
+
+earg_add_default_run_options() {
+    test -z "${eargs}" || err "eargs must be empty"
+
+    earg podman
+    #earg --log-level=debug
+    earg run
+
+    # Setup user mapping. With rootless containers the second id in the --uidmap
+    # map is the intermediate id where 0 corresponds to the current user id, 1
+    # and further corresponds to the range from /etc/subuid. So to map the
+    # container root to subuid_range_start + shift we need to add one.
+    local n
+    n="$((container_id_amount - 1))"
+    earg --uidmap="0:$((container_id_shift + 1)):${n}"
+    earg --gidmap="0:$((container_id_shift + 1)):${n}"
+
+    # Map common range
+    local s
+    s="${container_common_id_start}"
+    s="${s}:$((container_common_id_start + 1))"
+    s="${s}:${container_common_id_amount}"
+    earg --uidmap="${s}"
+    earg --gidmap="${s}"
+
+    # Map nobody in the container to the last id from the host range
+    earg --uidmap="65534:$((container_id_shift + 1 + n)):1"
+    earg --gidmap="65534:$((container_id_shift + 1 + n)):1"
+
+    # Prevent setuid to work even in namespaces
+    earg --security-opt no-new-privileges
+    earg --cap-add CAP_SYS_PTRACE
+    if ! :; then
+        earg --cap-drop all
+        if test "${run_as_root}"; then
+            local capability
+            for capability in CHOWN DAC_OVERRIDE DAC_READ_SEARCH FOWNER SYS_CHROOT SETGID SETUID; do
+                earg --cap-add="${capability}"
+            done
+        fi
+    fi
+
+    # Disable SELinux separation as it breaks access to Wayland socket. The above
+    # uid separation and mounts should provide sufficient security.
+    earg --security-opt label=disable
+
+    # Make the container itself read-only. Any modifications should go into
+    # bind-mounts.
+    earg --read-only=true
+
+    earg --mount type=tmpfs,target=/tmp,tmpfs-mode=01777
+    earg --mount type=tmpfs,target=/run,tmpfs-mode=0755
+
+    earg --hostname "${container_name}"
+}
+
+earg_add_default_mounts() {
+    # Mount persistent volumes into the container.
+    local os i
+    os="${container_top}/os"
+    set +f
+    for i in "${os}/"*; do
+        test -d "${i}" && ! test -h "${i}" || \
+            err "Unexpected file type for container os directory ${i}"
+        earg -v "${i}:/${i##*/}"
+    done
+    set -f
+
+    earg -v "${container_top}/user:/home/${container_user_name}"
+
+    earg -v /var/tmp:/var/tmp
+}
+
+start_container() {
+
+    local s
+    s="$(podman ps --filter=name="${container_name}" --format="{{.ID}}")"
+    test -z "${s}" || return 0
+
+    s="$(podman ps -a --filter=name="${container_name}" --format="{{.ID}}")"
+    if test "${s}"; then
+        podman rm -v "${container_name}"
+    fi
+
+    local eargs
+    eargs=
+    earg_add_default_run_options
+    earg_add_default_mounts
+
+    earg -v "/run/tliset-ssh-agent/${container_name}:/run/host/ssh-agent:ro"
+
+    #if test -d "${sudo_user_home}/Downloads"; then
+    #  echo earg -v "${sudo_user_home}/Downloads:/home/${container_user_name}/Downloads"
+    #fi
+
+    if test "${WAYLAND_DISPLAY-}"; then
+        local host_wayland
+        host_wayland="${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY-}"
+        earg -v "${host_wayland}:/run/host/wayland-0"
+
+        # Allow to connect to the wayland socket from the container.
+        local socket_access_group_id s
+        s="$(id -un)"
+        get_user_subgid_for_shift "${s}" "${container_socket_access_subgid}"
+        socket_access_group_id="${R}"
+
+        local wayland_socket_group
+        wayland_socket_group="$(stat -c %g "${host_wayland}")"
+        if test "${wayland_socket_group}" != "${socket_access_group_id}"; then
+            local s
+            s="$(id -g)"
+            if test "${wayland_socket_group}" != "${s}"; then
+                err "unexpected group on Wayland socket -" \
+                    "${wayland_socket_group}"
+            fi
+            # +1 to account that 0 is the user-as-root
+            cmd_log podman unshare \
+                chgrp "$((container_socket_access_subgid + 1))" \
+                "${host_wayland}"
+        fi
+
+        # Allow to connect to the wayland socket from the container.
+        local wayland_socket_permissions
+        wayland_socket_permissions="$(stat -c %a "${host_wayland}")"
+        if test "${wayland_socket_permissions}" != 770; then
+            if test "${wayland_socket_permissions}" != 755; then
+                err "unexpected permissions on Wayland socket - ${host_wayland}"
+            fi
+            chmod 770 "${host_wayland}"
+        fi
+    fi
+
+    # Expose timezone
+    local timezone_path
+    timezone_path=
+    if test -z "${TZ-}"; then
+        timezone_path=/etc/localtime
+    elif test "${TZ#:}" = "${TZ#:}"; then
+        warn "Unsupported format of TZ variable - ${TZ}"
+    else
+        timezone_path="${TZ#:}"
+        if test "${timezone_path#/}" = "${timezone_path#/}"; then
+            timezone_path="/usr/share/zoneinfo/${timezone_path}"
+        fi
+    fi
+    if test "${timezone_path}"; then
+        local s
+        s="$(realpath "${timezone_path}" || :)"
+        if test -z "${s}"; then
+            warn "Timezone file does not exist or unreadable - ${timezone_path}"
+        else
+            earg -v "${s}:/run/host/timezone:ro"
+        fi
+    fi
+
+    earg -p "127.0.0.1:${host_port}:22"
+
+    earg -v "${self_dir}:/run/host/tliset:ro"
+    earg --name "${container_name}"
+    earg --rm
+    if test "${keep_in_terminal}"; then
+        earg -ti
+    else
+        earg -d
+    fi
+    earg "${base_image}"
+    earg "/run/host/tliset/${self_name}" --internal
+    earg container_user_name="${container_user_name}"
+    earg host_user_name="${host_user_name}"
+    earg run_as_root="${run_as_root}"
+    earg action_start_container "$@"
+    eval "cmd_log exec ${eargs}"
+}
+
+action_start_container() {
+    umask 022
+
+    #socat -t0 -T0 -u UNIX-LISTEN:/dev/log,reuseaddr,fork -
+
+    local container_user_id
+    container_user_id="$(id -u "${container_user_name}")"
+
+    local ssh_public_keys
+    ssh_public_keys=
+    if test -d /run/host/ssh-agent; then
+        ssh_public_keys="$(\
+            SSH_AUTH_SOCK=/run/host/ssh-agent/socket \
+                setpriv --group tliset-gui-sockets ssh-add -L
+        )"
+    fi
+    test "${ssh_public_keys}" || \
+        err "Failed to get ssh keys to run the container"
+    mkdir -m 0755 /run/ssh_authorized_keys
+    umask 077
+    printf '%s\n' "${ssh_public_keys}" > /run/ssh_authorized_keys/root
+    printf '%s\n' "${ssh_public_keys}" \
+        > "/run/ssh_authorized_keys/${container_user_name}"
+    umask 022
+    chown "${container_user_name}:${container_user_name}" \
+        "/run/ssh_authorized_keys/${container_user_name}"
+
+    # Prepare the rundir for the user.
+    mkdir -m 0755 /run/user
+    mkdir -m 0711 "/run/user/${container_user_id}"
+    chown "${container_user_name}:${container_user_name}" \
+        "/run/user/${container_user_id}"
+    if test -S /run/host/wayland-0; then
+        ln -s /run/host/wayland-0 "/run/user/${container_user_id}/wayland-0"
+    fi
+
+    mkdir -m -755 /run/sshd
+
+    local eargs
+    eargs=
+    earg /sbin/sshd -D
+    earg -e
+
+    eval "exec ${eargs}"
+
+     #exec /bin/bash -i
+}
+
+if test "${1-}" = --internal; then
+    shift
+    while :; do
+        test $# -ne 0 || err "--internal action argument is missing"
+        variable="${1%%=*}"
+        test "${variable}" != "$1" || break
+        case "${variable}" in
+        "" | *[^a-zA-Z0-9_]* | [0-9]* )
+            err "invalid variable name for the internal action: ${variable}"
+            ;;
+        esac
+        readonly "$1"
+        shift
+    done
+    action="$(command -v "$1")"
+    test "${action#action_}" != "${action}" || \
+        err "internal commands must start with the action_ prefix"
+    shift 1
+    "${action}" "$@"
+    exit 0
+fi
+
+host_uid="$(id -ur)"
+if test -z "${host_uid}" || test "${host_uid}" -lt 1000; then
+    err "Cannot run as root or a system user"
+fi
+
+run_as_root=
+keep_in_terminal=
+
+while test $# -ne 0; do
+    case "$1" in
+    -t ) keep_in_terminal=1 ;;
+    --root ) run_as_root=1 ;;
+    -- ) shift; break ;;
+    -* ) err "unknown opton - $1" ;;
+    * ) break ;;
+    esac
+    shift
+done
+
+if test $# -ne 0; then
+    err "unexpected non-optional argument - $1"
+fi
+
+configure
+
+setup_tree
+
+start_container
+
+exit 1
+
+run_container "$@"

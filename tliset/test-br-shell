@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e -u
+
+self="$(realpath "$0")"
+self_dir="${self%/*}"
+
+"${self_dir}/test-br" setup
+
+exec u-title test-br ssh root@test-br

@@ -1,0 +1,462 @@
+#!/bin/sh
+
+set -e -u
+
+readonly NL='
+'
+
+err() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+log() {
+  printf '%s\n' "$*" >&2
+}
+
+cmd_log() {
+  log "  $*"
+  "$@"
+}
+
+esacpe_one_arg(){
+  local arg escaped before_quote
+  arg="$1"
+  escaped=
+  while : ; do
+    before_quote="${arg%%\'*}"
+    if test "x${arg}" = "x${before_quote}"; then
+      break
+    fi
+    escaped="${escaped}${before_quote}'\\''"
+    arg="${arg#*\'}"
+  done
+  R="'${escaped}${arg}'"
+}
+
+# Append to ecmd space-separated arguments with spaces and other special
+# characters escaped.
+earg() {
+  local arg do_escape
+  for arg in "$@"; do
+    # Treat '=' as special only in the first argument
+    do_escape=
+    if test -z "${ecmd}"; then
+      case "${arg}" in
+      "" | *[!A-Z0-9a-z_.,/:-]* ) do_escape=1 ;;
+      esac
+    else
+      case "${arg}" in
+      "" | *[!=A-Z0-9a-z_.,/:-]* ) do_escape=1 ;;
+      esac
+    fi
+    if test -n "${do_escape}"; then
+      esacpe_one_arg "${arg}"
+      arg="${R}"
+    fi
+    ecmd="${ecmd}${ecmd:+ }${arg}"
+  done
+}
+
+get_config() {
+
+  base_image="debian:bullseye"
+
+  container_id_shift=14000
+  container_id_count=2000
+
+  ssh_host_port=15022
+  ssh_proxy_port=15080
+  with_ssh_forward_agent=1
+  ssh_custom_agent=/run/tliset-ssh-agent/bergenrabbit/socket
+
+  lsyncd_config=
+
+  readonly containers_dir="${HOME}/containers"
+  readonly container_top="${containers_dir}/${NAME}"
+
+  readonly user_unit_dir="${XDG_RUNTIME_DIR}/systemd/user"
+  readonly user_unit="${NAME}-container.service"
+  readonly user_unit_path="${user_unit_dir}/${user_unit}"
+
+  readonly rundir="${XDG_RUNTIME_DIR}/tliset/${NAME}-container"
+
+  if test "${ssh_custom_agent}"; then
+    SSH_AUTH_SOCK="${ssh_custom_agent}";
+    export SSH_AUTH_SOCK
+  fi
+}
+
+setup_and_run_container() {
+  if test -f "${user_unit_path}"; then
+    if systemctl --user is-active -q "${user_unit}"; then
+      return 0
+    fi
+    if systemctl --user is-failed -q "${user_unit}"; then
+      systemctl -q --user reset-failed "${user_unit}"
+    fi
+  fi
+
+  setup_container_tree
+  start_container
+exit 1
+
+  if ! test -d "${user_unit_dir}"; then
+    cmd_log mkdir -p "${user_unit_dir}"
+  fi
+  printf %s '
+[Service]
+Type=notify
+NotifyAccess=all
+ExecStart='"${self}"' -n '"${NAME}"' internal start_connector
+ExecStop='"${self}"' -n '"${NAME}"' internal stop_container
+' > "${user_unit_path}"
+  systemctl --user daemon-reload
+
+  log "Starting ${NAME} container"
+  systemctl --user start "${user_unit}"
+}
+
+podman_query() {
+  R="$(podman "$@" 2>/dev/null || :)"
+}
+
+podman_action() {
+  cmd_log podman "$@"
+}
+
+check_container_running() {
+  local name s
+  name="$1"
+  s="$(podman ps --format '{{.ID}}' -f name="${name}")"
+  R=
+  test "${s}" && R=1
+  return 0
+}
+
+earg_add_default_run_options() {
+  case "${ecmd}" in
+  "podman "* | "podman_action "* ) ;;
+  * ) err "ecmd must starts with podman" ;;
+  esac
+
+  # Setup user mapping. With rootless containers the second id in the --uidmap
+  # map is the intermediate id where 0 corresponds to the current user id, 1
+  # and further corresponds to the range from /etc/subuid. So to map the
+  # container root to subuid_range_start + shift we need to add one.
+  earg --uidmap="0:$((container_id_shift + 1)):${container_id_count}"
+  earg --gidmap="0:$((container_id_shift + 1)):${container_id_count}"
+
+  # Prevent setuid to work even in namespaces
+  earg --security-opt no-new-privileges
+
+  # Rely on uid separation for security.
+  earg --security-opt label=disable
+}
+
+remove_dir_in_container() {
+  local dir
+  dir="$1"
+  case "${dir}" in
+  *:* ) err "the directory argument cannot contain a colon - ${dir}" ;;
+  */ ) err "the directory cannot end with a slash - ${dir}" ;;
+  /*/* ) : ;;
+  /* ) err "the directory cannot be toplevel - ${dir}" ;;
+  * ) err "the directory must be an absolute path - ${dir}" ;;
+  esac
+  local ecmd
+  ecmd=
+  earg podman_action run --rm -ti
+  earg_add_default_run_options
+  earg -v "${dir}:/mnt"
+  earg "${base_image}"
+  earg find /mnt -mindepth 1 -maxdepth 1 -exec rm -rf '{}' +
+  eval "${ecmd}"
+  cmd_log rmdir "${dir}"
+}
+
+setup_container_tree() {
+  if test -d "${container_top}/data"; then
+    return 0
+  fi
+
+  log "Preparing initial ${container_top}/data"
+
+  if ! test -d "${containers_dir}"; then
+    cmd_log mkdir "${containers_dir}"
+  fi
+
+  local tmp
+  tmp="${container_top}.tmp"
+  if test -d "${tmp}"; then
+    if test -d "${tmp}/data"; then
+      # this cannot be deleted as the user, rm must run in the user namespace
+      remove_dir_in_container "${tmp}/data"
+    fi
+    cmd_log rm -rf "${tmp}"
+  fi
+
+  # Allow to write from the user namespace
+  mkdir -m 0777 -p "${tmp}"
+
+  # Create temporary container to exract its files into the local file system.
+  # --net=none is necessary to prevent a bind-mount of /etc/resolv.conf as we
+  # want to copy the original file with original permissions.
+  log "Extracting container files into ${container_top}"
+  local ecmd
+  ecmd=
+  earg podman run
+  earg_add_default_run_options
+  earg --rm -ti -v "${tmp}:/mnt" --read-only
+  earg --net none
+  earg "${base_image}" sh -c '
+set -e -u
+mkdir -m 0755 /mnt/data
+set --
+for i in bin etc home lib lib64 opt root sbin srv usr var; do
+  # Some directories can be a symlink. If so, keep them in the image.
+  if test -d "${i}" && ! test -h "${i}"; then
+    set -- "$@" "${i}"
+  fi
+done
+tar -cf - "$@" | tar -C /mnt/data -xf -
+'
+  eval "${ecmd}"
+
+  cmd_log chmod 0775 "${tmp}"
+  cmd_log mv "${tmp}" "${container_top}"
+}
+
+add_container_initial_setup_script() {
+  earg '
+NAME="$0"
+DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND
+
+# make sure man pages etc. are installed
+rm -f /etc/dpkg/dpkg.cfg.d/excludes /etc/dpkg/dpkg.cfg.d/docker-apt-speedup
+
+apt-get -y update
+apt-get -y upgrade
+
+# Default container is too minimal. Add few useful utilities to make it look
+# more like OS.
+apt-get -y --no-install-recommends install \
+    procps less iproute2 apt-file man-db rsync socat
+
+apt-file update
+
+# Get systemd
+apt-get -y --no-install-recommends install init
+
+apt-get -y --no-install-recommends install openssh-server
+
+printf "%s\\n" "${NAME}" > /etc/tliset.name
+'
+}
+
+start_container() {
+  if test -d "${rundir}"; then
+    cmd_log rm -rf "${rundir}"
+  fi
+
+  cmd_log mkdir -p 755 "${rundir%/*}"
+  cmd_log mkdir -m 700 "${rundir}"
+
+  local s
+  s="$(podman_query ps -q -a -f name="${NAME}")"
+  if test "${s}"; then
+    podman_action rm -fv "${NAME}" > /dev/null
+  fi
+
+  local ecmd
+  ecmd=
+  earg podman_action run
+  earg_add_default_run_options
+
+  # Make the container itself read-only. Any modifications should go into
+  # bind-mounted persistent volumes.
+  earg --read-only=true
+  #earg --mount type=tmpfs,target=/tmp,tmpfs-mode=01777
+  local i
+  for i in "${container_top}/data/"*; do
+    earg -v "${i}:/${i##*/}"
+  done
+
+  if ! test -f "${container_top}/data/etc/tliset.name"; then
+    local saved_ecmd
+    saved_ecmd="${ecmd}"
+    earg -ti --rm
+    earg "${base_image}" sh -c
+    add_container_initial_setup_script
+    earg "${NAME}"
+    eval "${ecmd}"
+    ecmd="${saved_ecmd}"
+  fi
+
+  earg --name "${NAME}" -d -a stdout -a stderr
+
+  # Access to ssh
+  earg -p "127.0.0.1:${ssh_host_port}:22"
+
+  earg "${base_image}"
+
+  # Start systemd with a helper startup script that also sets up ssh public
+  # keys.
+  local public_keys_base64
+  public_keys_base64="$(ssh-add -L | base64 -w0 ||:)"
+  if test -z "${public_keys_base64}"; then
+    err "No public keys in ${SSH_AUTH_SOCK}"
+  fi
+  earg /bin/sh -c '
+printf %s '"${public_keys_base64}"' | \
+        base64 -d > /root/.ssh/authorized_keys
+
+if ! test -e /dev/console; then
+  socat -u pty,link=/dev/console stdout &
+fi
+
+exec /sbin/init
+'
+}
+
+start_connector() {
+
+  local ssh_config
+  ssh_config="\
+HostKeyAlias $NAME
+HostName 127.0.0.1
+CheckHostIP no
+Port ${ssh_host_port}
+User root
+Ciphers aes128-gcm@openssh.com
+UserKnownHostsFile ${rundir}/ssh.known_hosts
+IdentityAgent ${SSH_AUTH_SOCK}
+IdentitiesOnly no
+IdentityFile none
+ControlPath ${rundir}/ssh-control-%C.socket
+"
+  if test -n "${with_ssh_forward_agent}"; then
+    ssh_config="${ssh_config}ForwardAgent yes${NL}"
+  fi
+
+  printf %s "${ssh_config}" > "${rundir}/ssh.conf"
+  chmod 600 "${rundir}/ssh.conf"
+
+  log "waiting for ${NAME} container to start sshd"
+  local i
+  i=0
+  while : ; do
+    sleep 0.2
+    local ecmd
+    ecmd=
+    earg ssh
+    earg -F "${rundir}/ssh.conf"
+    earg -o StrictHostKeyChecking=no
+    earg -o ExitOnForwardFailure=yes
+    earg -o ControlMaster=yes
+    if test -n "${ssh_proxy_port}"; then
+      earg -o DynamicForward="${ssh_proxy_port}"
+    fi
+    earg -f -N "${NAME}"
+    eval "cmd_log ${ecmd}" && break
+    check_container_running "${NAME}"
+    test "${R}" || err "unexpected podman run exit"
+    : "$((i+=1))"
+    if test 150 -le "$((i+=1))"; then
+      log "failed to connect to ssh at ${NAME}, shutting down"
+      stop_container
+      exit 1
+    fi
+  done
+  start_lsyncd
+
+  systemd-notify --ready
+
+  log "${NAME} started and ssh is ready"
+
+  podman-wait "${NAME}"
+}
+
+stop_container() {
+  podman_action stop --time 5 "${NAME}"
+  podman_action rm -v "${NAME}"
+  ssh -O exit "${NAME}"
+}
+
+start_lsyncd() {
+  if test -z "${lsyncd_config}"; then
+    return 0
+  fi
+
+  local config_path
+  config_path="${rundir}/lsyncd.conf"
+  printf %s "${lsyncd_config}" > "${config_path}"
+
+  # Use -nodaemon with & to disable logging to syslog
+  /usr/bin/lsyncd -insist -nodaemon "${config_path}" > "${rundir}/lsyncd.log" 2>&1 &
+}
+
+self="$(realpath "$0")"
+self_dir="${self%/*}"
+readonly self self_dir
+
+show_usage=
+NAME=
+while getopts :hn: opt; do
+  case "${opt}" in
+  h) show_usage=1 ;;
+  n) NAME="${OPTARG}" ;;
+  :) err "-${OPTARG} requires an argument" ;;
+  *) err "unknown option -${OPTARG}" ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if test "${show_usage}"; then
+  err "NOT IMPLEMENTED"
+fi
+
+if test -z "${NAME}"; then
+  NAME=thip
+fi
+readonly NAME
+
+if test $# -eq 0; then
+  set -- setup
+fi
+
+get_config
+
+command="$1"
+shift
+
+if test "${command}" = internal; then
+  internal_command="$1"
+  shift
+  log "running internal command ${internal_command}"
+  case "${internal_command}" in
+  start_connector ) start_connector ;;
+  stop_container ) stop_container ;;
+  * ) err "unknown internal command - ${internal_command}" ;;
+  esac
+  exit 0
+fi
+
+uid="$(id -u)"
+if test -z "${uid}" || test "${uid}" -lt 1000; then
+  err "Cannot run as root or a system user"
+fi
+
+case "${command}" in
+setup ) setup_and_run_container ;;
+stop ) exec systemctl --user stop "${user_unit}" ;;
+status ) exec systemctl --user status "${user_unit}" ;;
+* ) err "unknown command - ${command}"
+esac
+
+
+#configure "$@"
+
+#setup_tree
+#run_container

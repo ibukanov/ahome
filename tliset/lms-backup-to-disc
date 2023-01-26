@@ -1,0 +1,190 @@
+#!/bin/bash
+
+set -e -u
+
+log() {
+    printf "%s\n" "$*" 1>&2
+}
+
+err() {
+    log "$@"
+    exit 1
+}
+
+# Append to eargs space-separated arguments with spaces and other special
+# characters escaped.
+earg() {
+	local arg do_escape escaped before_quote
+	for arg in "$@"; do
+		# Treat '=' as special only in the first argument
+		do_escape=
+		if test -z "${eargs}"; then
+			case "${arg}" in
+			"" | *[!A-Z0-9a-z_.,/:-]* ) do_escape=1 ;;
+			esac
+		else
+			case "${arg}" in
+			"" | *[!=A-Z0-9a-z_.,/:-]* ) do_escape=1 ;;
+			esac
+		fi
+		if test -n "${do_escape}"; then
+			escaped=
+			while : ; do
+				before_quote="${arg%%\'*}"
+				if test "${arg}" = "${before_quote}"; then
+					break
+				fi
+				escaped="${escaped}${before_quote}'\\''"
+				arg="${arg#*\'}"
+			done
+			arg="'${escaped}${arg}'"
+		fi
+		eargs="${eargs}${ecmd:+ }${arg}"
+	done
+}
+
+# Set R to concatenation of arguments with spaces escaped if necessary.
+escape_for_shell() {
+	local eargs
+	eargs=
+	earg "$@"
+	R="${eargs}"
+}
+
+macos=
+if test $(uname) = Darwin; then
+    macos=1
+fi
+
+if test "${macos}"; then
+    export LANG=en_US.UTF-8
+    export LC_ALL="$LANG"
+fi
+
+backup_top_name=lms-backup
+
+if test -d /run/media; then
+    media_dir=/run/media/$(id -nu)
+elif test -d /Volumes; then
+    media_dir=/Volumes
+else
+    err "Невозможно определить директорию для подключенных" \
+		"внешних дисков."
+fi
+backup_top=
+
+# Number of days to keep old backups in the changed dir
+max_keep_changed_days=60
+
+find_default_backup_top() {
+    local i dir
+    backup_top=
+    for i in "$media_dir"/*; do
+	dir="$i/$backup_top_name"
+	if test -d "$dir"; then
+	    if test -n "$backup_top"; then
+		err "Подключен больше, чем один диск для архивации:" \
+		    "  $(basename "$i")" \
+		    " $(basename "$(dirname "$backup_top")")" \
+		    "Оставьте подключенным только один из дисков" \
+		    "и попробуйте снова."
+	    fi
+	    backup_top="$dir"
+	fi
+    done
+    if test -z "$backup_top"; then
+	err "Не найден диск для архивации." \
+	    "Убедитесь, что диск с паpкой $backup_top_name подключен."
+    fi
+    backup_top="$backup_top/current"
+}
+
+while getopts :d: opt; do
+    case "$opt" in
+	d ) backup_top="$OPTARG";;
+	: ) err "$0: опция $OPTARG треbует аргумента";;
+	* ) err "$0: неизвестная опция '$opt'";;
+    esac
+done
+shift $((OPTIND - 1))
+
+if test -z "$backup_top"; then
+    find_default_backup_top
+fi
+
+if test ! -d "$backup_top"; then
+    mkdir -p -m 750 "$backup_top"
+fi
+
+backup_top="$(cd "$backup_top"; pwd -P)"
+
+ssh_cmd="ssh -o Ciphers=aes128-gcm@openssh.com -l lms-backup"
+if test -f $HOME/.ssh/hippyru-www-backup-ed25519; then
+    ssh_cmd+=" -i $HOME/.ssh/hippyru-www-backup-ed25519"
+fi
+
+escaped_remove_list=""
+
+backup_host() {
+    local host_name="$1"
+
+    local changes="$backup_top/changes/$host_name"
+    local changed_files
+    changed_files="$changes/$(date +%Y-%m-%d)"
+    local partial="$backup_top/rsync-partial/$host_name"
+    local files
+    files="${backup_top}/${host_name}"
+    mkdir -p "${files}" "$changed_files" "$partial"
+
+    log "Архивация $host_name"
+
+    # No ownership - it is set during the setup.
+    local ok
+    ok=1
+
+    # rsync args.
+    #
+    # TODO add --omit-link-times on linux
+    set --
+	set -- "$@" -rlpt --no-owner --no-group
+	set -- "$@" --omit-dir-times --omit-link-times
+	set -- "$@" --partial-dir="$partial" --delete-before
+	set -- "$@" --backup --backup-dir="$changed_files"
+	set -- "$@" --rsh="$ssh_cmd"
+	set -- "$@" --progress -v -8
+
+    # macos needs filename conversion
+    test "${macos}" && set -- "$@" --iconv=UTF-8-MAC,UTF-8
+
+    rsync "$@" "rsync://$host_name/lms/" "${files}/lms/" >&2 || ok=
+
+    if test "${ok}"; then
+		local i cur_time
+		cur_time="$(date +%s)"
+		for i in "$changes"/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]; do
+			if test "${macos}"; then
+				dir_time="$(date -j -f '%Y-%m-%d' "${i##*/}" +%s)"
+			else
+				dir_time="$(date --date="${i##*/}" +%s)"
+			fi
+			local max_seconds
+			max_seconds="$((max_keep_changed_days*86400))"
+			if test "$((cur_time-dir_time))" -gt "${max_seconds}"; then
+				escape_for_shell "$i"
+				escaped_remove_list="${escaped_remove_list} ${R}"
+			fi
+		done
+    fi
+}
+
+backup_host bergenrabbit.net
+
+if test "${escaped_remove_list}"; then
+	eval "set -- ${escaped_remove_list}"
+    log "Удаление старых архивных копий, сделанных больше" \
+		" ${max_keep_changed_days} дней назад:" \
+		"$(printf '\n\t%s' "$@")"
+    rm -rf "$@"
+fi
+
+log "Закончено."

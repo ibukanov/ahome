@@ -1,0 +1,120 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+
+set -u -e
+
+usage_err() {
+  echo "$0: $*" 1>&2
+  echo "Try $0 -h for usage" 1>&2
+  exit 1
+}
+
+show_usage=
+ssh_host=
+machine_host=
+
+allow_long_running_ops=
+initialize_tliset_name=
+
+while getopts :hI:LM:s: opt; do
+  case "$opt" in
+  h) show_usage=1 ;;
+  I) initialize_tliset_name="$OPTARG" ;;
+  L) allow_long_running_ops=1 ;;
+  M) machine_host="$OPTARG" ;;
+  s) ssh_host="$OPTARG" ;;
+  :) usage_err "-$OPTARG requires an argument" ;;
+  *) usage_err "unknown option -$OPTARG" ;;
+  esac
+done
+
+if test "$show_usage"; then
+  printf %s "\
+Usage: $0 [OPTION]...
+Customize installation for the given computer.
+
+Options:
+  -h          show this help and exit
+  -I name     initialize /etc/tliset.name on success
+  -L          allow long-running operations like massive downloads
+  -M machine  connect to the host via systemd-run --machine name
+  -s ssh_host connect to the host via ssh
+
+"
+  exit
+fi
+
+if test "$((1+$#))" -ne "$OPTIND"; then
+  usage_err "Unexpected extra arguments: $*"
+fi
+
+self_path="$(realpath "$0")"
+self_dir="${self_path%/*}"
+
+# shellcheck source=./utils.sh
+. "$self_dir/utils.sh"
+
+
+# For remote targets main-script has to be copied. I need to send the directory
+# and to allow to use terminal so interaction tith the user is possible.
+#
+# So emebedd the archive into the command as base64. For code simplicity I
+# always do that even for local targets.
+
+main_data="$(tar -C "$self_dir" --dereference -cf - \
+    utils.sh container-kit.sh main-script \
+    | gzip | base64 -w0 \
+)"
+
+# Construct the command that embedds the self_data and that extracts them into
+# a temporary folder from which the command is run.
+
+eargs=
+earg allow_long_running_ops="$allow_long_running_ops"
+earg initialize_tliset_name="$initialize_tliset_name"
+escaped_args="$eargs"
+
+# shellcheck disable=2016
+main_script_launcher="\
+main_data=$main_data
+set -- $escaped_args"'
+
+d="$(mktemp -d)" || exit 1
+n=1
+if printf %s "$main_data" | base64 -d | tar -C "$d" -xzf -; then
+  /bin/bash "$d/main-script" "$@"
+  n=$?
+fi
+rm -rf "$d"
+exit "$n"
+'
+
+# Now we need to place main_script_launcher behind ssh/sudo/systemd-nspawn.
+
+# shellcheck disable=2016
+lines='
+set --
+uid="$(id -u)" || exit 1
+if test 0 -ne "$uid"; then
+  set -- "$@" sudo
+fi
+'
+if test "$machine_host"; then
+  # Use systemd-nspawn to run
+  escape_for_shell "$machine_host"
+  escaped_machine_host="$R"
+  pl 'set -- "$@" systemd-nspawn -M' "$escaped_machine_host"
+fi
+
+escape_for_shell "$main_script_launcher"
+pl 'exec "$@" /bin/sh -c' "$R"
+
+if test "${ssh_host}"; then
+  exec ssh -t "$ssh_host" "$lines"
+fi
+
+# printf %s "${lines}" | awk '{printf "%d\t%s\n", NR, $0}'
+
+eval "$lines"
