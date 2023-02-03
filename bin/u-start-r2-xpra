@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2249,SC2034
+
+set -e -u
+
+host=igor@r2.mir2.org
+display_number=25
+
+client_dpi=
+while IFS= read -r line; do
+    case "$line" in
+    *" 3200x"*" 290mm"* ) client_dpi=280 ;;
+    esac
+done <<EOF
+$(xrandr -q)
+EOF
+
+ssh "$host" '
+set -e -u
+display_number="'"$display_number"'"
+client_dpi="'"$client_dpi"'"
+unit="xpra-$display_number"
+systemctl --user is-active --quiet "$unit" && exit 0
+
+set -- systemd-run --user -u "$unit"
+set -- "$@" --service-type=simple
+set -- "$@" --collect
+set -- "$@" "$SHELL" -l -c "exec \"\$0\" \"\$@\""
+set -- "$@" xpra start-desktop
+set -- "$@" --daemon=no
+set -- "$@" --start=ratpoison
+set -- "$@" --keyboard-layout=us --keyboard-variant=altgr-intl
+if test "$client_dpi"; then
+    set -- "$@" --dpi="$client_dpi"
+fi
+set -- "$@" ":$display_number"
+
+printf "Starting xpra as systemd %s unit\\n" "$unit"
+printf "    %s\\n" "$*" >&2
+exec "$@"
+'
+
+exec xpra attach "ssh://$host/$display_number"
