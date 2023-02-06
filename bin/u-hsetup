@@ -441,7 +441,7 @@ env_dir() {
 path_dir() {
     local name value prev
     if test $# -eq 1; then
-        name=PATH
+        name=AHOME_PATH
         value="$1"
     elif test $# -eq 2; then
         name="$1"

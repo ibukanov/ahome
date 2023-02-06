@@ -30,6 +30,10 @@ rc_setup_env() {
   #export LC_ALL C
 
   test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
+  if test "${PATH%":$AHOME_PATH"}" = "$PATH"; then
+    # PATH does not end with :AHOME_PATH, reset it
+    export PATH="$AHOME_PATH"
+  fi
 
   if test "${XDG_RUNTIME_DIR-}"; then
     local default_agent_link
