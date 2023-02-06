@@ -1,10 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e -u
 
 readonly NL=$'\n'
 self="$(realpath "$0")"
 self_top="${self%/*/*}"
+
+rel_state="$self_top/state"
+rel_state="${rel_state#"$HOME/"}"
 
 log() {
     printf "%s\n" "$*" 1>&2
@@ -70,12 +73,13 @@ user_systemd_unit_change=
 sourced_local_setup=
 
 init_path_list() {
-    local f=.local/hsetup/list
+    local f
+    f="$rel_state/list"
     if is_setup; then
-        if test -f .local/hsetup/list.new; then
-            log "Adding .local/hsetup/list.new left from a failed run into $f"
-            cat .local/hsetup/list.new >> "$f"
-            rm .local/hsetup/list.new
+        if test -f "$rel_state/list.new"; then
+            log "Adding $rel_state/list.new left from a failed run into $f"
+            cat "$rel_state/list.new" >> "$f"
+            rm "$rel_state/list.new"
         fi
     fi
     if test -e "$f"; then
@@ -116,10 +120,10 @@ record_path_entry() {
         current_file_set[$path]=1
     fi
     if is_setup; then
-        if ! test -d .local/hsetup; then
-            cmd_log mkdir -p .local/hsetup
+        if ! test -d "$rel_state/hsetup"; then
+            cmd_log mkdir -p "$rel_state/hsetup"
         fi
-        printf "%s %s\n" "$kind" "$path" >> .local/hsetup/list.new
+        printf "%s %s\n" "$kind" "$path" >> "$rel_state/list.new"
     fi
     return 0
 }
@@ -153,7 +157,7 @@ clean_files() {
                 cmd_log rm "${cleanup_list[@]}"
             fi
         fi
-        mv .local/hsetup/list.new .local/hsetup/list
+        mv "$rel_state/list.new" "$rel_state/list"
     fi
     if is_clean; then
         # Try to remove both historic and this run files in case the historic
@@ -164,7 +168,7 @@ clean_files() {
         if let ${#current_file_set[@]}; then
             cleanup_list+=("${!current_file_set[@]}")
         fi
-        cleanup_list+=(.local/hsetup/list)
+        cleanup_list+=("$rel_state/list")
         cmd_log rm -f "${cleanup_list[@]}"
     fi
 }
@@ -341,7 +345,7 @@ action_write_file() {
                 printf -v expected_mode %o "$((0$expected_mode&~0$(umask)))"
             fi
             local s
-            s="$(exec find "$path" -maxdepth 0 -perm "$expected_mode" -printf 1)"
+            s="$(exec find "$path" -maxdepth 0 -perm "$expected_mode" -print)"
             if test "$s"; then
                 return 0
             fi
@@ -486,16 +490,16 @@ link_to_bin() {
 }
 
 setup_env() {
-    local platform
-    platform="$(uname -i)"
+    local arch
+    arch="$(uname -m)"
 
     add_env HSETUP_TOP "$self_top"
 
+    path_dir "$rel_state/bin"
+
     path_dir opt/bin
 
-    path_dir .local/bin
-
-    path_dir "opt/$platform/rust/bin"
+    path_dir "opt/$arch/rust/bin"
 
     path_dir "opt/node/bin"
 
@@ -503,13 +507,15 @@ setup_env() {
 
     path_dir ".cargo/bin"
 
-    path_dir .local/bin
-
     add_env TEXINPUTS "$self_top/dev/tex_lib:"
 
     env_dir ELM_HOME "node_modules/elm/share"
 
     env_dir PERL5LIB "$self_top/perl/mylib"
+
+    path_dir /opt/homebrew/bin
+    path_dir /opt/homebrew/sbin
+    path_dir /opt/homebrew/opt/coreutils/libexec/gnubin
 
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
@@ -697,6 +703,10 @@ main() {
     local Setup=0
     local Clean=0
 
+    if test "${rel_state#/}" != "$rel_state"; then
+        err "ahome scripts must be placed under $HOME"
+    fi
+
     if test $# -eq 0; then
         Setup=1
     else
@@ -720,13 +730,12 @@ main() {
 
     init_path_list
 
-    action_dir ".local/hsetup"
-    action_dir ".local/hsetup/bin"
+    action_dir "$rel_state/bin"
 
     path_dir "$self_top/bin"
     path_dir "$self_top/local/bin"
 
-    action_symlink -s p/git-subrepo/lib/git-subrepo .local/hsetup/bin
+    action_symlink -s p/git-subrepo/lib/git-subrepo "$rel_state/bin"
     path_dir MANPATH p/git-subrepo/man
 
     # dot files that are symlinked to home
@@ -743,7 +752,7 @@ main() {
 
     action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
-    action_symlink -d "$hsetup_source_dir/wezterm" .config wezterm
+    #action_symlink -d "$hsetup_source_dir/wezterm" .config wezterm
 
     #action_symlink -d "$hsetup_source_dir/vim" . .vim
     action_dir ".local/vim"
@@ -785,7 +794,9 @@ Comment=Start custom session script
 
     if is_setup; then
         local d
-        for d in /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin; do
+        set -- /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin
+        set -- "$@" /Library/Apple/usr/bin
+        for d in "$@"; do
             # Do not add /bin if it is a symlink to /usr/bin
             if test "${d#/usr/}" = "$d"; then
                 if test $(realpath -qm "$d") = "$(realpath -qm "/usr/$d")"; then
@@ -794,6 +805,7 @@ Comment=Start custom session script
             fi
             path_dir "$d"
         done
+
         if [[ ${pathnames[MANPATH]-} ]]; then
             pathnames[MANPATH]+=":"
         fi
@@ -806,7 +818,7 @@ Comment=Start custom session script
 
         local s
         printf -v s '%s\n' "${environment_lines[@]}"
-        action_write_file .local/hsetup env "$s"
+        action_write_file "$rel_state" env "$s"
     fi
 
     if is_setup; then
@@ -824,8 +836,8 @@ Comment=Start custom session script
                 <(printf '%s\n' "${!current_dir_set[@]}" | sort -r)
             cmd_log rmdir --ignore-fail-on-non-empty "${reverse_sorted[@]}"
         fi
-        if test -d .local/hsetup; then
-            cmd_log rm -rf .local/hsetup
+        if test -d "$rel_state/hsetup"; then
+            cmd_log rm -rf "$rel_state/hsetup"
         fi
     fi
 }

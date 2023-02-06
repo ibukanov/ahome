@@ -22,13 +22,14 @@ fi
 
 rc_setup_env() {
 
-  #export LANG=en_US.UTF-8
-  export LANG=C.UTF-8
+  if rc_is_mac; then
+    export LANG=en_US.UTF-8
+  else
+    export LANG=C.UTF-8
+  fi
   #export LC_ALL C
 
-  if test -f "$HOME/.local/hsetup/env"; then
-    . "$HOME/.local/hsetup/env"
-  fi
+  test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
 
   if test "${XDG_RUNTIME_DIR-}"; then
     local default_agent_link
