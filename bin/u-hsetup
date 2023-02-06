@@ -744,9 +744,13 @@ main() {
         action_symlink "$i" . ".${name%.dot}"
     done
 
-    # extra bash symlinks besides .bashrc
-    action_symlink "$hsetup_source_dir/rc.sh" . .bash_profile
-    action_symlink "$hsetup_source_dir/rc.sh" . .bashrc
+    # Load rc.sh including the proper value for rc_ahome
+    local rc_loader
+    rc_loader='rc_ahome="$HOME/'"${self_top#"$HOME/"}"'"'
+    rc_loader="$rc_loader"'; . "$rc_ahome/hsetup/rc.sh"'"$NL"
+
+    action_write_file . .bash_profile "$rc_loader"
+    action_write_file . .bashrc "$rc_loader"
 
     action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 
