@@ -51,7 +51,7 @@ rc_setup_env() {
     elif ! test "${SSH_AUTH_SOCK-}"; then
       rc_set_env SSH_AUTH_SOCK "$default_agent_link"
       u-ssh-ensure-agent &
-      if command -v disown >/dev/null; then 
+      if command -v disown >/dev/null; then
         disown
       fi
     fi
@@ -68,13 +68,13 @@ if ! test "${PS1+1}"; then
 fi
 
 rc_history() {
- 
+
   # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
   HISTSIZE="$((100 * 1000))"
   HISTFILESIZE="$((1000 * 1000))"
- 
+
   if rc_is_bash; then
-    HISTFILE="$HOME/.bash_history"  
+    HISTFILE="$HOME/.bash_history"
     # don't put duplicate lines or lines starting with space in the history.
     # See bash(1) for more options
     HISTCONTROL=ignoreboth
@@ -84,7 +84,7 @@ rc_history() {
 
   fi
   if rc_is_zsh; then
-    HISTFILE="$HOME/.zsh_history"  
+    HISTFILE="$HOME/.zsh_history"
 
     # Skip dups while searching, still keep them in the history file
     setopt HIST_FIND_NO_DUPS
@@ -125,7 +125,7 @@ rc_prompt() {
 
     return 0
   fi
-  
+
   local color_prompt
   color_prompt=
 	# set a fancy prompt (non-color, unless we know we "want" color)
