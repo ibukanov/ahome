@@ -51,7 +51,7 @@ get_config() {
     ssh_host_port=15022
     ssh_proxy_port=15080
     vnc_port=5906
-    ssh_custom_agent=/run/tliset-ssh-agent/bergenrabbit/socket
+    #ssh_custom_agent=/run/tliset-ssh-agent/bergenrabbit/socket
     ssh_forward_agent=1
     boot_script_custom='
 if cmp -s -n 65536 /dev/vdb /dev/zero; then
@@ -70,7 +70,7 @@ cmd_log mount --bind /mnt/data/lms /srv/lms
 test -d /mnt/data/tmp || cmd_log mkdir /mnt/data/tmp
 cmd_log mount --bind /mnt/data/tmp /var/tmp
 '
-    if ! :; then
+    if :; then
       lsyncd_config="\
 sync {
    default.rsync,
@@ -87,6 +87,10 @@ sync {
       chmod = 'D2775,F+rX',
    }
 }
+"
+    fi
+    if ! :; then
+      lsyncd_config="$lsyncd_config\
 sync {
    default.rsync,
    source = '${HOME}/p/lms/gosrc',
@@ -141,8 +145,8 @@ sync {
 
   readonly main_vol data_vol_path
 
-  if test "${ssh_custom_agent}"; then
-    SSH_AUTH_SOCK="${ssh_custom_agent}";
+  if test "$ssh_custom_agent"; then
+    SSH_AUTH_SOCK="$ssh_custom_agent";
     export SSH_AUTH_SOCK
   fi
 }
@@ -685,16 +689,14 @@ umask 0022
 }
 
 start_lsyncd() {
-  if test -z "${lsyncd_config}"; then
-    return
-  fi
+  test "$lsyncd_config" || return 0
 
   local config_path
-  config_path="${rundir}/lsyncd.conf"
-  printf %s "${lsyncd_config}" > "${config_path}"
+  config_path="$rundir/lsyncd.conf"
+  printf %s "$lsyncd_config" > "$config_path"
 
   # Use -nodaemon + & to disable logging to syslog
-  /usr/bin/lsyncd -insist -nodaemon "${config_path}" > "${rundir}/lsyncd.log" 2>&1 &
+  /usr/bin/lsyncd -insist -nodaemon "$config_path" > "$rundir/lsyncd.log" 2>&1 &
 }
 
 start_vm() {
@@ -763,7 +765,7 @@ start_vm() {
     #earg -v
     earg -f -N "$VM"
     eval "cmd_log $eargs" && break
-    kill -n 0 "$qemu_pid" || err "unexpected qemu exit"
+    kill -s 0 "$qemu_pid" || err "unexpected qemu exit"
     : "$((i+=1))"
     if test 150 -le "$((i+=1))"; then
       log "failed to connect to ssh at ${VM}, shutting down"
@@ -789,7 +791,7 @@ stop_vm() {
       echo "qemu has not performed a clean powerdown after 5 seconds" >&2
     fi
     sleep 0.05
-    if ! kill -0 "${pid}" 2>/dev/null; then
+    if ! kill -s 0 "$pid" 2>/dev/null; then
       echo "qemu has performed clean powerdown" >&2
       break
     fi
