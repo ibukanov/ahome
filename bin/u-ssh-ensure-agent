@@ -18,7 +18,7 @@ err() {
 ensure_ssh_agent() {
   local agent_socket status
   test "${XDG_RUNTIME_DIR-}" || err "XDG_RUNTIME_DIR is unset"
-  agent_socket="$XDG_RUNTIME_DIR/ssh-agent.socket"
+  agent_socket="$XDG_RUNTIME_DIR/u-ssh-agent.socket"
   if test -h "$agent_socket"; then
     status=0
     ssh-add -l > /dev/null 2>&1 || status="$?"
