@@ -120,8 +120,8 @@ record_path_entry() {
         current_file_set[$path]=1
     fi
     if is_setup; then
-        if ! test -d "$rel_state/hsetup"; then
-            cmd_log mkdir -p "$rel_state/hsetup"
+        if ! test -d "$rel_state"; then
+            cmd_log mkdir -p "$rel_state"
         fi
         printf "%s %s\n" "$kind" "$path" >> "$rel_state/list.new"
     fi
@@ -836,8 +836,8 @@ Comment=Start custom session script
                 <(printf '%s\n' "${!current_dir_set[@]}" | sort -r)
             cmd_log rmdir --ignore-fail-on-non-empty "${reverse_sorted[@]}"
         fi
-        if test -d "$rel_state/hsetup"; then
-            cmd_log rm -rf "$rel_state/hsetup"
+        if test -d "$rel_state"; then
+            cmd_log rm -rf "$rel_state"
         fi
     fi
 }
