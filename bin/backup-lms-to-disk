@@ -58,33 +58,29 @@ escape_for_shell() {
 	R="$eargs"
 }
 
-macos=
-backup_top_name=lms-backup
-backup_top=
-
-# Number of days to keep old backups in the changed dir
-max_keep_changed_days=60
-
-if test "$(uname)" = Darwin; then
-	macos=1
-fi
-
-if test "$macos"; then
-	export LANG=en_US.UTF-8
-	export LC_ALL="$LANG"
-fi
-
-
-if test -d /run/media; then
-	media_dir=/run/media/$(id -nu)
-elif test -d /Volumes; then
-	media_dir=/Volumes
-else
-	err "Невозможно определить директорию для подключенных" \
-		"внешних дисков."
-fi
-
 find_default_backup_top() {
+	local media_dir
+	media_dir=
+	if test "$macos"; then
+		if test -d /Volumes; then
+			media_dir=/Volumes
+		fi
+	else
+		local user_name
+		user_name="$(id -nu)"
+		local d
+		for d in /run/media /media; do
+			if test -d "$d/$user_name"; then
+				media_dir="$d/$user_name"
+				break
+			fi
+		done
+	fi
+	if ! test "$media_dir"; then
+		err "Невозможно определить директорию для подключенных" \
+			"внешних дисков."
+	fi
+
 	local i dir
 	backup_top=
 	for i in "$media_dir"/*; do
@@ -106,6 +102,22 @@ find_default_backup_top() {
 	fi
 	backup_top="$backup_top/current"
 }
+
+macos=
+backup_top_name=lms-backup
+backup_top=
+
+# Number of days to keep old backups in the changed dir
+max_keep_changed_days=60
+
+if test "$(uname)" = Darwin; then
+	macos=1
+fi
+
+if test "$macos"; then
+	export LANG=en_US.UTF-8
+	export LC_ALL="$LANG"
+fi
 
 while getopts :d: opt; do
 	case "$opt" in
