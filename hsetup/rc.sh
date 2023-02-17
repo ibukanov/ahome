@@ -30,8 +30,7 @@ rc_setup_env() {
   #export LC_ALL C
 
   test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
-  if test "${PATH%":$AHOME_PATH"}" = "$PATH"; then
-    # PATH does not end with :AHOME_PATH, reset it
+  if ! test "${AHOME_FORCED_PATH-}"; then
     export PATH="$AHOME_PATH"
   fi
 
