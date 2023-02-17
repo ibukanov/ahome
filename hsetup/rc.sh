@@ -35,20 +35,24 @@ rc_setup_env() {
     export PATH="$AHOME_PATH"
   fi
 
-  if test "${XDG_RUNTIME_DIR-}"; then
-    local default_agent_link
-    default_agent_link="$XDG_RUNTIME_DIR/u-ssh-agent.socket"
-    if test "${DISPLAY-}"; then
-      export SSH_AUTH_SOCK="$default_agent_link"
-      export SSH_ASKPASS="$HSETUP_TOP/bin/u-ssh-askpass"
-      #export SSH_ASKPASS_REQUIRE=prefer
-      export  SSH_ASKPASS_REQUIRE=force
-    elif ! test "${SSH_AUTH_SOCK-}"; then
-      export SSH_AUTH_SOCK="$default_agent_link"
-      u-ssh-ensure-agent &
-      if command -v disown >/dev/null; then
-        disown
+  if ! test "${SSH_AUTH_SOCK-}" && test "${XDG_RUNTIME_DIR-}"; then
+    local u_agent working_agent
+    u_agent="$XDG_RUNTIME_DIR/u-ssh-agent.socket"
+    working_agent=
+    if test -S "$u_agent"; then
+      # Check if the agent does work
+      local status
+      status=0
+      SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || status="$?"
+      if test "$status" -lt 2; then
+	# ssh-add exits with 1 if agent works but has no identities
+	working_agent=1
       fi
+    fi
+    if ! test "$working_agent"; then
+      rm -rf "$u_agent"
+      ssh-agent -a "$u_agent" >/dev/null
+      export SSH_AUTH_SOCK="$u-agent"
     fi
   fi
 }
