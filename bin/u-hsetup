@@ -517,6 +517,8 @@ setup_env() {
     path_dir /opt/homebrew/sbin
     path_dir /opt/homebrew/opt/coreutils/libexec/gnubin
 
+    path_dir "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
     for extra_file in "$HOME/.opam/opam-init/variables.sh"; do
