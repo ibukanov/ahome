@@ -51,7 +51,7 @@ rc_setup_env() {
     if ! test "$working_agent"; then
       rm -rf "$u_agent"
       ssh-agent -a "$u_agent" >/dev/null
-      export SSH_AUTH_SOCK="$u-agent"
+      export SSH_AUTH_SOCK="$u_agent"
     fi
   fi
 }
