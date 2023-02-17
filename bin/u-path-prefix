@@ -24,13 +24,33 @@ fi
 
 directory="$(realpath "$directory")"
 
-if test "${PATH#*"$directory:"}" = "$PATH"; then
-  # Depot is not on path
-  export PATH="${directory}:$PATH"
-fi
+case "$PATH" in
+"$directory" | "$directory":* | *":$directory:"* | *":$directory" ) ;;
+* )
+  # direcory is not on PATH, insert it but only a-entries
+  atop="$(realpath "$0")"
+  atop="${atop%/*/*}"
+  prefix=
+  tail="$PATH"
+  while :; do
+    path_entry="${tail%%:*}"
+    if test "${path_entry#"$atop/"}" = "$path_entry"; then
+      # path_entry does not starts with $atop
+      break
+    fi
+    prefix="$prefix${prefix:+:}$path_entry"
+    if test "$path_entry" = "$tail"; then
+      tail=
+      break
+    fi
+    tail="${tail#*:}"
+  done
+  export PATH="$prefix${prefix:+:}$directory${tail:+:}$tail"
+esac
 
 if test $# -ne 0; then
   exec "$@"
 fi
 
+printf 'PATH=%s\n' "$PATH" >&2
 exec "$SHELL"
