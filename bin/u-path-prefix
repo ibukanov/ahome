@@ -46,6 +46,7 @@ case "$PATH" in
     tail="${tail#*:}"
   done
   export PATH="$prefix${prefix:+:}$directory${tail:+:}$tail"
+  export AHOME_FORCED_PATH=1
 esac
 
 if test $# -ne 0; then
