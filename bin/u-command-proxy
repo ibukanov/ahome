@@ -31,10 +31,10 @@ fi
 
 PATH="$saved_path"
 
+# Presently unused
+
 case "$target_command" in
-ninja )
-  export NINJA_STATUS="[%r processes, %f/%t @ %o/s : %es]"
-  ;;
+* ) : ;;
 esac
 
 exec "$s" "$0"

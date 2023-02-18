@@ -602,6 +602,8 @@ setup_env() {
             "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
     fi
 
+    add_export NINJA_STATUS="[%r processes, %f/%t @ %o/s : %es]"
+
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
     for extra_file in "$HOME/.opam/opam-init/variables.sh"; do
