@@ -5,7 +5,7 @@
 test "${rc_has_setup-}" && return 0
 
 rc_is_mac() {
-  test "$rc_uname" = Darwin
+  test "$rc_is_mac"
 }
 
 rc_is_bash() {
@@ -31,7 +31,7 @@ rc_setup_env() {
 
   test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
   if ! test "${AHOME_FORCED_PATH-}"; then
-    export PATH="$AHOME_PATH"
+    export PATH="$rc_ahome_path"
   fi
 
   if ! test "${SSH_AUTH_SOCK-}" && test "${XDG_RUNTIME_DIR-}"; then
@@ -59,8 +59,6 @@ rc_setup_env() {
   fi
 }
 
-rc_uname="$(uname)"
-readonly rc_uname
 rc_setup_env
 
 ### Interactive-only settings when PS1 is set

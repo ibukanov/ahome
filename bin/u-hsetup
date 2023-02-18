@@ -2,7 +2,8 @@
 
 set -e -u
 
-readonly NL=$'\n'
+readonly NL='
+'
 self="$(realpath "$0")"
 self_top="${self%/*/*}"
 
@@ -44,15 +45,76 @@ cmd_log() {
     fi
 }
 
-declare -a tmp_files=()
+# Append to eargs space-separated arguments with spaces and other special
+# characters escaped.
+earg() {
+    local arg do_escape escaped before_quote
+    for arg in "$@"; do
+        do_escape=
+        case "$arg" in
+        "" | *[!A-Z0-9a-z_.,/:-]*) do_escape=1 ;;
+        *) ;;
+        esac
+        if test "$do_escape"; then
+            escaped=
+            while : ; do
+                before_quote="${arg%%\'*}"
+                if test "$arg" = "$before_quote"; then
+                    break
+                fi
+                escaped="$escaped$before_quote'\\''"
+                arg="${arg#*\'}"
+            done
+            arg="'$escaped$arg'"
+        fi
+        if test "$eargs"; then
+          eargs="$eargs "
+        fi
+        eargs="$eargs$arg"
+    done
+}
 
-exit_hook() {
-    if [[ ${#tmp_files[@]} -ne 0 ]]; then
-        rm -f "${tmp_files[@]}"
+# Set R to concatenation of arguments with spaces escaped if necessary.
+escape_for_shell() {
+    test 1 -eq $# || \
+        err "escape_for_shell takes exactly one argument while $# were given"
+    R=
+    local eargs
+    eargs=
+    earg "$1"
+    R="$eargs"
+}
+
+check_valid_shell_name() {
+    local name error
+    name="$1"
+    error=
+    case "$name" in
+    "" ) error="the name is empty" ;;
+    [!A-Za-z_]* ) error="the name does not start with a letter" ;;
+    *[!A-Za-z0-9_]* ) error="the name contains an invalid character" ;;
+    esac
+    if test "$error"; then
+        err "'$name' is not a valid shell variable name - $error"
     fi
 }
 
-trap exit_hook EXIT
+get_var() {
+    local name value
+    name="$1"
+    check_valid_shell_name "$name"
+    eval 'R="$'"$name"'"'
+}
+
+set_var() {
+    local name value
+    name="$1"
+    value="$2"
+    check_valid_shell_name "$name"
+    escape_for_shell "$value"
+    eval "$name=$R"
+}
+
 
 read_file() {
     local path="$1"
@@ -61,16 +123,34 @@ read_file() {
     printf -v R %s "${lines[@]:+${lines[@]}}"
 }
 
-declare -a environment_lines=()
-declare -A pathnames=()
+export_lines=
 
 declare -A historic_file_set=()
 declare -A current_file_set=()
 declare -A current_dir_set=()
-declare -a current_dir_list=()
 
 user_systemd_unit_change=
 sourced_local_setup=
+
+pathlike_PATH=
+pathlike_MANPATH=
+pathlike_PERL5LIB=
+
+os_name="$(uname)"
+
+is_mac() {
+    test "$os_name" = Darwin
+}
+
+get_pathlike_var() {
+    local path_like_name
+    path_like_name="$1"
+    case "$path_like_name" in
+    PATH | MANPATH | PERL5LIB ) : ;;
+    * ) err "Unsiupported PATH-like environmental variable $path_like_name"
+    esac
+    R="pathlike_$path_like_name"
+}
 
 init_path_list() {
     local f
@@ -411,11 +491,13 @@ action_write_user_systemd_unit() {
 }
 
 
-add_env() {
-    local name="$1"
-    local value="$2"
-    printf -v value %q "$value"
-    environment_lines+=("export $name=$value")
+add_export() {
+    local name value eargs
+    name="$1"
+    value="$2"
+    check_valid_shell_name "$name"
+    escape_for_shell "$value"
+    export_lines="${export_lines}export $name=$R$NL"
 }
 
 check_dir() {
@@ -436,39 +518,39 @@ env_dir() {
     local name=$1 dir="$2"
     check_dir "$dir"
     if test "$R"; then
-        add_env "$name" "$R"
+        add_export "$name" "$R"
     fi
 }
 
 path_dir() {
     local name value prev
     if test $# -eq 1; then
-        name=AHOME_PATH
+        name=PATH
         value="$1"
     elif test $# -eq 2; then
         name="$1"
         value="$2"
     else
-        err
+        err "invalid call"
     fi
+    local pathlike_var
+    get_pathlike_var "$name"
+    pathlike_var="$R"
 
-    local more
-    more=1
-    while test "$more"; do
-        local s
-        s="${value%%:*}"
-        if test "$s" = "$value"; then
-            more=
+    while :; do
+        local dir
+        dir="${value%%:*}"
+        local absolute_dir
+        check_dir "$dir"
+        absolute_dir="$R"
+        if test "$absolute_dir"; then
+            get_var "$pathlike_var"
+            set_var "$pathlike_var" "$R${R:+:}$absolute_dir"
         fi
-        check_dir "$s"
-        if test "$R"; then
-            s="$R"
-            prev="${pathnames[$name]-}"
-            if test "$prev"; then
-                s="$prev:$s"
-            fi
-            pathnames[$name]="$s"
+        if test "$dir" = "$value"; then
+            break
         fi
+        value="${value#*:}"
     done
 }
 
@@ -495,8 +577,6 @@ setup_env() {
     local arch
     arch="$(uname -m)"
 
-    add_env HSETUP_TOP "$self_top"
-
     path_dir "$rel_state/bin"
 
     path_dir opt/bin
@@ -506,20 +586,21 @@ setup_env() {
     if test -d "opt/node/18/bin"; then
         path_dir "opt/node/18/bin"
         path_dir MANPATH "opt/node/18/share/man"
-        add_env NODE_OPTIONS "--use-openssl-ca"
+        add_export NODE_OPTIONS "--use-openssl-ca"
     fi
 
     path_dir ".cargo/bin"
 
-    add_env TEXINPUTS "$self_top/dev/tex_lib:"
-
-    env_dir PERL5LIB "$self_top/perl/mylib"
+    add_export TEXINPUTS "$self_top/dev/tex_lib:"
 
     path_dir /opt/homebrew/bin
     path_dir /opt/homebrew/sbin
     path_dir /opt/homebrew/opt/coreutils/libexec/gnubin
 
-    path_dir "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+    if is_mac; then
+        path_dir \
+            "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+    fi
 
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
@@ -682,7 +763,7 @@ setup_gnome() {
 
 setup_mac() {
     os="$(uname)"
-    test "$os" = Darwin || return 0 
+    test "$os" = Darwin || return 0
 
     local plist
     plist=Library/LaunchAgents/com.user.loginscript.plist
@@ -692,7 +773,7 @@ setup_mac() {
           cmd_log launchctl unload "$HOME/$plist"
         fi
     fi
- 
+
     # Load ssh keys at startup
     action_write_file "${plist%/*}" "${plist##*/}" \
 '<?xml version="1.0" encoding="UTF-8"?>
@@ -746,9 +827,6 @@ main() {
     real_home="$(realpath "$HOME")"
     hsetup_source_dir="${self_top#"$real_home"/}/hsetup"
 
-    local -a path_dirs=()
-    local -a manp_dirs=()
-
     cd "$HOME"
 
     init_path_list
@@ -772,8 +850,14 @@ main() {
     rc_loader='rc_ahome="$HOME/'"${self_top#"$HOME/"}"'"'
     rc_loader="$rc_loader"'; . "$rc_ahome/hsetup/rc.sh"'"$NL"
 
-    action_write_file . .bash_profile "$rc_loader"
-    action_write_file . .bashrc "$rc_loader"
+
+    if is_mac; then
+        action_write_file . .zshrc "$rc_loader"
+        action_write_file . .zlogin "$rc_loader"
+    else
+        action_write_file . .bash_profile "$rc_loader"
+        action_write_file . .bashrc "$rc_loader"
+    fi
 
     action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
 
@@ -833,18 +917,23 @@ Comment=Start custom session script
             path_dir "$d"
         done
 
-        if [[ ${pathnames[MANPATH]-} ]]; then
-            pathnames[MANPATH]+=":"
+        if test "$pathlike_MANPATH"; then
+            # Add the trailing : that means to use the default system path
+            add_export MANPATH "${pathlike_MANPATH}:"
         fi
-        local -a sorted_names
-        mapfile -t sorted_names < <(printf '%s\n' "${!pathnames[@]}" | sort)
-        local name
-        for name in ${sorted_names[@]}; do
-            add_env "$name" "${pathnames[$name]}"
-        done
+        if test "$pathlike_PERL5LIB"; then
+            add_export PERL5LIB "$pathlike_PERL5LIB:"
+        fi
 
         local s
-        printf -v s '%s\n' "${environment_lines[@]}"
+        s=
+        s="${s}rc_ahome_path=$pathlike_PATH$NL"
+        if is_mac; then
+            s="${s}rc_is_mac=1$NL"
+        else
+            s="${s}rc_is_mac=$NL"
+        fi
+        s="$s$export_lines"
         action_write_file "$rel_state" env "$s"
     fi
 
