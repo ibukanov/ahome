@@ -119,9 +119,7 @@ set_var() {
     local name value
     name="$1"
     value="$2"
-    check_valid_shell_name "$name"
-    escape_for_shell "$value"
-    eval "$name=$R"
+    eval "$name=\"\$value\""
 }
 
 
@@ -938,7 +936,8 @@ Comment=Start custom session script
 
         local s
         s=
-        s="${s}rc_ahome_path=$pathlike_PATH$NL"
+        escape_for_shell "$pathlike_PATH"
+        s="${s}rc_ahome_path=$R$NL"
         if is_mac; then
             s="${s}rc_is_mac=1$NL"
         else
