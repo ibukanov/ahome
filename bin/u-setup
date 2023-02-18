@@ -320,7 +320,14 @@ action_symlink() {
         err "duplicated action_symlink for $link_path"
 
     local target
-    if test "$link_dir" = "."; then
+    if test "${from#/}" != "$from"; then
+        # absolut path
+        if "${from#"$HOME"}" != "$from"; then
+            err "Absolute link target must point outside HOME directory" \
+                "$HOME - $from"
+        fi
+        target="$from"
+    elif test "$link_dir" = "."; then
         target="$from"
     else
         local s="$link_dir"
@@ -853,7 +860,6 @@ main() {
     local rc_loader
     rc_loader='rc_ahome="$HOME/'"${self_top#"$HOME/"}"'"'
     rc_loader="$rc_loader"'; . "$rc_ahome/setup/rc.sh"'"$NL"
-
 
     if is_mac; then
         action_write_file . .zshrc "$rc_loader"
