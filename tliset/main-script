@@ -77,6 +77,7 @@ get_host_options() {
   with_forced_networkd=
   with_encrypted_dns=
   with_encrypted_dns_forced=
+  with_mdns=
 
   explicit_ipv6_address=
   explicit_ipv6_gateway=
@@ -121,9 +122,10 @@ get_host_options() {
     #with_custom_sshd=1
     #with_remote_ssh_unlock=1
 
-    #with_stub_resolv_conf=1
+    with_stub_resolv_conf=1
     #with_forced_networkd=1
     #with_encrypted_dns=1
+    with_mdns=1
     ;;
 
   miranda )
@@ -136,6 +138,7 @@ get_host_options() {
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
+    with_mdns=1
 
     #custom_user_watches_count="$((768*1025))"
     with_ssh_agent_service=1
@@ -2001,7 +2004,7 @@ UseDomains=true
   # Lines for resolved.conf
   local lines
   lines=
-  if test "${with_encrypted_dns}"; then
+  if test "$with_encrypted_dns"; then
     pl "DNS=1.1.1.1"
     pl "DNSOverTLS=yes"
     #pl "DNSSEC=allow-downgrade"
@@ -2048,15 +2051,13 @@ rc-manager=file
 [keyfile]
 unmanaged-devices=interface-name:ve-*
 "
-    test "${file_update}" && reload_network_manager=1
+    test "$file_update" && reload_network_manager=1
   fi
 
-  if test "${with_encrypted_dns}"; then
-    ensure_dir /etc/NetworkManager/dispatcher.d
-    write_file -m 0755 /etc/NetworkManager/dispatcher.d/50-tliset <<'EOF'
-#!/bin/sh
-
-#test $# -ge 2 && test up = "$2" -o down = "$2" || exit 0
+  if test "$with_encrypted_dns" || test "$with_mdns"; then
+    local dispatcher_script
+    dispatcher_script=\
+'#!/bin/sh
 
 set -e -u
 set -f
@@ -2064,7 +2065,7 @@ readonly DEFAULT_IFS="${IFS}"
 
 log() {
   logger -t "tliset.network" "$*"
-  #printf '%s\n' "$*" >&2
+  #printf "%s\\n" "$*" >&2
 }
 
 cmd_log() {
@@ -2074,19 +2075,21 @@ cmd_log() {
 
 interface="$1"
 action="$2"
-
-if test up = "${action}"; then
-  # Remove any default domain to force always using the global DNS
-  domains="$(resolvectl domain "${interface}")"
+'
+    if test "$with_encrypted_dns"; then
+      dispatcher_script="$dispatcher_script"'
+# Remove any default domain to force always using the global DNS
+if test "$action" = up; then
+  domains="$(resolvectl domain "$interface")"
   domains="${domains##*:}"
   has_match_all=
   has_domains=
   set --
   for domain in ${domains}; do
-    if test '~.' = "${domain}"; then
+    if test "~." = "$domain"; then
       has_match_all=1
     else
-      set -- "$@" "${domain}"
+      set -- "$@" "$domain"
       has_domains=1
     fi
   done
@@ -2105,13 +2108,21 @@ if test up = "${action}"; then
     cmd_log resolvectl default-route "${interface}" no
   fi
 fi
+'
+    fi
+    if test "$with_mdns"; then
+      dispatcher_script="$dispatcher_script"'
+if test "$action" = up; then
+  cmd_log resolvectl mdns "$interface" resolve
+fi
+'
+    fi
 
-#log "${action}"
-#env="$(printenv)"
-#log "${env}"
-
-EOF
+    ensure_dir /etc/NetworkManager/dispatcher.d
+    write_file -m 0755 /etc/NetworkManager/dispatcher.d/50-tliset \
+        "$dispatcher_script"
   fi
+
   if test "${reload_network_manager}"; then
     cmd_log systemctl try-reload-or-restart NetworkManager
   fi
@@ -2738,6 +2749,9 @@ setup_firewalld() {
   local ports_to_open
   ports_to_open=""
   setup_tormed_service firewalld_ports
+  if test "$with_mdns"; then
+    ports_to_open="$ports_to_open 5353/udp"
+  fi
   local port
   for port in $ports_to_open; do
     if ! firewall-cmd -q --permanent --query-port="$port"; then
