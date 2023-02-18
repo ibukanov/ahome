@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2250,SC2249
+
+set -e -u
+
+ssh-add --apple-load-keychain
+

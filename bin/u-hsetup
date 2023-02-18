@@ -328,6 +328,7 @@ action_write_file() {
         err "duplicated action_file for $path"
 
     if is_setup; then
+        file_changes=
         local new_file= mode_mismatch=
         if ! test -f "$path" || test -h "$path"; then
             new_file=1
@@ -373,6 +374,7 @@ action_write_file() {
         elif test "$executable"; then
             chmod +x "$path"
         fi
+        file_changes=1
     fi
     R=1
 }
@@ -678,18 +680,37 @@ setup_gnome() {
     fi
 }
 
-setup_ask_pass() {
-	local list path
-	list=(
-		/usr/libexec/openssh/gnome-ssh-askpass
-		/usr/libexec/openssh/ssh-askpass
-	)
-	for path in "${list[@]}"; do
-		if [[ -x $path ]]; then
-			add_env SSH_ASKPASS "$path"
-			break
-		fi
-	done
+setup_mac() {
+    os="$(uname)"
+    test "$os" = Darwin || return 0 
+
+    local plist
+    plist=Library/LaunchAgents/com.user.loginscript.plist
+
+    if is_clean; then
+        if test -f "$HOME/$plist"; then
+          cmd_log launchctl unload "$HOME/$plist"
+        fi
+    fi
+ 
+    # Load ssh keys at startup
+    action_write_file "${plist%/*}" "${plist##*/}" \
+'<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.loginscript</string>
+    <key>ProgramArguments</key>
+    <array><string>'"$self_top"'/bin/u-mac-login</string></array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+'
+    if is_setup && test "$file_changes"; then
+        cmd_log launchctl load "$HOME/$plist"
+    fi
 }
 
 is_setup() {
@@ -792,7 +813,7 @@ Comment=Start custom session script
 
     setup_gnome
 
-    setup_ask_pass
+    setup_mac
 
     if test "$sourced_local_setup"; then
         local_setup
