@@ -879,7 +879,7 @@ main() {
         local f
         f="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
         if test -x "$f"; then
-            action_symlink "$f" "$self_top/state/bin" code
+            action_symlink "$f" "$rel_state/bin" code
         fi
     fi
 
