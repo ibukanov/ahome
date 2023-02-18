@@ -20,8 +20,17 @@ err() {
     else
         log "error"
     fi
-    if test "${FUNCNAME-}"; then
-        log "stack: ${FUNCNAME[*]}"
+    if test "${BASH_VERSION-}"; then
+        local s i n item
+        s=
+        i=0
+        eval 'n="${#FUNCNAME[@]}"'
+        while test "$i" -lt "$n"; do
+            item="${BASH_SOURCE[$i]}:${BASH_LINENO[i]}:${FUNCNAME[i]}"
+            s="$s${s:+ }$item"
+            : "$((i += 1))"
+        done
+        log "stack: $s"
     fi
     exit 1
 }
@@ -189,7 +198,7 @@ record_path_entry() {
     *) err "unknown kind '$kind'" ;;
     esac
     case "$path" in
-    *[!/a-zA-Z0-9._-]* ) "path contains unsupported characters - '$path'";;
+    *[!/a-zA-Z0-9._-]* ) "path $kind contains unsupported characters - '$path'";;
     esac
 
     if test "$kind" = dir; then
@@ -602,7 +611,7 @@ setup_env() {
             "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
     fi
 
-    add_export NINJA_STATUS="[%r processes, %f/%t @ %o/s : %es]"
+    add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es]"
 
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
@@ -825,9 +834,9 @@ main() {
         test $# -eq 0 || err "unexpected extra action argument $1"
     fi
 
-    local real_home hsetup_source_dir
+    local real_home setup_source_dir
     real_home="$(realpath "$HOME")"
-    hsetup_source_dir="${self_top#"$real_home"/}/hsetup"
+    setup_source_dir="${self_top#"$real_home"/}/setup"
 
     cd "$HOME"
 
@@ -842,7 +851,7 @@ main() {
     path_dir MANPATH p/git-subrepo/man
 
     # dot files that are symlinked to home
-    for i in "${hsetup_source_dir}/"*.dot; do
+    for i in "${setup_source_dir}/"*.dot; do
         name="${i##*/}"
         action_symlink "$i" . ".${name%.dot}"
     done
@@ -850,7 +859,7 @@ main() {
     # Load rc.sh including the proper value for rc_ahome
     local rc_loader
     rc_loader='rc_ahome="$HOME/'"${self_top#"$HOME/"}"'"'
-    rc_loader="$rc_loader"'; . "$rc_ahome/hsetup/rc.sh"'"$NL"
+    rc_loader="$rc_loader"'; . "$rc_ahome/setup/rc.sh"'"$NL"
 
 
     if is_mac; then
@@ -861,19 +870,19 @@ main() {
         action_write_file . .bashrc "$rc_loader"
     fi
 
-    action_symlink -d "$hsetup_source_dir/xfce-terminal" .config/xfce4 terminal
+    action_symlink -d "$setup_source_dir/xfce-terminal" .config/xfce4 terminal
 
-    action_symlink "$hsetup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
+    action_symlink "$setup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
-    #action_symlink -d "$hsetup_source_dir/wezterm" .config wezterm
+    #action_symlink -d "$setup_source_dir/wezterm" .config wezterm
 
-    #action_symlink -d "$hsetup_source_dir/vim" . .vim
+    #action_symlink -d "$setup_source_dir/vim" . .vim
     action_dir ".local/vim"
     action_dir ".local/vim/backup"
     action_dir ".local/vim/swap"
     action_dir ".local/vim/undo"
 
-    for i in "${hsetup_source_dir}/config.dir/"*; do
+    for i in "$setup_source_dir/config.dir/"*; do
     	test -d "${i}" || continue
         action_symlink -d "${i}" .config "${i##*/}"
     done
@@ -889,7 +898,7 @@ Name=Custom Session
 Comment=Start custom session script
 "
 
-    action_symlink "$hsetup_source_dir/u-term.desktop" .local/share/applications
+    action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
 
     setup_env
 
@@ -960,9 +969,9 @@ Comment=Start custom session script
     fi
 }
 
-if test -f "$self_top/local/hsetup/local-hsetup.sh"; then
+if test -f "$self_top/local/setup/local-setup.sh"; then
     sourced_local_setup=1
-    . "$self_top/local/hsetup/local-hsetup.sh"
+    . "$self_top/local/setup/local-setup.sh"
 fi
 
 main "$@"
