@@ -322,7 +322,7 @@ action_symlink() {
     local target
     if test "${from#/}" != "$from"; then
         # absolut path
-        if "${from#"$HOME"}" != "$from"; then
+        if test "${from#"$HOME"}" != "$from"; then
             err "Absolute link target must point outside HOME directory" \
                 "$HOME - $from"
         fi
