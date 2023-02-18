@@ -574,7 +574,7 @@ array_join() {
 link_to_bin() {
     local target
     for target in "$@"; do
-        if [[ -x "$target" ]]; then
+        if test -x "$target"; then
             action_symlink "../$target" "bin/${target##*/}"
         fi
     done
@@ -603,11 +603,6 @@ setup_env() {
     path_dir /opt/homebrew/bin
     path_dir /opt/homebrew/sbin
     path_dir /opt/homebrew/opt/coreutils/libexec/gnubin
-
-    if is_mac; then
-        path_dir \
-            "/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
-    fi
 
     add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es]"
 
@@ -879,6 +874,14 @@ main() {
     action_dir ".local/vim/backup"
     action_dir ".local/vim/swap"
     action_dir ".local/vim/undo"
+
+    if is_mac; then
+        local f
+        f="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+        if test -x "$f"; then
+            action_symlink "$f" "$self_top/state/bin" code
+        fi
+    fi
 
     for i in "$setup_source_dir/config.dir/"*; do
     	test -d "${i}" || continue
