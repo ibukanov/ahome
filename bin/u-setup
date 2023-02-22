@@ -298,11 +298,10 @@ action_dir() {
 }
 
 action_symlink() {
-    local OPTIND opt link_is_dir= skip_if_not_found=
+    local OPTIND opt skip_if_not_found=
 
-    while getopts ds opt; do
+    while getopts s opt; do
         case "$opt" in
-            d ) link_is_dir=1;;
             s ) skip_if_not_found=1;;
             * ) err "unknown option '$opt'";;
         esac
@@ -355,11 +354,8 @@ action_symlink() {
             err "$from does not exist"
         fi
         test -h "$from" && err "$from is symbolic link"
-        if test "$link_is_dir"; then
-            test -d "$from" || err "$from is not an existing directory"
-        else
-            test -f "$from" || err "$from is not an existing regular file"
-        fi
+        test -d "$from" || test -f "$from" || \
+            err "$from is not an existing file or directory"
     fi
 
     action_dir "$link_dir"
@@ -869,13 +865,13 @@ main() {
         action_write_file . .bashrc "$rc_loader"
     fi
 
-    action_symlink -d "$setup_source_dir/xfce-terminal" .config/xfce4 terminal
+    action_symlink "$setup_source_dir/xfce-terminal" .config/xfce4 terminal
 
     action_symlink "$setup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
-    #action_symlink -d "$setup_source_dir/wezterm" .config wezterm
+    #action_symlink "$setup_source_dir/wezterm" .config wezterm
 
-    #action_symlink -d "$setup_source_dir/vim" . .vim
+    #action_symlink "$setup_source_dir/vim" . .vim
     action_dir ".local/vim"
     action_dir ".local/vim/backup"
     action_dir ".local/vim/swap"
@@ -891,7 +887,7 @@ main() {
 
     for i in "$setup_source_dir/config.dir/"*; do
     	test -d "${i}" || continue
-        action_symlink -d "${i}" .config "${i##*/}"
+        action_symlink "${i}" .config "${i##*/}"
     done
 
     action_dir .config/autostart

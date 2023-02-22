@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/ConradIrwin/vim-bracketed-paste
+	branch = master
+	commit = 45411da73cc159e4fc2138d930553d247bbfbcdc
+	parent = b9975db07f6ea85f69ac58209c99ff560f27c7a7
+	method = merge
+	cmdver = 0.4.3

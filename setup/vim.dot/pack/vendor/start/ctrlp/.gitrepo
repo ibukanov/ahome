@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/ctrlpvim/ctrlp.vim.git
+	branch = master
+	commit = 8b4a9523632049b3b373de1233bef346073b8982
+	parent = 9773480f4c581581b772481b1cd584b99804bff2
+	method = merge
+	cmdver = 0.4.3

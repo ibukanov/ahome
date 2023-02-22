@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/ciaranm/detectindent
+	branch = master
+	commit = c09ab6effc29ef913c531816eb980460f8dc9ed2
+	parent = 5c94fff330fab398b02af53a3639209a07429881
+	method = merge
+	cmdver = 0.4.3
