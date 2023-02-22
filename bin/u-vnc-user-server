@@ -1,0 +1,160 @@
+#!/bin/sh
+
+# shellcheck shell=dash
+# shellcheck enable=all
+# shellcheck disable=SC2249,SC2034
+
+set -e -u
+
+self="$(realpath "$0")"
+readonly self
+
+# shellcheck source=./utils.sh
+. "${0%/*}/utils.sh"
+
+config() {
+  unit_name=u-vnc
+  display_number=5
+  window_manager=ratpoison
+  systemd_unit_dir="$HOME/.config/systemd/user"
+}
+
+cmd_enable() {
+  test -d "$systemd_unit_dir" || cmd_log mkdir -p "$systemd_unit_dir"
+
+  local changed_units
+  changed_units=
+
+  write_file "$systemd_unit_dir/$unit_name.service" "\
+[Service]
+Type=simple
+
+Restart=no
+#Restart=always
+#RestartSec=2s
+
+RuntimeDirectory=u-vnc
+RuntimeDirectoryPreserve=yes
+
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+
+ExecStart=$self run_server
+"
+  test "$file_update" && changed_units=1
+
+  write_file "$systemd_unit_dir/$unit_name.socket" "\
+[Install]
+WantedBy=default.target
+
+[Socket]
+RuntimeDirectory=u-vnc
+ListenStream=$XDG_RUNTIME_DIR/u-vnc/socket
+SocketMode=0600
+Accept=no
+"
+  test "$file_update" && changed_units=1
+
+  if test "$changed_units"; then
+    cmd_log systemctl --user daemon-reload
+  fi
+
+  if ! systemctl --user is-enabled --quiet "$unit_name.socket"; then
+    cmd_log systemctl --user enable "$unit_name.socket"
+  fi
+
+  if test "$changed_units"; then
+    cmd_log systemctl --user restart "$unit_name.socket"
+  fi
+}
+
+cmd_disable() {
+
+  local changes=
+  if test -e "$systemd_unit_dir/$unit_name.service"; then
+    cmd_log rm "$systemd_unit_dir/$unit_name.service"
+    changes=1
+  fi
+
+  if test -e "$systemd_unit_dir/$unit_name.socket"; then
+    cmd_log systemctl --user disable "$unit_name.socket"
+    cmd_log rm "$systemd_unit_dir/$unit_name.socket"
+    changes=1
+  fi
+
+  test "$changes" && cmd_log systemctl --user daemon-reload
+}
+
+cmd_run_server() {
+  config
+  server_pid="$$"
+  start_X11_session &
+
+  local server
+  server="$(command -v Xtigervnc)"
+  if ! test "$server"; then
+    server="$(command -v Xvnc)"
+  fi
+  if ! test "$server"; then
+    err "Failed to locate VNC server executable"
+  fi
+
+  set --
+  set -- "$@" Xvnc
+  set -- "$@" -inetd
+  set -- "$@" -SecurityTypes None
+  #set -- "$@" -SecurityTypes None,VncAuth,TLSVnc
+  set -- "$@" -PasswordFile "$HOME/.vnc/passwd"
+  set -- "$@" -geometry 3000x1600
+  #set -- "$@" -geometry 3200x1672 -dpi 192
+  #set -- "$@" -geometry 1024x860
+  #set -- "$@" -geometry 1920x1080 -dpi 192
+  set -- "$@" ":$display_number"
+
+  exec "$@"
+}
+
+start_X11_session() {
+  # Wait for VNC server to start
+  local socket pause
+  socket="/tmp/.X11-unix/X$display_number"
+  pause=1
+  while ! test -S "$socket"; do
+    if test "$pause" -ge 64; then
+      log "Timeout waiting for X11 socket $socket"
+      kill "$server_pid"
+      exit 1
+    fi
+    if test "$pause" -eq 2; then
+      log "Waiting for X11 socket $socket"
+    fi
+    sleep "$pause"
+    : "$((pause *= 2))"
+  done
+
+  DISPLAY=":$display_number"
+  export DISPLAY
+
+  log "Starting window manager DISPLAY=$DISPLAY"
+  exec "$SHELL" -l -c "$window_manager"
+}
+
+usage_err() {
+	log "$@"
+	log "Usage: ${0##*/} enable|disable|run_server"
+	exit 2
+}
+
+test "$#" -ne 0 || \
+	usage_err "missing action argument"
+
+action="$1"
+shift
+action_function="cmd_$action"
+kind="$(type "$action_function" 2>/dev/null || :)"
+test "$kind" = "$action_function is a shell function" ||
+	usgae_err "unknown action $action"
+
+config
+"$action_function"
