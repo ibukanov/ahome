@@ -9,8 +9,8 @@ set -e -u
 self="$(realpath "$0")"
 readonly self
 
-# shellcheck source=./utils.sh
-. "${0%/*}/utils.sh"
+# shellcheck source=../lib/utils.sh
+. "${self%/*/*}/lib/utils.sh"
 
 config() {
   unit_name=u-vnc
@@ -137,13 +137,20 @@ start_X11_session() {
   export DISPLAY
 
   log "Starting window manager DISPLAY=$DISPLAY"
-  exec "$SHELL" -l -c "$window_manager"
+  set --
+  set -- "$@" "$SHELL" -l
+
+  # Wrap the window manager into own DBus session. Using one from parent
+  # causes timeouts with gnome-terminal.
+  set -- "$@" -c 'exec dbus-launch "$0" "$@"'
+  set -- "$@" "$window_manager"
+  exec "$@"
 }
 
 usage_err() {
-	log "$@"
-	log "Usage: ${0##*/} enable|disable|run_server"
-	exit 2
+  log "$@"
+  log "Usage: ${0##*/} enable|disable|run_server"
+  exit 2
 }
 
 test "$#" -ne 0 || \
