@@ -2,7 +2,7 @@
 set belloff=all
 
 set wildmenu
-set colorcolumn=80
+" set colorcolumn=80
 
 " Show status line
 set laststatus=2
