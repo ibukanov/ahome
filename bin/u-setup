@@ -600,6 +600,8 @@ setup_env() {
     local arch
     arch="$(uname -m)"
 
+    add_export EDITOR u-cvs-editor
+
     path_dir "$rel_state/bin"
 
     path_dir opt/bin
