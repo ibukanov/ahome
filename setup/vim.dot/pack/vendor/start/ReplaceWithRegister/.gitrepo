@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/vim-scripts/ReplaceWithRegister.git
+	branch = master
+	commit = 832efc23111d19591d495dc72286de2fb0b09345
+	parent = 8084b5051719f3aa2defbc0b323655fac832122d
+	method = merge
+	cmdver = 0.4.3
