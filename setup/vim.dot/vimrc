@@ -16,6 +16,10 @@ set statusline+=%4l:%02c:%f
 " Disable blinking cursor
 set guicursor+=a:blinkon0
 
+" Case-insensitive search if typed with small letters
+set ignorecase
+set smartcase
+
 " Allow to switch buffers without saving
 set hidden
 
