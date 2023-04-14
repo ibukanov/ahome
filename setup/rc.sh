@@ -140,9 +140,9 @@ rc_prompt() {
   esac
 
   if test "$color_prompt"; then
-    s="$s"'\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]'
+    s="$s"'\[\e[01;32m\]$USER@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]'
   else
-    s="$s"'\u@\h:\w'
+    s="$s"'$USER@\h:\w'
   fi
 
   # Add Git branch
@@ -159,7 +159,7 @@ rc_prompt() {
   # If this is an xterm set the title to user@host:dir
   case "$TERM" in
   xterm*|rxvt*)
-    s='\[\e]0;\u@\h: \w\a\]'"$s"
+    s='\[\e]0;$USER@\h: \w\a\]'"$s"
     ;;
   *) ;;
   esac
