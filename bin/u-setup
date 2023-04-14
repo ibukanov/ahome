@@ -607,7 +607,9 @@ setup_env() {
     path_dir /opt/homebrew/sbin
     path_dir /opt/homebrew/opt/coreutils/libexec/gnubin
 
-    add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es]"
+    add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es] "
+
+    path_dir opt/go/bin
 
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
     local extra_file
