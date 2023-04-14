@@ -7,6 +7,7 @@ readonly NL='
 self="$(realpath "$0")"
 self_top="${self%/*/*}"
 
+# The state directory relative to $HOME
 rel_state="$self_top/state"
 rel_state="${rel_state#"$HOME/"}"
 
@@ -37,13 +38,13 @@ err() {
 
 cmd_log() {
     local no_stderr
-    no_stderr=0
+    no_stderr=
     while :; do
-    case $1 in
+        case $1 in
         --no-stderr ) no_stderr=1 ;;
         * ) break ;;
-    esac
-    shift
+        esac
+        shift
     done
     if test "$no_stderr"; then
         log "$* 2> /dev/null"
@@ -144,6 +145,10 @@ pathlike_MANPATH=
 pathlike_PERL5LIB=
 
 os_name="$(uname)"
+
+is_linux() {
+    test "$os_name" = Linux
+}
 
 is_mac() {
     test "$os_name" = Darwin
@@ -572,15 +577,6 @@ array_join() {
         s+="${s:+$separator}$i"
     done
     R="$s"
-}
-
-link_to_bin() {
-    local target
-    for target in "$@"; do
-        if test -x "$target"; then
-            action_symlink "../$target" "bin/${target##*/}"
-        fi
-    done
 }
 
 setup_env() {

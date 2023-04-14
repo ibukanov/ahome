@@ -71,7 +71,7 @@ check_single_required_arg() {
 
 read_config() {
     local config
-    config="$self_top/local/hsetup/print-backup-config"
+    config="$self_top/local/setup/print-backup-config"
     test -x "$config" || err "$config does not exist or is not an executable file"
 
     # Workaround for the lack of lastpipe
