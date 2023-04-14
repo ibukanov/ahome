@@ -34,9 +34,10 @@ rc_setup_env() {
     export PATH="$rc_ahome_path"
   fi
 
-  if ! test "${SSH_AUTH_SOCK-}" && test "${XDG_RUNTIME_DIR-}"; then
+  if ! test "${SSH_AUTH_SOCK-}"; then
     local u_agent working_agent
-    u_agent="$XDG_RUNTIME_DIR/u-ssh-agent.socket"
+    test -d "$HOME/.ssh" || mkdir -m 0700 "$HOME/.ssh"
+    u_agent="$HOME/.ssh/u-ssh-agent.socket"
     working_agent=
     if test -S "$u_agent"; then
       # Check if the agent does work
@@ -49,7 +50,7 @@ rc_setup_env() {
       fi
     fi
     if ! test "$working_agent"; then
-      rm -rf "$u_agent"
+      rm -f "$u_agent"
       ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
 	echo "Failed to start SSH agent"
     fi
