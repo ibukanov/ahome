@@ -266,6 +266,28 @@ clean_files() {
 }
 
 action_dir() {
+    local OPTIND opt mode=
+
+    while getopts m: opt; do
+        case "$opt" in
+            m ) mode="$OPTARG";;
+            * ) err "unknown option '$opt'";;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    if ! test "$mode"; then
+        local umask
+        umask="$(umask)"
+        if test "$umask" = 0022 || test "$umask" = 022; then
+            mode=0755
+        elif test "$umask" = 0002 || test "$umask" = 002; then
+            mode=0775
+        else
+            err "Unsupported umask - $umask"
+        fi
+    fi
+
     local dir
     dir="$1"
     test "$dir" = . && return 0
@@ -279,27 +301,24 @@ action_dir() {
         ;;
     esac
 
-    local s=
-    while :; do
-        local name
-        name="${dir%%/*}"
-        s+="${s:+/}$name"
-        if record_path_entry dir "$s"; then
-            if is_setup; then
-                if ! test -d "$s"; then
-                    test -e "$s" && err "$s exists and is not directory"
-                    cmd_log mkdir "$s"
-                fi
+    if record_path_entry dir "$dir"; then
+        if is_setup; then
+            if ! test -d "$dir"; then
+                test -e "$dir" && err "$dir exists and is not directory"
+                cmd_log mkdir -m "$mode" "$dir"
             fi
-            if is_clean; then
-                if test -e "$s"; then
-                    test -d "$s" || err "$s exists and is not directory"
-                fi
+            local find_result
+            find_result="$(find "$dir" -maxdepth 0 -perm "$mode")"
+            if ! test "$find_result"; then
+                cmd_log chmod "$mode" "$dir"
             fi
         fi
-        test "$name" = "$dir" && break
-        dir="${dir#*/}"
-    done
+        if is_clean; then
+            if test -e "$dir"; then
+                test -d "$dir" || err "$path_cursor exists and is not directory"
+            fi
+        fi
+    fi
 }
 
 action_symlink() {
@@ -363,9 +382,8 @@ action_symlink() {
             err "$from is not an existing file or directory"
     fi
 
-    action_dir "$link_dir"
-
     if is_setup; then
+        test -d "$link_dir" || err "$link_dir does not exist"
         if test -h "$link_path"; then
             test "$(readlink "$link_path")" = "$target" && return 0
             cmd_log rm "$link_path"
@@ -400,9 +418,9 @@ action_write_file() {
     test -z "$executable" || test -z "$mode" \
         || err "only one of -m, -x can be given"
 
-    local dir name
-    dir="$1" name="$2"
-    shift 2
+    local path
+    path="$1"
+    shift 1
 
     local text
     if test $# -eq 0; then
@@ -415,9 +433,6 @@ action_write_file() {
     else
         err "unexpected arguments"
     fi
-
-    action_dir "$dir"
-    local path="$dir/$name"
 
     record_path_entry file "$path" || \
         err "duplicated action_file for $path"
@@ -494,7 +509,9 @@ action_write_user_systemd_unit() {
             cmd_log systemctl disable "$unit"
         fi
     fi
-    action_write_file .config/systemd/user "$unit" "$text"
+    action_dir .config/systemd
+    action_dir .config/systemd/user
+    action_write_file ".config/systemd/user/$unit" "$text"
     if test "$R" && is_setup; then
         user_systemd_unit_change=1
     fi
@@ -648,6 +665,7 @@ setup_emacs() {
     emacs_init="$emacs_dir/init.el"
     emacs_load_command='(load "'"$self_top"'/emacs/my-emacs.el" t t t)'"$NL"
 
+    action_dir "$emacs_dir"
     action_dir "$emacs_dir/backup"
 
     if ! test -f "$emacs_init"; then
@@ -780,7 +798,8 @@ setup_mac() {
     fi
 
     # Load ssh keys at startup
-    action_write_file "${plist%/*}" "${plist##*/}" \
+    action_dir "${plist%/*}"
+    action_write_file "$plist" \
 '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -837,6 +856,8 @@ main() {
     init_path_list
 
     action_dir "$rel_state/bin"
+    action_dir .config
+    action_dir .local
 
     path_dir "$self_top/bin"
     path_dir "$self_top/local/bin"
@@ -856,15 +877,17 @@ main() {
     rc_loader="$rc_loader"'; . "$rc_ahome/setup/rc.sh"'"$NL"
 
     if is_mac; then
-        action_write_file . .zshrc "$rc_loader"
-        action_write_file . .zlogin "$rc_loader"
+        action_write_file .zshrc "$rc_loader"
+        action_write_file .zlogin "$rc_loader"
     else
-        action_write_file . .bash_profile "$rc_loader"
-        action_write_file . .bashrc "$rc_loader"
+        action_write_file .bash_profile "$rc_loader"
+        action_write_file .bashrc "$rc_loader"
     fi
 
+    action_dir .config/xfce4
     action_symlink "$setup_source_dir/xfce-terminal" .config/xfce4 terminal
 
+    action_dir .config/lxterminal
     action_symlink "$setup_source_dir/lxterminal.conf" .config/lxterminal lxterminal.conf
 
     #action_symlink "$setup_source_dir/wezterm" .config wezterm
@@ -888,8 +911,9 @@ main() {
         action_symlink "${i}" .config "${i##*/}"
     done
 
-    action_dir .config/autostart
-    action_write_file .config/autostart u-autostart.desktop "\
+    if is_linux; then
+        action_dir .config/autostart
+        action_write_file .config/autostart/u-autostart.desktop "\
 [Desktop Entry]
 Type=Application
 Exec=$self_top/bin/u-start-session
@@ -899,7 +923,13 @@ Name=Custom Session
 Comment=Start custom session script
 "
 
-    action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
+        action_dir .config/share
+        action_dir .config/share/applications
+        action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
+    fi
+
+    action_dir -m 0700 .ssh
+    action_dir -m 0700 .ssh/u-sockets
 
     setup_env
 
@@ -947,7 +977,7 @@ Comment=Start custom session script
             s="${s}rc_is_mac=$NL"
         fi
         s="$s$export_lines"
-        action_write_file "$rel_state" env "$s"
+        action_write_file "$rel_state/env" "$s"
     fi
 
     if is_setup; then

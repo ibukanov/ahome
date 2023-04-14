@@ -36,8 +36,7 @@ rc_setup_env() {
 
   if ! test "${SSH_AUTH_SOCK-}"; then
     local u_agent working_agent
-    test -d "$HOME/.ssh" || mkdir -m 0700 "$HOME/.ssh"
-    u_agent="$HOME/.ssh/u-ssh-agent.socket"
+    u_agent="$HOME/.ssh/u-sockets/agent.socket"
     working_agent=
     if test -S "$u_agent"; then
       # Check if the agent does work
