@@ -820,6 +820,11 @@ setup_mac() {
     fi
 }
 
+setup_ssh() {
+    action_dir -m 0700 .ssh
+    action_dir -m 0700 .ssh/u-sockets
+}
+
 is_setup() {
     test "$Setup" -ne 0
 }
@@ -924,14 +929,10 @@ X-GNOME-Autostart-enabled=true
 Name=Custom Session
 Comment=Start custom session script
 "
-
-        action_dir .config/share
-        action_dir .config/share/applications
+        action_dir .local/share
+        action_dir .local/share/applications
         action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
     fi
-
-    action_dir -m 0700 .ssh
-    action_dir -m 0700 .ssh/u-sockets
 
     setup_env
 
@@ -942,6 +943,8 @@ Comment=Start custom session script
     setup_gnome
 
     setup_mac
+
+    setup_ssh
 
     if test "$sourced_local_setup"; then
         local_setup
