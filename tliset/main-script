@@ -17,6 +17,7 @@ valid_primary_host_names="rhea miranda"
 valid_primary_host_names="$valid_primary_host_names r2.mir2.org"
 valid_container_host_names="test-lms"
 valid_host_names="$valid_primary_host_names $valid_container_host_names"
+valid_host_names="$valid_host_names dev-igor"
 
 readonly valid_primary_host_names
 readonly valid_container_host_names
@@ -142,6 +143,12 @@ get_host_options() {
 
     custom_user_watches_count="$((768*1025))"
     with_firejail_desktop_rules=1
+    ;;
+
+  dev-igor )
+    zram_size=$((8*1024))
+    zram_algorithm=lz4
+    with_common_packages=1
     ;;
 
   * )
