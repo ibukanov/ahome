@@ -13,10 +13,10 @@ set -o noglob
 # shellcheck source=./container-kit.sh
 . "${0%/*}/container-kit.sh"
 
-valid_primary_host_names="rhea miranda oberon"
-valid_primary_host_names="${valid_primary_host_names} r2.mir2.org"
+valid_primary_host_names="rhea miranda"
+valid_primary_host_names="$valid_primary_host_names r2.mir2.org"
 valid_container_host_names="test-lms"
-valid_host_names="${valid_primary_host_names} ${valid_container_host_names}"
+valid_host_names="$valid_primary_host_names $valid_container_host_names"
 
 readonly valid_primary_host_names
 readonly valid_container_host_names
@@ -49,13 +49,6 @@ get_host_options() {
 
   with_dev_container=
 
-  # Activate ssh-agent services to serve ssh keys from a separated account.
-  with_ssh_agent_service=
-
-  # A spaces-separated list of ssh-agent key sets that should be exposed into
-  # a container.
-  ssh_agent_container_sets=
-
   with_firejail_desktop_rules=
 
   with_custom_sshd=
@@ -64,7 +57,7 @@ get_host_options() {
 
   with_nginx=
   with_php_fpm=
-  php_version=7.4
+  unset php_version
   tormed_host=
   with_game_access=
 
@@ -79,9 +72,6 @@ get_host_options() {
   with_encrypted_dns_forced=
   with_mdns=
 
-  explicit_ipv6_address=
-  explicit_ipv6_gateway=
-
   webserver_certificate_domains=
 
   readonly dev_vz_network_prefix="192.168.97"
@@ -92,8 +82,6 @@ get_host_options() {
   r2.mir2.org )
     lms_archive_time=01:40:00
     lms_archive_root=/srv/backup/lms-hosts
-    #explicit_ipv6_address="2001:41d0:e:696::1/64"
-    #explicit_ipv6_gateway="2001:41d0:e:6ff:ff:ff:ff:ff"
     zram_size=$((8*1024))
     zram_algorithm=lz4
     with_stub_resolv_conf=1
@@ -106,26 +94,6 @@ get_host_options() {
     with_user_sandboxes=1
     with_firewalld=1
     with_common_packages=1
-    ;;
-
-  oberon )
-    main_user=igor
-    with_common_packages=1
-    with_latex=1
-    zram_size=$((16*1024))
-    zram_algorithm=lzo-rle
-    #with_disabled_selinux=1
-    #with_disabled_firewalld=1
-
-    custom_user_watches_count="$((1024*1024))"
-    with_ssh_agent_service=1
-    #with_custom_sshd=1
-    #with_remote_ssh_unlock=1
-
-    with_stub_resolv_conf=1
-    #with_forced_networkd=1
-    #with_encrypted_dns=1
-    with_mdns=1
     ;;
 
   miranda )
@@ -141,8 +109,6 @@ get_host_options() {
     with_mdns=1
 
     #custom_user_watches_count="$((768*1025))"
-    with_ssh_agent_service=1
-    ssh_agent_container_sets=vwork
     with_firejail_desktop_rules=1
     with_firewalld=1
     ;;
@@ -175,19 +141,9 @@ get_host_options() {
     #with_encrypted_dns=1
 
     custom_user_watches_count="$((768*1025))"
-    with_ssh_agent_service=1
-    ssh_agent_container_sets=vwork
     with_firejail_desktop_rules=1
     ;;
 
-  vwork )
-    with_common_development_tools=1
-    main_user=user
-    with_create_main_user=1
-    with_gui_container_role=1
-    with_custom_sshd=1
-    with_no_systemd=1
-    ;;
   * )
     err "unknown '${NAME}'"
     ;;
@@ -195,7 +151,6 @@ get_host_options() {
 }
 
 determine_os() {
-  kind_coreos=
   kind_fedora=
   kind_ubuntu=
   kind_debian=
@@ -220,7 +175,6 @@ determine_os() {
   fi
 
   case "${os_kind}" in
-  coreos ) kind_coreos=1 ;;
   debian ) kind_debian=1 ;;
   fedora ) kind_fedora=1 ;;
   ubuntu ) kind_ubuntu=1 ;;
@@ -740,6 +694,8 @@ enable_tormed() {
   name="$1"
   with_nginx=1
   with_php_fpm=1
+  test "${php_version-}" && err "php_version already set"
+  php_version=7.4
   webserver_certificate_domains="$webserver_certificate_domains${webserver_certificate_domains:+ }$name"
   tormed_host="$name"
 }
@@ -1917,49 +1873,7 @@ setup_network() {
   restart_systemd_networkd=
   restart_systemd_resolved=
 
-  if test oberon = "${NAME}"; then
-    local lines
-    lines="\
-[Match]
-Name=en*
-
-[Network]
-DHCP=ipv4
-
-[DHCPv4]
-UseMTU=true
-"
-    if test "${with_encrypted_dns}"; then
-      pl ""
-      pl "[Network]"
-      pl DNSOverTLS=no
-      pl DNSSECNegativeTrustAnchors=viv.osl,viv.int
-      pl DNSSEC=no
-      pl Domains=~viv.osl ~viv.int
-      pl DNSDefaultRoute=no
-    fi
-
-    p_file net:20-wired.network "${lines}"
-    test "${file_update}" && restart_systemd_networkd=1
-  fi
-
   setup_network_manager
-
-  if test -n "${explicit_ipv6_address}"; then
-    test -n "${kind_coreos}" || err "unsupported configuration"
-    p_file net:zz-default.network "\
-[Network]
-DHCP=ipv4
-
-Address=${explicit_ipv6_address}
-Gateway=${explicit_ipv6_gateway}
-
-[DHCP]
-UseMTU=true
-UseDomains=true
-"
-    test "${file_update}" && restart_systemd_networkd=1
-  fi
 
   if test "${with_stub_resolv_conf}"; then
     ensure_symlink /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
@@ -2135,15 +2049,6 @@ setup_users() {
     ensure_group -g "${container_socket_access_subgid}" tliset-gui-sockets
     ensure_group_member tliset-gui-sockets "${main_user}"
   fi
-
-  if test "${ssh_agent_container_sets}"; then
-    local gid
-    get_user_subgid_for_shift "${main_user}" \
-      "${container_socket_access_subgid}"
-    gid="${R}"
-    ensure_group -g "${gid}" tliset-gui-sockets
-    ensure_group_member tliset-gui-sockets "${main_user}"
-  fi
 }
 
 setup_services() {
@@ -2184,7 +2089,6 @@ setup_services() {
   setup_game_access_service
   setup_containers
   setup_test_lms_container
-  setup_ssh_agent_service
   setup_firejail_desktop_rules
   setup_user_sandboxes
 
@@ -2458,159 +2362,6 @@ NoNewPrivileges=yes
       write_file -m 0600 /root/.ssh/authorized_keys "${public_key}${NL}"
       can_note_paths=1
     fi
-  fi
-}
-
-setup_ssh_agent_service() {
-  test "${with_ssh_agent_service}" || return 0
-
-  ensure_user -r tliset-ssh-agent
-
-  ensure_dir -g tliset-ssh-agent -u tliset-ssh-agent \
-      -m 0700 "/home/tliset-ssh-agent"
-
-  local d
-  d="/home/tliset-ssh-agent/keys"
-
-  if test -d "${d}"; then
-    find "${d}" -mindepth 1 -type d \
-      -not \( -perm 0700 -user tliset-ssh-agent -group tliset-ssh-agent \) \
-      -exec sh -c 'echo "    $0 $*"; "$0" "$@"' \
-          chmod 0700 '{}' + \
-      -exec sh -c 'echo "    $0 $*"; "$0" "$@"' \
-          chown tliset-ssh-agent:tliset-ssh-agent '{}' +
-    find "${d}" -mindepth 1 -type f \
-      -not \( -perm 0600 -user tliset-ssh-agent -group tliset-ssh-agent \) \
-      -exec sh -c 'echo "    $0 $*"; "$0" "$@"' \
-          chmod 0600 '{}' + \
-      -exec sh -c 'echo "    $0 $*"; "$0" "$@"' \
-          chown tliset-ssh-agent:tliset-ssh-agent '{}' +
-  fi
-
-  ensure_dir -g tliset-ssh-agent -u tliset-ssh-agent -m 0700 "${d}"
-
-  set --
-  local s
-  set +o noglob
-  for s in "${d}"/*; do
-    if test -d "${s}"; then
-      case "${s##*/}" in
-      *[!a-zA-Z0-9._-]*)
-        warn "Bad sub-directory name in the directory for ssh keys - ${s}"
-        ;;
-      *)
-        set -- "$@" "${s}"
-        ;;
-      esac
-    fi
-  done
-  set -o noglob
-
-  if test 0 -eq $#; then
-    warn "directory ${d} does not contain any ssh keyset sub-directories"
-    return 0
-  fi
-
-  local set_dir
-  for set_dir in "$@"; do
-    setup_ssh_agent_key_set "${set_dir}"
-  done
-}
-
-setup_ssh_agent_key_set() {
-  local key_dir
-  key_dir="$1"
-  local name
-  name="${key_dir##*/}"
-
-  local service_name
-  service_name="tliset-ssh-agent-${name}"
-
-  # Check for directories matching the extra groups to allow to access
-  # ssh-agent from the corresponding group.
-  local access_group
-  access_group="${main_user}"
-  local i
-  for i in ${ssh_agent_container_sets}; do
-    if test "${i}" = "${name}"; then
-      access_group=tliset-gui-sockets
-      break
-    fi
-  done
-
-  # ssh-agent insists that the client must have the same user id as the agent
-  # process. So use systemd-socket-proxyd both to support lazy loading and
-  # to rely on path permissions for access control.
-
-  add_systemd_tmpfile_entry \
-    d "/run/tliset-ssh-agent/${name}" 0750 root "${access_group}"
-
-  p_file "service:${service_name}.socket" "\
-[Socket]
-ListenStream=/run/tliset-ssh-agent/${name}/socket
-"
-  add_multi_user_wants "${service_name}.socket"
-
-  # Ensure that the agent is started.
-  if test -n "${file_update}"; then
-    add_service_restart "${service_name}.socket"
-  fi
-
-  write_file -m 0755 "/var/lib/tliset/start-ssh-agent" \
-'#!/bin/sh
-set -e -u
-
-cmd_log() {
-    echo "$@" >&2
-    "$@"
-}
-
-if test -z "${SSH_AUTH_SOCK-}"; then
-    cmd_log exec /usr/bin/ssh-agent "$0" "$@"
-fi
-
-key_dir="$1"
-
-set --
-for key_kind in ed25519 ecdsa rsa; do
-    for i in "${key_dir}/"*_"${key_kind}"; do
-        if test -f "${i}"; then
-            set -- "$@" "${i}"
-        fi
-    done
-done
-if test $# -eq 0; then
-  echo "${key_dir} contains no files with known ssh key types" >&2
-  exit 1
-fi
-
-cmd_log ssh-add "$@" < /dev/null
-
-socket_proxy=/usr/lib/systemd/systemd-socket-proxyd
-if ! test -x "${socket_proxy}"; then
-  socket_proxy=/lib/systemd/systemd-socket-proxyd
-fi
-
-cmd_log exec "${socket_proxy}" "${SSH_AUTH_SOCK-}"
-'
-  if test "${file_update}"; then
-    add_service_try_restart "${service_name}.service"
-  fi
-
-  # shellcheck disable=SC1004
-  p_file "service:${service_name}.service" '
-[Unit]
-Requires='"${service_name}"'.socket
-After='"${service_name}"'.socket
-
-[Service]
-ExecStart=/bin/sh /var/lib/tliset/start-ssh-agent '"${key_dir}"'
-PrivateTmp=yes
-NoNewPrivileges=yes
-User=tliset-ssh-agent
-'
-  if test -n "${file_update}"; then
-    add_service_try_restart "${service_name}.service"
   fi
 }
 
