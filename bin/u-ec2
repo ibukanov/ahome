@@ -1,0 +1,108 @@
+#!/bin/sh
+
+set -eu
+
+self="$(realpath "$0")"
+. "${self%/*/*}/lib/utils.sh"
+
+run_aws() {
+    if test "$aws_region"; then
+        set -- --region "$aws_region" "$@"
+    fi
+    local status aws_stderr
+    status=0
+    exec 3>&1
+    aws_stderr="$(aws "$@" 2>&1 >&3)" || status=$?
+    exec 3>&-
+    if test "$status" != 255 || \
+        test "${aws_stderr%' aws sso login '*}" = "$aws_stderr"
+    then
+        printf '%s\n' "$aws_stderr" >&2
+        return "$status"
+    fi
+    aws sso login
+    aws "$@"
+}
+
+is_sso_login_required() {
+    local status aws_stderr
+    status="$1"
+    aws_stderr="$2"
+    test "$status" = 255 || return 1
+    test "${aws_stderr%' aws sso login '*}" != "$aws_stderr"
+}
+
+run_descrbe_instances() {
+    local query format
+    query="$1"
+    format="${2-text}"
+    set -- ec2 describe-instances
+    if test "${ec2_id-}"; then
+        set -- "$@" --instance-ids "$ec2_id"
+    elif test "${ec2_tag-}"; then
+        set -- "$@" --filters "Name=tag:Name,Values=$ec2_tag"
+    fi
+    set -- "$@" --query "$query"
+    set -- "$@" --output "$format"
+    run_aws "$@"
+}
+
+print_ec2_ipv4() {
+    run_descrbe_instances 'Reservations[*].Instances[*].PublicIpAddress'
+}
+
+ensure_ec2_id() {
+    if ! test "${ec2_id-}"; then
+        ec2_id="$(run_descrbe_instances 'Reservations[*].Instances[*].InstanceId')"
+    fi
+}
+
+Cmd_ipv4() {
+    print_ec2_ipv4
+}
+
+Cmd_ssh_proxy() {
+    local ipv4
+    ipv4="$(print_ec2_ipv4)"
+    if ! test "$ipv4"; then
+        err "No IP is associated with EC2 $ec2_id. Perhaps it is not running."
+    fi
+    exec nc "$ipv4" 22
+}
+
+Cmd_hibernate() {
+    ensure_ec2_id
+    set -- ec2 stop-instances --hibernate
+    set -- "$@" --instance-ids "$ec2_id"
+    run_aws "$@"
+}
+
+Cmd_start() {
+    ensure_ec2_id
+    set -- ec2 start-instances
+    set -- "$@" --instance-ids "$ec2_id"
+    run_aws "$@"
+}
+
+Cmd_status() {
+    run_descrbe_instances 'Reservations[*].Instances[*]' yaml
+}
+
+aws_region=
+unset ec2_id
+unset ec2_tag
+
+while getopts i:r:t: opt; do
+    case "$opt" in
+        i ) ec2_id="$OPTARG";;
+        r ) aws_region="$OPTARG";;
+        t ) ec2_tag="$OPTARG";;
+        * ) err "unknown option '$opt'";;
+    esac
+done
+shift $((OPTIND - 1))
+
+command="$1"
+shift
+"Cmd_$command" "$@"
+
