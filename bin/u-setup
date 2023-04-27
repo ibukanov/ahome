@@ -624,7 +624,10 @@ setup_env() {
 
     add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es] "
 
+    # Go install directories and the directory for go binaries
     path_dir opt/go/bin
+    path_dir /usr/local/go/bin
+    path_dir /usr/local/go/bin
     path_dir go/bin
 
     # OPAM for Ocaml setup - avoid sourcing arbitrary files from internet
