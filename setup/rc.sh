@@ -70,7 +70,7 @@ rc_history() {
 
   # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
   HISTSIZE="$((100 * 1000))"
-  HISTFILESIZE="$((1000 * 1000))"
+  HISTFILESIZE="$((100 * 1000))"
 
   if rc_is_bash; then
     HISTFILE="$HOME/.bash_history"
@@ -81,7 +81,10 @@ rc_history() {
     # append to the history file, don't overwrite it
     shopt -s histappend
 
+    # Automatically save history after each prompt
+    PROMPT_COMMAND='history -a'
   fi
+
   if rc_is_zsh; then
     HISTFILE="$HOME/.zsh_history"
 
