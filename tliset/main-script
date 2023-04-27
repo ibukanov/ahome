@@ -146,9 +146,11 @@ get_host_options() {
     ;;
 
   dev-igor )
-    zram_size=$((8*1024))
-    zram_algorithm=lz4
+    zswap_persent=15
+    #zram_size=$((8*1024))
+    #zram_algorithm=lz4
     with_common_packages=1
+    custom_user_watches_count=524288
     ;;
 
   * )
