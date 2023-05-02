@@ -282,3 +282,34 @@ write_file() {
 
   write_file_note_path "$path"
 }
+
+# Capture the standard output of the command passed as arguments in R and the
+# standard error in R2.
+capture_stdout_stderr() {
+  # Separator between stderr and stdout
+  local separator
+  separator="$capture_stdout_stderr_separator"
+  if ! test "$separator"; then
+    separator="$(dd if=/dev/urandom count=1 bs=9 status=none | base64)"
+    test "${#separator}" -eq 12 || err "Failed to get random data"
+    capture_stdout_stderr_separator="$separator"
+  fi
+  local stderr_stdout
+  stderr_stdout="$(
+      # Print the separator after stdout to detect the absence of \n in stdout.
+      { stdout="$("$@" && printf '%s\n' "$separator" || exit "$?")" ; } 2>&1
+      printf '%s\n' "$separator"
+      printf '%s\n' "$stdout"
+
+  )"
+  # stderr
+  R2="${stderr_stdout%"$separator$NL"*}"
+
+  # stdout and separator
+  R="${stderr_stdout#*"$separator$NL"}"
+
+  # stdout
+  R="${R%"$separator"}"
+}
+
+capture_stdout_stderr_separator=

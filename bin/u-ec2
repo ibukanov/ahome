@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -e -u
 
 self="$(realpath "$0")"
 . "${self%/*/*}/lib/utils.sh"
@@ -9,18 +9,17 @@ run_aws() {
     if test "$aws_region"; then
         set -- --region "$aws_region" "$@"
     fi
-    local status aws_stderr
+    local status
     status=0
-    exec 3>&1
-    aws_stderr="$(aws "$@" 2>&1 >&3)" || status=$?
-    exec 3>&-
+    capture_stdout_stderr aws "$@" || status="$?"
     if test "$status" != 255 || \
-        test "${aws_stderr%' aws sso login '*}" = "$aws_stderr"
+        test "${R2%' aws sso login '*}" = "$R2"
     then
-        printf '%s\n' "$aws_stderr" >&2
+        printf '%s' "$R2" >&2
+        printf '%s' "$R"
         return "$status"
     fi
-    aws sso login
+    aws sso login >&2
     aws "$@"
 }
 
