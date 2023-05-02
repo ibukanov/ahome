@@ -21,7 +21,6 @@ if rc_is_bash; then
 fi
 
 rc_setup_env() {
-
   if rc_is_mac; then
     export LANG=en_US.UTF-8
   else
@@ -40,10 +39,10 @@ rc_setup_env() {
     working_agent=
     if test -S "$u_agent"; then
       # Check if the agent does work
-      local status
-      status=0
-      SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || status="$?"
-      if test "$status" -lt 2; then
+      local x
+      x=0
+      SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || x="$?"
+      if test "$x" -lt 2; then
 	# ssh-add exits with 1 if agent works but has no identities
 	working_agent=1
       fi
