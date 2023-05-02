@@ -283,33 +283,48 @@ write_file() {
   write_file_note_path "$path"
 }
 
-# Capture the standard output of the command passed as arguments in R and the
-# standard error in R2.
-capture_stdout_stderr() {
-  # Separator between stderr and stdout
-  local separator
-  separator="$capture_stdout_stderr_separator"
-  if ! test "$separator"; then
-    separator="$(dd if=/dev/urandom count=1 bs=9 status=none | base64)"
-    test "${#separator}" -eq 12 || err "Failed to get random data"
-    capture_stdout_stderr_separator="$separator"
+_unique_random_separator=
+
+get_unique_random_separator() {
+  local s
+  s="$_unique_random_separator"
+  if ! test "$s"; then
+    s="$(dd if=/dev/urandom count=1 bs=9 status=none | base64)"
+    test "${#s}" -eq 12 || err "Failed to get random data"
+    _unique_random_separator="$s"
   fi
-  local stderr_stdout
-  stderr_stdout="$(
-      # Print the separator after stdout to detect the absence of \n in stdout.
-      { stdout="$("$@" && printf '%s\n' "$separator" || exit "$?")" ; } 2>&1
-      printf '%s\n' "$separator"
-      printf '%s\n' "$stdout"
-
-  )"
-  # stderr
-  R2="${stderr_stdout%"$separator$NL"*}"
-
-  # stdout and separator
-  R="${stderr_stdout#*"$separator$NL"}"
-
-  # stdout
-  R="${R%"$separator"}"
+  R="$_unique_random_separator"
 }
 
-capture_stdout_stderr_separator=
+# Capture the exit status of the command passed as arguments in R, its stdout
+# in R1 and its stderr in R2.
+capture_status_stdout_stderr() {
+  # Unique separator between stderr, stdout and exit code
+  local separator
+  get_unique_random_separator
+  separator="$R"
+  local stderr_stdout_status
+  stderr_stdout_status="$(
+    {
+      stdout_status="$(
+        x=0
+        "$@" || x="$?"
+        printf '%s\n%d\n' "$separator" "$x"
+      )"
+    } 2>&1
+    printf '%s\n' "$separator"
+    printf '%s\n' "$stdout_status"
+  )"
+  # stderr
+  R2="${stderr_stdout_status%%"$separator"*}"
+
+  local stdout_status
+  stdout_status="${stderr_stdout_status#*"$separator$NL"}"
+
+  # stdout
+  R1="${stdout_status%%"$separator"*}"
+
+  # status
+  R="${stdout_status#*"$separator$NL"}"
+}
+
