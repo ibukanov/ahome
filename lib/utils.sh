@@ -1,5 +1,7 @@
-# shellcheck shell=dash
-# shellcheck enable=all
+#!/bin/sh
+
+#shellcheck shell=dash
+#shellcheck enable=all
 #shellcheck disable=SC2250
 
 set -e -u
@@ -46,7 +48,7 @@ cmd_log() {
 }
 
 getopts_err() {
-  local name msg
+  local name msg function_name parent_name
   name="$1"
   case "$name" in
   : ) msg="-$OPTARG requires an argument" ;;
@@ -55,7 +57,6 @@ getopts_err() {
   esac
 
   # If this is called in a function, print function name
-  local function_name parent_name
   function_name=
   parent_name=
   if test "${FUNCNAME-}"; then
@@ -103,10 +104,10 @@ earg() {
 
 # Set R to concatenation of arguments with spaces escaped if necessary.
 escape_for_shell() {
+  local eargs
   test 1 -eq $# || \
     err "escape_for_shell takes exactly one argument while $# were given"
   R=
-  local eargs
   eargs=
   earg "$1"
   R="$eargs"
@@ -156,11 +157,12 @@ file_update=
 file_update_count=0
 
 write_file() {
-  local user group mode
+  local user group mode opt OPTIND path body \
+    use_default_ownership saved_umask wanted_umask \
+    need_chmod do_update s tmp
   user=
   group=
   mode=
-  local opt OPTIND
   while getopts :g:m:u: opt; do
     case "$opt" in
     g) group="$OPTARG" ;;
@@ -174,7 +176,6 @@ write_file() {
   test $# -eq 2 -o $# -eq 1 || \
       err "write_file takes path and optional body arguments"
 
-  local path body
   path="$1"
   if test $# -eq 2; then
     body="$2"
@@ -183,7 +184,6 @@ write_file() {
     body="$R"
   fi
 
-  local use_default_ownership
   use_default_ownership=
   if ! test "$user" && ! test "$group"; then
     use_default_ownership=1
@@ -196,10 +196,8 @@ write_file() {
     group="$R"
   fi
 
-  local saved_umask
   saved_umask="$(umask)"
 
-  local wanted_umask need_chmod
   wanted_umask=
   need_chmod=
   if test "$mode"; then
@@ -222,14 +220,12 @@ write_file() {
     esac
   fi
 
-  local do_update
   do_update=1
   while :; do
     if ! test -f "$path" || test -h "$path"; then
       log "creating new $path"
       break;
     fi
-    local s
     s="$(find "$path" \
         -maxdepth 0 -perm "$mode" -user "$user" -group "$group" \
         -printf 1 \
@@ -253,7 +249,6 @@ write_file() {
     file_update=
   else
     # Use temporary to ensure atomic operation on filesystem
-    local tmp
     tmp="$path.tmp"
     if test -f "$tmp"; then
       rm "$tmp"
@@ -299,11 +294,9 @@ get_unique_random_separator() {
 # Capture the exit status of the command passed as arguments in R, its stdout
 # in R1 and its stderr in R2.
 capture_status_stdout_stderr() {
-  # Unique separator between stderr, stdout and exit code
-  local separator
+  local separator stderr_stdout_status stdout_status
   get_unique_random_separator
   separator="$R"
-  local stderr_stdout_status
   stderr_stdout_status="$(
     {
       stdout_status="$(
@@ -316,12 +309,13 @@ capture_status_stdout_stderr() {
     printf '%s\n' "$stdout_status"
   )"
   # stderr
+  #shellcheck disable=SC2034
   R2="${stderr_stdout_status%%"$separator"*}"
 
-  local stdout_status
   stdout_status="${stderr_stdout_status#*"$separator$NL"}"
 
   # stdout
+  #shellcheck disable=SC2034
   R1="${stdout_status%%"$separator"*}"
 
   # status

@@ -1,8 +1,14 @@
 #!/bin/sh
 
+#shellcheck shell=dash
+#shellcheck enable=all
+#shellcheck disable=SC2250
+
 set -e -u
 
 self="$(realpath "$0")"
+
+#shellcheck source=SCRIPTDIR/../lib/utils.sh
 . "${self%/*/*}/lib/utils.sh"
 
 run_aws() {
