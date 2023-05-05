@@ -302,23 +302,22 @@ capture_status_stdout_stderr() {
       stdout_status="$(
         x=0
         "$@" || x="$?"
-        printf '%s\n%d\n' "$separator" "$x"
+        printf '%s%d\n' "$separator" "$x"
       )"
     } 2>&1
-    printf '%s\n' "$separator"
-    printf '%s\n' "$stdout_status"
+    printf '%s%s' "$separator" "$stdout_status"
   )"
   # stderr
   #shellcheck disable=SC2034
   R2="${stderr_stdout_status%%"$separator"*}"
 
-  stdout_status="${stderr_stdout_status#*"$separator$NL"}"
+  stdout_status="${stderr_stdout_status#*"$separator"}"
 
   # stdout
   #shellcheck disable=SC2034
   R1="${stdout_status%%"$separator"*}"
 
   # status
-  R="${stdout_status#*"$separator$NL"}"
+  R="${stdout_status#*"$separator"}"
 }
 
