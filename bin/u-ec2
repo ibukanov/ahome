@@ -11,14 +11,24 @@ self="$(realpath "$0")"
 #shellcheck source=SCRIPTDIR/../lib/utils.sh
 . "${self%/*/*}/lib/utils.sh"
 
+is_so_login_required_stderr() {
+    local status stderr
+    status="$1"
+    stderr="$2"
+    test "$status" -eq 255 || return 1
+    case "$stderr" in
+    *" aws sso login "* ) return 0 ;;
+    *"Error loading SSO Token"* ) return 0 ;;
+    esac
+    return 1
+}
+
 run_aws() {
     if test "$aws_region"; then
         set -- --region "$aws_region" "$@"
     fi
     capture_status_stdout_stderr aws "$@"
-    if test "$R" -ne 255 || \
-        test "${R2%' aws sso login '*}" = "$R2"
-    then
+    if ! is_so_login_required_stderr "$R" "$R2"; then
         printf '%s' "$R2" >&2
         printf '%s' "$R1"
         return "$R"
