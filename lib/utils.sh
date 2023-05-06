@@ -321,3 +321,8 @@ capture_status_stdout_stderr() {
   R="${stdout_status#*"$separator"}"
 }
 
+has_writable_tty() {
+  { : > /dev/tty; } > /dev/null 2>&1 || return 1
+  return 0
+}
+

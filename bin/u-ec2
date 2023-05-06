@@ -76,9 +76,14 @@ Cmd_ipv4() {
 
 Cmd_ssh_proxy() {
     local ipv4
+
+    # ssh redirects stderr to null, so log to tty if we have one
+    if has_writable_tty; then
+        exec 2> /dev/tty
+    fi
     ipv4="$(print_ec2_ipv4)"
     if ! test "$ipv4"; then
-        err "No IP is associated with EC2 $ec2_id. Perhaps it is not running."
+        err "No IP is associated with EC2 instance. Perhaps it is not running."
     fi
     exec nc "$ipv4" 22
 }
