@@ -958,6 +958,7 @@ Comment=Start custom session script
         local d
         set -- /usr/local/bin /usr/local/sbin /bin /sbin /usr/bin /usr/sbin
         set -- "$@" /Library/Apple/usr/bin
+        set -- "$@" /snap/bin
         for d in "$@"; do
             # Do not add /bin if it is a symlink to /usr/bin
             if test "${d#/usr/}" = "$d"; then
