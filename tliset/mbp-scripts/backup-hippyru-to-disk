@@ -1,0 +1,149 @@
+#!/bin/bash
+
+set -e -u
+
+log() {
+    printf "%s\n" "$*" 1>&2
+}
+
+err() {
+    log "$@"
+    exit 1
+}
+
+macos=0
+if [[ $(uname) == Darwin ]]; then
+    macos=1
+fi
+
+if let macos; then
+    export LANG=en_US.UTF-8
+    export LC_ALL="$LANG"
+fi
+
+backup_top_name=hippyru-backup
+
+if [[ -d /run/media ]]; then
+    media_dir=/run/media/$(id -nu)
+elif [[ -d /Volumes ]]; then
+    media_dir=/Volumes
+else
+    err "Cannot determine media dir top"
+fi
+backup_top=
+
+# Number of days to keep old backups in the changed dir
+max_keep_changed_days=60
+
+find_default_backup_top() {
+    local i dir
+    backup_top=
+    for i in "$media_dir"/*; do
+	dir="$i/$backup_top_name"
+	if test -d "$dir"; then
+	    if test -n "$backup_top"; then
+		err "Подключен больше, чем один диск для архивации:" \
+		    "  $(basename "$i") $(basename "$(dirname "$backup_top")")" \
+		    "Оставьте подключенным только один из дисков и попробуйте снова."
+	    fi
+	    backup_top="$dir"
+	fi
+    done
+    if test -z "$backup_top"; then
+	err "Не найден диск для архивации." \
+	    "Убедитесь, что диск с паpкой $backup_top_name подключен."
+    fi
+    backup_top="$backup_top/current"
+}
+
+while getopts :d: opt; do
+    case "$opt" in
+	d ) backup_top="$OPTARG";;
+	: ) err "$0: опция $OPTARG треbует аргумента";;
+	* ) err "$0: неизвестная опция '$opt'";;
+    esac
+done
+shift $((OPTIND - 1))
+
+if test -z "$backup_top"; then
+    find_default_backup_top
+fi
+
+if test ! -d "$backup_top"; then
+    mkdir -p -m 750 "$backup_top"
+fi
+
+backup_top="$(cd "$backup_top"; pwd -P)"
+
+ssh_cmd="ssh -o Ciphers=aes128-gcm@openssh.com -l backup -p 2022"
+if [[ -f $HOME/.ssh/hippyru-www-backup-ed25519 ]]; then
+	ssh_cmd+=" -i $HOME/.ssh/hippyru-www-backup-ed25519"
+fi
+
+remove_list=()
+
+map_hostname() {
+    [[ ${USE_THIP-} ]] || return 0
+    case $host_name in
+	bergenrabbit.net ) host_name=192.168.95.13 ;;
+	hippyru.net ) host_name=192.168.95.12 ;;
+	lubava.info ) host_name=192.168.95.14 ;;
+	* ) echo "unknown host $host_name" >&2; exit 1 ;;
+    esac
+}
+
+backup_host() {
+    local pod_name="$1" host_name="$2"
+
+    local changes="$backup_top/changes/$pod_name"
+    local changed_files
+    changed_files="$changes/$(date +%Y-%m-%d)"
+    local partial="$backup_top/rsync-partial/$pod_name"
+    mkdir -p "$backup_top/$pod_name" "$changed_files" "$partial"
+
+    log "Архивация $host_name"
+
+    map_hostname
+
+    # No ownership - it is set during the setup.
+    local ok=1
+    # TODO add --omit-link-times on linux
+    local -a rsync_args=(
+	-rlpt --no-owner --no-group --omit-dir-times --omit-link-times
+	--partial-dir="$partial" --delete-before
+	--backup --backup-dir="$changed_files"
+	--rsh="$ssh_cmd"
+	--progress -v -8
+    )
+
+    # macos needs filename converssion
+    let macos && rsync_args+=(--iconv=UTF-8-MAC,UTF-8)
+
+    rsync "${rsync_args[@]}" "rsync://$host_name/srv/" "$backup_top/$pod_name/srv" >&2 || ok=
+    rsync "${rsync_args[@]}" "rsync://$host_name/lib/" "$backup_top/$pod_name/lib" >&2 || ok=
+
+    if [[ $ok ]]; then
+	local i cur_time
+	cur_time="$(date +%s)"
+	for i in "$changes"/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]; do
+	    if let macos; then
+		dir_time="$(date -j -f '%Y-%m-%d' "${i##*/}" +%s)"
+	    else
+		dir_time="$(date --date="${i##*/}" +%s)"
+	    fi
+	    if test "$((cur_time-dir_time))" -gt "$((max_keep_changed_days*86400))"; then
+		remove_list+=("$i")
+	    fi
+	done
+    fi
+}
+
+backup_host bergenrabbit bergenrabbit.net
+
+if [[ ${#remove_list[@]} -ne 0 ]]; then
+    printf -v s '\n\t%s' "${remove_list[@]}"
+    log "Удаление старых архивных копий, сделанных больше $max_keep_changed_days дней назад:$s"
+    rm -rf "${remove_list[@]}"
+fi
+
+log "Закончено."

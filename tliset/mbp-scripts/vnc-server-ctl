@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e -u -o pipefail
+
+action_start() {
+    password="$(dd if=/dev/urandom count=9 bs=1 2>/dev/null | base64)"
+    sudo  /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+        -activate -configure -access -on \
+        -clientopts -setvnclegacy -vnclegacy yes \
+        -clientopts -setvncpw -vncpw "$password" \
+        -restart -agent -privs -all
+    printf 'Password for vnc: %s\n' "$password"
+}
+
+action_stop() {
+    sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -deactivate -configure -access -off
+}
+
+
+
+action="${1-}"
+case "$action" in
+start ) action_start ;;
+stop ) action_stop ;;
+* ) echo "Bad usage: unknwon action" >& 2; exit 1 ;;
+esac
