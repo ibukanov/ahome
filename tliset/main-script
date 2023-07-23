@@ -13,7 +13,7 @@ set -o noglob
 # shellcheck source=./container-kit.sh
 . "${0%/*}/container-kit.sh"
 
-valid_primary_host_names="rhea miranda"
+valid_primary_host_names="rhea mimas"
 valid_primary_host_names="$valid_primary_host_names r2.mir2.org"
 valid_container_host_names="test-lms"
 valid_host_names="$valid_primary_host_names $valid_container_host_names"
@@ -97,7 +97,7 @@ get_host_options() {
     with_common_packages=1
     ;;
 
-  miranda )
+  mimas )
     main_user=igor
     with_common_packages=1
     with_latex=1
@@ -1017,7 +1017,7 @@ deb http://deb.debian.org/debian $codename-backports main
   local eargs
   eargs=
   earg file apt-utils apt-file
-  earg man-db manpages-posix
+  earg man-db manpages-dev
   earg rsync
   earg apg ccrypt
   earg zip unzip xz-utils lzip lziprecover lz4
@@ -1025,6 +1025,7 @@ deb http://deb.debian.org/debian $codename-backports main
   earg git quilt
   earg jq shellcheck
   earg iproute2 wget curl netcat-openbsd
+  earg git make gcc g++
 
   if test "$with_firewalld"; then
     earg firewalld
@@ -1059,10 +1060,11 @@ deb http://deb.debian.org/debian $codename-backports main
     earg lsyncd
     earg dstat
     earg libreoffice
-    earg libsecret-tools
+    earg borgbackup
+    #earg libsecret-tools
     #earg ssh-askpass-gnome
-    earg lxqt-openssh-askpass
-    earg qt6-wayland qtwayland5
+    #earg lxqt-openssh-askpass
+    #earg qt6-wayland qtwayland5
     #earg gvfs-bin
     #earg libglib2.0-dev
     #earg libgnome-keyring-dev
