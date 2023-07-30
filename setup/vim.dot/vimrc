@@ -23,6 +23,9 @@ set smartcase
 " Allow to switch buffers without saving
 set hidden
 
+syntax on
+filetype on
+
 " Search for files in the directory of the current file and in all files under
 " the current diectory.
 set path=.,,**
