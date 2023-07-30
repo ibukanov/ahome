@@ -2412,7 +2412,6 @@ setup_user_sandboxes() {
     for user_name in $user_sandbox_accounts; do
       pl "Match User $user_name"
       pl "  PasswordAuthentication no"
-      pl "  #ForceCommand /var/lib/tliset/user-sandbox-enter \$SSH_ORIGINAL_COMMAND"
       pl "  ForceCommand /var/lib/tliset/force-into-user-sandbox"
     done
     return 0
@@ -2426,20 +2425,26 @@ setup_user_sandboxes() {
 set -e -u
 
 user_id="$(id -u)"
-XDG_RUNTIME_DIR="/run/user/$user_id"
-export XDG_RUNTIME_DIR
+export XDG_RUNTIME_DIR="/run/user/$user_id"
+
+dbus_socket="$XDG_RUNTIME_DIR/bus"
+if ! test -S "$dbus_socket"; then
+    echo "warning: $dbus_socket is not a socket, DBus may not work" >&2
+else
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$dbus_socket"
+fi
 
 set -- systemd-run --user
 
 set -- "$@" --service-type=exec
 set -- "$@" --wait --collect
-set -- "$@" --pipe --tty
+set -- "$@" --pipe --pty
 set -- "$@" --quiet
 set -- "$@" "$SHELL"
 if test "${SSH_ORIGINAL_COMMAND-}"; then
-  set -- "$@" -c "$SSH_ORIGINAL_COMMAND"
+    set -- "$@" -c "$SSH_ORIGINAL_COMMAND"
 else
-  set -- "$@" -l
+    set -- "$@" -l
 fi
 
 exec "$@"
@@ -2504,6 +2509,7 @@ ProtectKernelTunables=yes
 #ProtectControlGroups=yes
 ProtectSystem=strict
 "
+    add_multi_user_wants "$service_unit"
   done
 
 }
