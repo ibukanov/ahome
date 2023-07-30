@@ -86,7 +86,7 @@ read_config() {
 
 	BackupPath )
 	    check_single_required_arg
-	    eargs="$escaped_backup_targets"
+	    eargs="$escaped_backup_paths"
 	    earg "$arg1"
 	    escaped_backup_paths="$eargs"
 	    ;;
@@ -154,10 +154,9 @@ check_config() {
     fi
     local_backup_root="$local_backup_root/borg"
 
-    local escaped_path
-    for escaped_path in $escaped_backup_paths; do
-	local path
-	eval "path=$escaped_path"
+    eval "set -- $escaped_backup_paths"
+    local path
+    for path in "$@"; do
 	test -d "$path" || test -d "$path" || \
 	    err "BackupPath $path is not a directory or a file"
     done
@@ -188,13 +187,9 @@ create_local_backup() {
     fi
 
     set --
-    set -- "$@" --progress --compress=zlib "$local_backup_root::home-{now}"
-    local escaped_path
-    for escaped_path in $escaped_backup_paths; do
-	local path
-	eval "path=$escaped_path"
-	set -- "$@" "$path"
-    done
+    set -- "$@" --progress --compress=auto,zstd,6
+    set -- "$@" "$local_backup_root::home-{now}"
+    eval 'set -- "$@" '"$escaped_backup_paths"
 
     printf '%s\n' "$password" | \
 	BORG_PASSPHRASE_FD=0 BORG_RELOCATED_REPO_ACCESS_IS_OK=yes \
