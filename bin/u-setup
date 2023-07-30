@@ -909,6 +909,16 @@ main() {
     action_dir ".local/vim/swap"
     action_dir ".local/vim/undo"
 
+    if is_linux; then
+        action_dir ".config"
+        action_dir ".config/geany"
+        action_symlink "$setup_source_dir/geany/colorschemes" \
+            .config/geany colorschemes
+    fi
+
+    action_symlink "$setup_source_dir/dircolors/solarized-light.dir_colors" \
+        . .dir_colors
+
     if is_mac; then
         local f
         f="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
