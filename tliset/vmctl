@@ -76,6 +76,7 @@ sync {
    default.rsync,
    source = '${HOME}/p/lms',
    target = 'lms-build@${VM}:/srv/lms/opt/act',
+--   target = 'root@${VM}:/srv/lms/opt/act',
    exclude = {
      '/compiled',
      '/gosrc',
@@ -464,8 +465,8 @@ setup_debian_images() {
     local mirror_host mirror_top_dir mirror_path
     mirror_host=cdn-fastly.deb.debian.org
     mirror_top_dir=debian
-    #mirror_path=dists/buster/main/installer-amd64/current/images
-    mirror_path=dists/bullseye/main/installer-amd64/current/images
+    #mirror_path=dists/bullseye/main/installer-amd64/current/images
+    mirror_path=dists/bookworm/main/installer-amd64/current/images
 
     if test ! -e netboot.tar.gz; then
       log "Downloading Debian installer"
