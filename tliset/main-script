@@ -100,6 +100,8 @@ get_host_options() {
   mimas )
     main_user=igor
     with_common_packages=1
+    with_common_development_tools=1
+    with_vm_tools=1
     with_latex=1
     zram_size=$((16*1024))
     zram_algorithm=lz4
@@ -1017,15 +1019,15 @@ deb http://deb.debian.org/debian $codename-backports main
   local eargs
   eargs=
   earg file apt-utils apt-file
-  earg man-db manpages-dev
+  earg man-db
   earg rsync
   earg apg ccrypt
-  earg zip unzip xz-utils lzip lziprecover lz4
+  earg zip unzip xz-utils lz4
   earg less screen tmux pv
   earg git quilt
   earg jq shellcheck
   earg iproute2 wget curl netcat-openbsd
-  earg git make gcc g++
+  earg git make
 
   if test "$with_firewalld"; then
     earg firewalld
@@ -1057,10 +1059,17 @@ deb http://deb.debian.org/debian $codename-backports main
   fi
 
   if test "$with_common_packages"; then
+    # Encryption and backup
+    earg lzip lziprecover
+    earg ccrypt borgbackup
+    earg apg
+
+    earg vim-gui-common
+    earg geany geany-plugins geany-plugin-spellcheck
+
     earg lsyncd
     earg dstat
     earg libreoffice
-    earg borgbackup
     #earg libsecret-tools
     #earg ssh-askpass-gnome
     #earg lxqt-openssh-askpass
@@ -1086,7 +1095,13 @@ deb http://deb.debian.org/debian $codename-backports main
   if test "$with_common_development_tools"; then
     earg python3
     earg gcc g++
-    earg xauth
+    earg manpages-dev
+    #earg xauth
+  fi
+
+  if test "$with_vm_tools"; then
+    earg qemu-utils qemu-system-x86 qemu-system-gui
+    earg guestmount fuse3
   fi
 
   if test "$with_common_packages" || \
@@ -1154,7 +1169,7 @@ deb http://deb.debian.org/debian $codename-backports main
   escaped_apt_action_list=
   fill_apt_action_list install "$escaped_install_list"
   if test -n "$escaped_apt_action_list"; then
-    log "Installing missing packages"
+    log "Installing missing packages: $escaped_apt_action_list"
     cmd_log apt-get update
     eval "DEBIAN_FRONTEND=noninteractive \
         cmd_log apt-get install -y $escaped_apt_action_list"
