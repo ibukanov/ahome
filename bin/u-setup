@@ -608,10 +608,10 @@ setup_env() {
 
     path_dir "opt/$arch/rust/bin"
 
-    if test -d "opt/node/18/bin"; then
-        path_dir "opt/node/18/bin"
-        path_dir MANPATH "opt/node/18/share/man"
-        add_export NODE_OPTIONS "--use-openssl-ca"
+    if test -d "opt/node/bin"; then
+        path_dir "opt/node/bin"
+        path_dir MANPATH "opt/node/share/man"
+        #add_export NODE_OPTIONS "--use-openssl-ca"
     fi
 
     path_dir ".cargo/bin"
