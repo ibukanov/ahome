@@ -32,6 +32,14 @@ rc_setup_env() {
     export PATH="$rc_ahome_path"
   fi
 
+  if test -z "${XDG_RUNTIME_DIR-}" && ! rc_is_mac; then
+    local id
+    id="$(id -u)"
+    if test -d "/run/user/$id"; then
+      export XDG_RUNTIME_DIR="/run/user/$id"
+    fi
+  fi
+
   if ! test "${SSH_AUTH_SOCK-}"; then
     local u_agent working_agent
     u_agent="$HOME/.ssh/u-sockets/agent.socket"
