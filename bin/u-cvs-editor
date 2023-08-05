@@ -9,6 +9,9 @@ has_editor() {
 }
 
 if test -c /dev/tty || ! test -d /dev; then
+    if has_editor nano; then
+        exec nano "$@"
+    fi
     if has_editor vimx; then
         exec vimx "$@"
     fi
@@ -18,9 +21,9 @@ if test -c /dev/tty || ! test -d /dev; then
     exec vi "$@"
 fi
 
-if has_editor gvim; then
-    exec gvim "$@"
-fi
+#if has_editor gvim; then
+#    exec gvim "$@"
+#fi
 
 if has_editor geany; then
     exec geany -imnst "$@"

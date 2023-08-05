@@ -1,6 +1,51 @@
+set mouse
 set speller hunspell
 unset backup
+
+set historylog
+set multibuffer
+
+## Spread overlong lines over multiple screen lines.
 set softwrap
-set fill 72
+set fill 80
+
+## Use the end of the title bar for some state flags: I = auto-indenting,
+## M = mark, L = hard-wrapping long lines, R = recording, S = soft-wrapping.
+set stateflags
+
+## Use this tab size instead of the default; it must be greater than 0.
+set tabsize 4
+
+set constantshow
+set zap
 set smarthome
 set autoindent
+
+bind ^X cut main
+bind ^C copy main
+bind ^V paste all
+bind ^Q exit all
+bind ^S savefile main
+bind ^W writeout main
+bind ^O insert main
+bind ^H help all
+bind ^H exit help
+bind ^F whereis all
+bind ^G findnext all
+bind M-g findprevious all
+bind ^B wherewas all
+bind M-F replace main
+bind ^Z undo main
+bind ^Y redo main
+bind ^A mark main
+bind ^L gotoline main
+bind ^E execute main
+bind ^L linter execute
+
+unbind ^K main
+unbind ^U all
+unbind ^N main
+unbind ^Y all
+unbind M-J main
+unbind M-T main
+
