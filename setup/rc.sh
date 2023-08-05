@@ -1,11 +1,7 @@
-
-# Read Fedora-specific startup file. On Debian and Ubuntu bash is
-# compiled to read system-wide files automatically.
-
 test "${rc_has_setup-}" && return 0
 
 rc_is_mac() {
-  test "$rc_is_mac"
+  test -d /Library
 }
 
 rc_is_bash() {
@@ -15,6 +11,9 @@ rc_is_bash() {
 rc_is_zsh() {
   test "${ZSH_VERSION-}"
 }
+
+# Read Fedora-specific startup file. On Debian and Ubuntu bash is
+# compiled to read system-wide files automatically.
 
 if rc_is_bash; then
   test -f /etc/bashrc && . /etc/bashrc
