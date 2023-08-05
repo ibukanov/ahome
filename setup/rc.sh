@@ -96,7 +96,7 @@ rc_history() {
 
     # Skip dups while searching, still keep them in the history file
     setopt HIST_FIND_NO_DUPS
-    #setopt HIST_IGNORE_ALL_DUPS
+    setopt HIST_IGNORE_ALL_DUPS
 
     setopt INC_APPEND_HISTORY
     setopt EXTENDED_HISTORY
