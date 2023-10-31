@@ -2892,8 +2892,8 @@ server {
     fastcgi_param SCRIPT_FILENAME /var/lib/tliset/tinyfilemanager/tinyfilemanager.php;
 
     # Allow for big uploads that take time to process
-    fastcgi_read_timeout 1800s;
-    fastcgi_send_timeout 1800s;
+    fastcgi_read_timeout 86400s;
+    fastcgi_send_timeout 86400s;
 
     # Send request directly to the server
     fastcgi_request_buffering off;
@@ -3145,8 +3145,8 @@ pm.max_requests = 1000
 catch_workers_output = yes
 ;; Override values from php.ini
 ; Allow big uploads
-php_value[upload_max_filesize] = 8G
-php_value[post_max_size] = 8G
+php_value[upload_max_filesize] = 80G
+php_value[post_max_size] = 80G
 php_value[upload_tmp_dir] = /var/tmp
 php_value[max_input_time] = 1800
 php_value[max_execution_time] = 500
