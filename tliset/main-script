@@ -103,9 +103,12 @@ get_host_options() {
     with_common_development_tools=1
     with_vm_tools=1
     with_latex=1
-    zram_size=$((16*1024))
-    zram_algorithm=lz4
+
+    zswap_persent=20
+    #zram_size=$((16*1024))
+    #zram_algorithm=lz4
     with_disabled_turbo_boost=1
+    with_hibernation=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -781,10 +784,10 @@ note_path() {
   fi
 }
 
-find_device_uuid_by_label() {
+find_device_uuid_by_type() {
   local label s kind uuid
   label="$1"
-  s="$(blkid --output export --match-token LABEL="${label}")"
+  s="$(blkid --output export --match-token TYPE="${label}")"
   R=
   while IFS="=" read kind uuid; do
     if test "${kind}" = UUID; then
@@ -1573,15 +1576,15 @@ setup_initramfs_and_grub() {
   dracut_lines=
   grub_lines=
 
-  if test "${with_remote_ssh_unlock}"; then
-    if test "${kind_ubuntu}" || test "${kind_debian}"; then
+  if test "$with_remote_ssh_unlock"; then
+    if test "$kind_ubuntu" || test "$kind_debian"; then
       # This is based on
       # https://hamy.io/post/0009/how-to-install-luks-encrypted-ubuntu-18.04.x-server-and-enable-remote-unlocking/
       # After the login at boot time use cryptroot-unlock command
       write_file /etc/dropbear-initramfs/config '
 DROPBEAR_OPTIONS="-p 21 -s -j -k -I 120"
 '
-      if test "${file_update}"; then
+      if test "$file_update"; then
         update_initram=1
       fi
 
@@ -1590,24 +1593,24 @@ DROPBEAR_OPTIONS="-p 21 -s -j -k -I 120"
       if test -s /root/.ssh/authorized_keys; then
         authorized_keys="$( \
             grep '^ssh-rsa ' /root/.ssh/authorized_keys \
-        )${NL}"
+        )$NL"
       fi
-      if test -z "${authorized_keys}"; then
+      if test -z "$authorized_keys"; then
         warn "/root/.ssh/authorized_keys does not have RSA keys for dropbear" \
             "boot unlock"
       fi
-      write_file /etc/dropbear-initramfs/authorized_keys "${authorized_keys}"
-      if test "${file_update}"; then
+      write_file /etc/dropbear-initramfs/authorized_keys "$authorized_keys"
+      if test "$file_update"; then
         cmd_log update-initramfs -u
       fi
-    elif test "${kind_fedora}"; then
+    elif test "$kind_fedora"; then
       # Use systemd-tty-ask-password-agent during the login
       if test ! -d /usr/lib/dracut/modules.d/46sshd ; then
         err "Install https://github.com/gsauthof/dracut-sshd"
       fi
 
       # Use systemd-networkd at boot
-      dracut_lines="${dracut_lines}"'
+      dracut_lines="$dracut_lines"'
 add_dracutmodules+=" systemd-networkd "
 omit_dracutmodules+="ifcfg network-legacy network-manager"
 '
@@ -1616,13 +1619,13 @@ omit_dracutmodules+="ifcfg network-legacy network-manager"
     fi
   fi
 
-  if test "${with_hibernation}"; then
-    if test "${kind_fedora}"; then
-      dracut_lines="${dracut_lines}"'
+  if test "$with_hibernation"; then
+    if test "$kind_fedora" || test "$kind_debian"; then
+      test "$kind_fedora" && dracut_lines="$dracut_lines"'
 add_dracutmodules+=" resume "
 '
       local swap_uuid
-      find_device_uuid_by_label swap
+      find_device_uuid_by_type swap
       swap_uuid="${R}"
       grub_lines="${grub_lines}"'
 GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} resume=UUID='"${swap_uuid}"'"
@@ -1660,26 +1663,34 @@ HibernateDelaySec=30min
 
       local service
       service=/usr/lib/systemd/system/systemd-suspend-then-hibernate.service
-      test -f "${service}" || err "${service} file does not exist"
-      ensure_symlink "${service}" /etc/systemd/system/systemd-suspend.service
-      if test "${file_update}"; then
+      test -f "$service" || err "$service file does not exist"
+      ensure_symlink "$service" /etc/systemd/system/systemd-suspend.service
+      if test "$file_update"; then
         systemd_unit_update=1
+      fi
+
+      if test "$kind_debian"; then
+        write_file /etc/initramfs-tools/conf.d/resume \
+          "resume=UUID=$swap_uuid$NL"
+        if test "$file_update"; then
+          cmd_log update-initramfs -k all -u
+        fi
       fi
     else
       err "Unsupported OS kind for with_hibernation"
     fi
   fi
 
-  if test "${dracut_lines}"; then
-    write_file /etc/dracut.conf.d/tliset.conf "${dracut_lines}"
-    if test "${file_update}"; then
+  if test "$dracut_lines"; then
+    write_file /etc/dracut.conf.d/tliset.conf "$dracut_lines"
+    if test "$file_update"; then
       cmd_log dracut -f -v
     fi
   fi
 
-  if test "${grub_lines}"; then
+  if test "$grub_lines"; then
     ensure_config_file_tail_section /etc/default/grub "${grub_lines}"
-    if test "${file_update}"; then
+    if test "$file_update"; then
       cmd_log grub2-mkconfig -o /boot/grub2/grub.cfg
     fi
   fi
