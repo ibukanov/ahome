@@ -19,6 +19,76 @@ if rc_is_bash; then
   test -f /etc/bashrc && . /etc/bashrc
 fi
 
+rc_setup_path() {
+  # Set ORIG paths only if they are unset and keep as is if they are set even
+  # to an empty string.
+  if test -z "${AHOME_ORIG_PATH+x}"; then
+    export AHOME_ORIG_PATH="$PATH"
+  fi
+  if test -z "${AHOME_ORIG_MANPATH+x}"; then
+    export AHOME_ORIG_MANPATH="$MANPATH"
+  fi
+
+  if test "${AHOME_FORCED_PATH-}"; then
+    return 0
+  fi
+
+  local p m d
+  p="$rc_ahome/bin:$rc_ahome/local/bin:$rc_ahome/state/bin"
+  m=
+
+  d="$HOME/opt/bin"
+  test -d "$d" && p="$p:$d"
+
+  d="$HOME/opt/bin"
+  test -d "$d" && p="$p:$d"
+
+  d="$HOME/opt/node/bin"
+  if test -d "$d"; then
+    p="$p:$d"
+    d="$HOME/opt/node/share/man"
+    test -d "$d" && m="$m:$d"
+  fi
+
+  d="$HOME/.cargo/bin"
+  test -d "$d" && p="$p:$d"
+
+  d="$HOME/p/git-subrepo/man"
+  test -d "$d" && m="$m:$d"
+
+  if rc_is_mac; then
+    d="/opt/homebrew/bin"
+    test -d "$d" && p="$p:$d"
+
+    d="/opt/homebrew/sbin"
+    test -d "$d" && p="$p:$d"
+
+    d="/opt/homebrew/opt/coreutils/libexec/gnubin"
+    test -d "$d" && p="$p:$d"
+  fi
+
+  d="$HOME/opt/go/bin"
+  test -d "$d" && p="$p:$d"
+
+  d="$HOME/go/bin"
+  test -d "$d" && p="$p:$d"
+
+  d="/usr/local/go/bin"
+  test -d "$d" && p="$p:$d"
+
+  export PATH="$p:$AHOME_ORIG_PATH"
+
+  if test "$m"; then
+    # Strip the initial colon
+    m="${m#:}"
+    if test "$AHOME_ORIG_MANPATH"; then
+      export MANPATH="$m:$AHOME_ORIG_MANPATH"
+    else
+      export MANPATH="$m:"
+    fi
+  fi
+}
+
 rc_setup_env() {
   if rc_is_mac; then
     export LANG=en_US.UTF-8
@@ -27,10 +97,9 @@ rc_setup_env() {
   fi
   #export LC_ALL C
 
+  rc_setup_path
+
   test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
-  if ! test "${AHOME_FORCED_PATH-}"; then
-    export PATH="$rc_ahome_path"
-  fi
 
   if test -z "${XDG_RUNTIME_DIR-}" && ! rc_is_mac; then
     local id
@@ -50,14 +119,14 @@ rc_setup_env() {
       x=0
       SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || x="$?"
       if test "$x" -lt 2; then
-	# ssh-add exits with 1 if agent works but has no identities
-	working_agent=1
+        # ssh-add exits with 1 if agent works but has no identities
+        working_agent=1
       fi
     fi
     if ! test "$working_agent"; then
       rm -f "$u_agent"
       ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
-	echo "Failed to start SSH agent"
+      echo "Failed to start SSH agent"
     fi
     if test "$working_agent"; then
       export SSH_AUTH_SOCK="$u_agent"
