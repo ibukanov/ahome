@@ -132,6 +132,13 @@ rc_setup_env() {
       export SSH_AUTH_SOCK="$u_agent"
     fi
   fi
+
+  if test "$WSLENV"; then
+    # Under WSL allow access to YubiKeys.
+    local x
+    x="/mnt/c/Program Files/OpenSSH/ssh-sk-helper.exe"
+    test -x "$x" && export SSH_SK_HELPER="$x"
+  fi
 }
 
 rc_setup_env
@@ -287,6 +294,9 @@ rc_misc() {
 
   # Disable blinking cursor in linux console
   test "$TERM" = linux && printf '\033[?17;0;64c'
+
+  # Disable blinking cursor for Windows terminal
+  test "$TERM" && test "$WSLENV" && printf '\033[2 q'
 }
 
 rc_history
