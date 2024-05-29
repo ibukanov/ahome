@@ -99,7 +99,13 @@ rc_setup_env() {
 
   rc_setup_path
 
-  test -f "$rc_ahome/state/env" && . "$rc_ahome/state/env"
+  export EDITOR=u-cvs-editor
+
+  # ninja tool
+  export NINJA_STATUS="[%r processes, %f/%t @ %o/s : %es] "
+
+  # TEX
+  export TEXINPUTS="$rc_ahome/dev/tex_lib:"
 
   if test -z "${XDG_RUNTIME_DIR-}" && ! rc_is_mac; then
     local id

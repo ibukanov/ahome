@@ -131,18 +131,12 @@ read_file() {
     printf -v R %s "${lines[@]:+${lines[@]}}"
 }
 
-export_lines=
-
 declare -A historic_file_set=()
 declare -A current_file_set=()
 declare -A current_dir_set=()
 
 user_systemd_unit_change=
 sourced_local_setup=
-
-pathlike_PATH=
-pathlike_MANPATH=
-pathlike_PERL5LIB=
 
 os_name="$(uname)"
 
@@ -152,16 +146,6 @@ is_linux() {
 
 is_mac() {
     test "$os_name" = Darwin
-}
-
-get_pathlike_var() {
-    local path_like_name
-    path_like_name="$1"
-    case "$path_like_name" in
-    PATH | MANPATH | PERL5LIB ) : ;;
-    * ) err "Unsiupported PATH-like environmental variable $path_like_name"
-    esac
-    R="pathlike_$path_like_name"
 }
 
 init_path_list() {
@@ -522,16 +506,6 @@ action_write_user_systemd_unit() {
     fi
 }
 
-
-add_export() {
-    local name value eargs
-    name="$1"
-    value="$2"
-    check_valid_shell_name "$name"
-    escape_for_shell "$value"
-    export_lines="${export_lines}export $name=$R$NL"
-}
-
 check_dir() {
     local dir
     dir="$1"
@@ -554,17 +528,6 @@ array_join() {
         s+="${s:+$separator}$i"
     done
     R="$s"
-}
-
-setup_env() {
-    local arch
-    arch="$(uname -m)"
-
-    add_export EDITOR u-cvs-editor
-
-    add_export TEXINPUTS "$self_top/dev/tex_lib:"
-
-    add_export NINJA_STATUS "[%r processes, %f/%t @ %o/s : %es] "
 }
 
 setup_emacs() {
@@ -846,8 +809,6 @@ Comment=Start custom session script
         action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
     fi
 
-    setup_env
-
     setup_emacs
 
     setup_lxde
@@ -860,28 +821,6 @@ Comment=Start custom session script
 
     if test "$sourced_local_setup"; then
         local_setup
-    fi
-
-    if is_setup; then
-        if test "$pathlike_MANPATH"; then
-            # Add the trailing : that means to use the default system path
-            add_export MANPATH "${pathlike_MANPATH}:"
-        fi
-        if test "$pathlike_PERL5LIB"; then
-            add_export PERL5LIB "$pathlike_PERL5LIB:"
-        fi
-
-        local s
-        s=
-        escape_for_shell "$pathlike_PATH"
-        s="${s}rc_ahome_path=$R$NL"
-        if is_mac; then
-            s="${s}rc_is_mac=1$NL"
-        else
-            s="${s}rc_is_mac=$NL"
-        fi
-        s="$s$export_lines"
-        action_write_file "$rel_state/env" "$s"
     fi
 
     if is_setup; then
