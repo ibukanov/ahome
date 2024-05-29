@@ -65,6 +65,13 @@ rc_setup_path() {
 
     d="/opt/homebrew/opt/coreutils/libexec/gnubin"
     test -d "$d" && p="$p:$d"
+  else 
+    d="/home/linuxbrew/.linuxbrew"
+    if test -d "$d"; then
+      p="$p:$d/bin"
+      m="$m:$d/share/man"
+      export HOMEBREW_PREFIX="$d"
+    fi
   fi
 
   d="$HOME/opt/go/bin"
