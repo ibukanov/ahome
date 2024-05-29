@@ -123,34 +123,59 @@ rc_setup_env() {
   fi
 
   if ! test "${SSH_AUTH_SOCK-}"; then
-    local u_agent working_agent
-    u_agent="$HOME/.ssh/u-sockets/agent.socket"
-    working_agent=
-    if test -S "$u_agent"; then
-      # Check if the agent does work
-      local x
-      x=0
-      SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || x="$?"
-      if test "$x" -lt 2; then
-        # ssh-add exits with 1 if agent works but has no identities
-        working_agent=1
-      fi
-    fi
-    if ! test "$working_agent"; then
-      rm -f "$u_agent"
-      ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
-      echo "Failed to start SSH agent"
-    fi
-    if test "$working_agent"; then
-      export SSH_AUTH_SOCK="$u_agent"
-    fi
+    rc_ensure_ssh_agent
   fi
 
   if test "$WSLENV"; then
+    :
     # Under WSL allow access to YubiKeys.
+    #local x
+    #x="/mnt/c/Program Files/OpenSSH/ssh-sk-helper.exe"
+    #test -x "$x" && export SSH_SK_HELPER="$x"
+
+    # TODO: figure out how to use the default keyctl under WSL
+    #export AWS_VAULT_BACKEND=pass
+    #export AWS_VAULT_PASS_PASSWORD_STORE_DIR="$HOME/.password-store/aws-vault"
+
+  fi
+}
+
+rc_ensure_ssh_agent() {
+  local u_agent working_agent
+  u_agent="$HOME/.ssh/u-sockets/agent.socket"
+  working_agent=
+  if test -S "$u_agent"; then
+    # Check if the agent does work
     local x
-    x="/mnt/c/Program Files/OpenSSH/ssh-sk-helper.exe"
-    test -x "$x" && export SSH_SK_HELPER="$x"
+    x=0
+    SSH_AUTH_SOCK="$u_agent" ssh-add -l > /dev/null 2>&1 || x="$?"
+    if test "$x" -lt 2; then
+      # ssh-add exits with 1 if agent works but has no identities
+      working_agent=1
+    fi
+  fi
+  if ! test "$working_agent"; then
+    rm -f "$u_agent"
+    if test "$WSLENV"; then
+      local relay
+      relay="/mnt/c/Users/igor/go/bin/npiperelay.exe"
+      if ! test -x "$relay"; then
+        echo "Windows named pipe relay executable does not exist or is not available - $relay" >&2        
+      else 
+        # Run from a subshell to reparent to PID1
+        ( 
+          nohup socat UNIX-LISTEN:"$u_agent",fork \
+            "EXEC:$relay -ei -s //./pipe/openssh-ssh-agent",nofork >"$u_agent.log" 2>&1 &
+        )
+        working_agent=1
+      fi
+    else
+      ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
+      echo "Failed to start SSH agent"
+    fi
+  fi
+  if test "$working_agent"; then
+    export SSH_AUTH_SOCK="$u_agent"
   fi
 }
 
