@@ -1,7 +1,21 @@
 test "${rc_has_setup-}" && return 0
 
+rc_is_mac=
+test -d /Library && rc_is_mac=1
+
+rc_is_linux=
+test -z "$rc_is_mac" && test -z "${MSYS-}" && rc_is_linux=1
+
+rc_is_msys() {
+  test "${MSYS-}"
+}
+
 rc_is_mac() {
-  test -d /Library
+  test "$rc_is_mac"
+}
+
+rc_is_linux() {
+  test "$rc_is_linux"
 }
 
 rc_is_bash() {
@@ -65,7 +79,7 @@ rc_setup_path() {
 
     d="/opt/homebrew/opt/coreutils/libexec/gnubin"
     test -d "$d" && p="$p:$d"
-  else 
+  else
     d="/home/linuxbrew/.linuxbrew"
     if test -d "$d"; then
       p="$p:$d/bin"
@@ -114,7 +128,7 @@ rc_setup_env() {
   # TEX
   export TEXINPUTS="$rc_ahome/dev/tex_lib:"
 
-  if test -z "${XDG_RUNTIME_DIR-}" && ! rc_is_mac; then
+  if rc_is_linux && test -z "${XDG_RUNTIME_DIR-}"; then
     local id
     id="$(id -u)"
     if test -d "/run/user/$id"; then
@@ -122,7 +136,7 @@ rc_setup_env() {
     fi
   fi
 
-  if ! test "${SSH_AUTH_SOCK-}"; then
+  if ! test "${SSH_AUTH_SOCK-}" && ! rc_is_msys; then
     rc_ensure_ssh_agent
   fi
 
@@ -160,10 +174,10 @@ rc_ensure_ssh_agent() {
       local relay
       relay="/mnt/c/Users/igor/go/bin/npiperelay.exe"
       if ! test -x "$relay"; then
-        echo "Windows named pipe relay executable does not exist or is not available - $relay" >&2        
-      else 
+        echo "Windows named pipe relay executable does not exist or is not available - $relay" >&2
+      else
         # Run from a subshell to reparent to PID1
-        ( 
+        (
           nohup socat UNIX-LISTEN:"$u_agent",fork \
             "EXEC:$relay -ei -s //./pipe/openssh-ssh-agent",nofork >"$u_agent.log" 2>&1 &
         )
@@ -171,7 +185,7 @@ rc_ensure_ssh_agent() {
       fi
     else
       ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
-      echo "Failed to start SSH agent"
+        echo "Failed to start SSH agent"
     fi
   fi
   if test "$working_agent"; then
@@ -338,7 +352,7 @@ rc_misc() {
 }
 
 rc_history
-rc_prompt
+! rc_is_msys && rc_prompt
 rc_aliases
 rc_completion
 rc_misc

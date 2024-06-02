@@ -5,10 +5,13 @@ set -e -u
 has_editor() {
     local name
     name="$1"
-    type "${name}" > /dev/null 2>&1
+    command -v "$name" >/dev/null 2>&1
 }
 
 if test -c /dev/tty || ! test -d /dev; then
+    if test "${MSYS-}" && has_editor code; then
+        exec code --wait "$@"
+    fi
     if has_editor nano; then
         exec nano "$@"
     fi
