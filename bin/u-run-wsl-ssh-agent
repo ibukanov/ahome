@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e -u
+
+agent_socket="$1"
+
+log() {
+    logger -t "ssh-agent-wsl-proxy" "$*"
+}
+
+log_pipe() {
+    local line
+    while read -r line; do
+        log "$line"
+    done
+}
+
+relay="/mnt/c/Users/igor/go/bin/npiperelay.exe"
+if ! test -x "$relay"; then
+    log "Windows named pipe relay executable does not exist or is not available - $relay"
+    exit 1
+fi
+log "starting WSL ssh-agent proxy"
+windows_path='//./pipe/openssh-ssh-agent'
+while :; do
+    socat UNIX-LISTEN:"$agent_socket",fork \
+        "EXEC:$relay -ei -s $windows_path",nofork 2>&1 | logger -t "ssh-agent-wsl-proxy" || :
+    log "Unexpected termination of socat. Restarting after a pause"
+    sleep 2
+done

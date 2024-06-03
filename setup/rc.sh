@@ -171,18 +171,11 @@ rc_ensure_ssh_agent() {
   if ! test "$working_agent"; then
     rm -f "$u_agent"
     if test "$WSLENV"; then
-      local relay
-      relay="/mnt/c/Users/igor/go/bin/npiperelay.exe"
-      if ! test -x "$relay"; then
-        echo "Windows named pipe relay executable does not exist or is not available - $relay" >&2
-      else
-        # Run from a subshell to reparent to PID1
-        (
-          nohup socat UNIX-LISTEN:"$u_agent",fork \
-            "EXEC:$relay -ei -s //./pipe/openssh-ssh-agent",nofork >"$u_agent.log" 2>&1 &
-        )
-        working_agent=1
-      fi
+      # Run from a subshell to reparent to PID1
+      (
+        nohup u-run-wsl-ssh-agent "$u_agent" > /dev/null 2>&1 &
+      )
+      working_agent=1
     else
       ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
         echo "Failed to start SSH agent"
