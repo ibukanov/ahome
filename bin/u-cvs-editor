@@ -9,8 +9,10 @@ has_editor() {
 }
 
 if test -c /dev/tty || ! test -d /dev; then
-    if test "${MSYS-}" && has_editor code; then
-        exec code --wait "$@"
+    if test "${MSYS-}" || test "${WSLENV-}"; then
+        if has_editor code; then
+            exec code --wait "$@"
+        fi
     fi
     if has_editor nano; then
         exec nano "$@"

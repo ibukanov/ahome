@@ -171,11 +171,7 @@ rc_ensure_ssh_agent() {
   if ! test "$working_agent"; then
     rm -f "$u_agent"
     if test "$WSLENV"; then
-      # Run from a subshell to reparent to PID1
-      (
-        nohup u-run-wsl-ssh-agent "$u_agent" > /dev/null 2>&1 &
-      )
-      working_agent=1
+      u-start-wsl-ssh-agent "$u_agent" && working_agent=1
     else
       ssh-agent -a "$u_agent" >/dev/null && working_agent=1 || \
         echo "Failed to start SSH agent"
