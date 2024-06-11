@@ -141,16 +141,15 @@ rc_setup_env() {
   fi
 
   if test "$WSLENV"; then
-    :
+    GPG_TTY="$(tty)"
+    export GPG_TTY
+    export AWS_VAULT_BACKEND=pass
+
+    #export AWS_VAULT_PASS_PASSWORD_STORE_DIR="$HOME/.password-store/aws-vault"
     # Under WSL allow access to YubiKeys.
     #local x
     #x="/mnt/c/Program Files/OpenSSH/ssh-sk-helper.exe"
     #test -x "$x" && export SSH_SK_HELPER="$x"
-
-    # TODO: figure out how to use the default keyctl under WSL
-    #export AWS_VAULT_BACKEND=pass
-    #export AWS_VAULT_PASS_PASSWORD_STORE_DIR="$HOME/.password-store/aws-vault"
-
   fi
 }
 
