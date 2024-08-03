@@ -71,6 +71,7 @@ struct {
     const char *command_name;
     const char *hash_path;
     const char *gui_title;
+    const char *output_file;
 
     command_id_t command_id;
 
@@ -627,7 +628,7 @@ void ask_password_cmd()
         int fd = open(ds.hash_path, O_RDONLY);
         if (fd < 0) {
             fail(
-                "failed to open the password hash file %s - %s",
+                "to open the password hash file %s - %s",
                 ds.hash_path, strerror(errno)
             );
         }
@@ -713,8 +714,22 @@ void ask_password_cmd()
         prompt_user_message(message);
         cleanup_and_exit(1);
     }
+    
+    int output_fd = 1;
+    if (ds.output_file) {
+		output_fd = open(ds.output_file, O_WRONLY | O_CLOEXEC);
+		if (output_fd < 0) {
+			bad_io("to open %s for writing", ds.output_file);	
+		}
+	}
 
-    poll_write_all(1, password.pos, password.len);
+    poll_write_all(output_fd, password.pos, password.len);
+
+    if (ds.output_file) {
+		if (close(output_fd) < 0) {
+			bad_io("to close the descriptor for %s", ds.output_file);
+		}
+	}   
 
     close_user_prompt();
 }
@@ -842,10 +857,9 @@ void show_usage()
 "  help\n"
 "    print this help and exit\n"
 "\n"
-"  ask-password [-t TITLE] -p HASH_PATH\n"
-"    ask for a password and print it on stdout if its hash matches the\n"
-"    value in HASH_PATH. The GUI uses TITLE when asking for a password.\n"
-"    The default value for TITLE is the name of HASH_PATH.\n"
+"  ask-password [-t TITLE] [-o OUTPUT] -p HASH_PATH\n"
+"    ask for a password and print it on stdout (or OUTPUT file if given) if\n" "    its hash matches the value in HASH_PATH. The GUI uses TITLE when asking\n"
+"    for a password. The default value for TITLE is the name of HASH_PATH.\n"
 "\n"
 "  set-password-hash [-t TITLE] -p HASH_PATH\n"
 "    ask for a new password and updates HASH_PATH with the new hash\n"
@@ -892,7 +906,7 @@ int main(int argc, char **argv)
         CMD_HELP,
     };
 
-    ds.command_name =  argv[1];
+    ds.command_name = argv[1];
     int index = 0;
     for (const char *s = command_names; ; ++index) {
         if (strcmp(ds.command_name, s) == 0)
@@ -912,8 +926,16 @@ int main(int argc, char **argv)
     char **command_argv = argv + 1;
     int opt;
     opterr = 0;
-    while ((opt = getopt(command_argc, command_argv, "+:hp:t:")) != -1) {
+    while ((opt = getopt(command_argc, command_argv, "+:ho:p:t:")) != -1) {
         switch (opt) {
+        case 'o':
+			if (ds.command_id != CMD_ASK_PASSWORD) {
+				usage_error(
+					"option -%c can only be used with ask-password command", 
+					(char) opt);
+			}
+            ds.output_file = optarg;
+            break;
         case 'p':
             ds.hash_path = optarg;
             break;

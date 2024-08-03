@@ -104,11 +104,11 @@ get_host_options() {
     with_vm_tools=1
     with_latex=1
 
-    zswap_persent=20
+    #zswap_persent=20
     #zram_size=$((16*1024))
     #zram_algorithm=lz4
     with_disabled_turbo_boost=1
-    with_hibernation=1
+    #with_hibernation=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -594,7 +594,7 @@ ensure_user() {
     if test "$uid"; then
       set -- "$@" -u "$uid"
     fi
-    cmd_log useradd "$@" "$user"
+    cmd_log useradd "$@" "$user_name"
   else
     local old_name old_uid old_home old_shell
     IFS=: read -r old_name _ old_uid _ _ old_home old_shell <<EOF
@@ -709,7 +709,7 @@ enable_tormed() {
   with_nginx=1
   with_php_fpm=1
   test "${php_version-}" && err "php_version already set"
-  php_version=7.4
+  php_version=8.2
   webserver_certificate_domains="$webserver_certificate_domains${webserver_certificate_domains:+ }$name"
   tormed_host="$name"
 }
@@ -844,7 +844,7 @@ setup_rpm_packages() {
   eargs=
 
   earg lzip lz4 zip unzip
-  earg apg ccrypt
+  earg apg
   earg git git-subtree quilt
   earg jq
   earg dash screen tmux pv
@@ -854,7 +854,7 @@ setup_rpm_packages() {
     earg lsyncd
     earg terminus-fonts-console
     earg quilt subversion
-    earg git git-subrepo
+    earg git
     earg git-credential-libsecret
     #earg mercurial
     earg livecd-tools
@@ -872,7 +872,7 @@ setup_rpm_packages() {
     earg libguestfs
 
     # encryption and backup
-    earg apg duplicity borgbackup ccrypt
+    earg apg duplicity borgbackup
 
     # Recovery tools
     earg ddrescue foremost scalpel testdisk
@@ -1064,7 +1064,7 @@ deb http://deb.debian.org/debian $codename-backports main
   if test "$with_common_packages"; then
     # Encryption and backup
     earg lzip lziprecover
-    earg ccrypt borgbackup
+    earg borgbackup
     earg apg
 
     earg vim-gui-common

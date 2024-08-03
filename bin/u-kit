@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e -u -o pipefail
 
-self_path="$(readlink -e "${BASH_SOURCE[-1]}")"
+self_path="$(realpath "$0")"
 self_dir="${self_path%/*}"
 kit="$self_dir/localkit/c/build/localkit"
 
-[[ -x $kit ]] || {
+test -x $kit || {
     echo "$kit does not exist or is not executable" >&2
     exit 1
 }
