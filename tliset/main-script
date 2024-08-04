@@ -103,6 +103,7 @@ get_host_options() {
     with_common_development_tools=1
     with_vm_tools=1
     with_latex=1
+    with_disabled_selinux=1
 
     #zswap_persent=20
     #zram_size=$((16*1024))
@@ -114,7 +115,7 @@ get_host_options() {
     #with_encrypted_dns=1
     with_mdns=1
 
-    #custom_user_watches_count="$((768*1025))"
+    custom_user_watches_count="$((768*1025))"
     with_firejail_desktop_rules=1
     with_firewalld=1
     ;;
@@ -1075,7 +1076,6 @@ deb http://deb.debian.org/debian $codename-backports main
     earg libreoffice
     #earg libsecret-tools
     #earg ssh-askpass-gnome
-    #earg lxqt-openssh-askpass
     #earg qt6-wayland qtwayland5
     #earg gvfs-bin
     #earg libglib2.0-dev
@@ -3432,7 +3432,7 @@ for var_and_value in "$@"; do
     err "invalid variable name for the the main script: ${variable}"
     ;;
   esac
-  readonly "${var_and_value}"
+  readonly "$var_and_value"
 done
 
 run_setup
