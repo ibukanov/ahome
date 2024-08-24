@@ -3184,10 +3184,17 @@ php_version='"$php_version"'
 
 mkfifo -m 0600 "$log_fifo"
 
-# Open log for reading before we start the php main process and then cat its
-# output to stderr. Also open both forreading and writing to avoid the initial
-# deadlock.
-{ cat >&2 & } <> "$log_fifo"
+# Redirect log_pipe to stderr using the cat. For this to work we must keep 
+# the pipe openned both for reading and writing all the type. However a 
+# straightforward cat <>"$log_fifo" >&2 will not do it. There is a race here 
+# as the open happens in the asynchronous subshell. So after the command we 
+# do not know if the pipe was openned and any write before that will fail.
+# To address that we first open a pipe to a file descriptor, then start cat,
+# then close the filed descriptor. As the descript is duplicated accross fork
+# we know that after that after cat & there is a process wich has openned 
+# the pipe for both reading and writing
+
+exec 3<>"$log_fifo"; cat <&3 >&2 & exec 3>&-
 
 # /var/tmp is private and must be empty
 mkdir -m 0700 /var/tmp/php-sessions
