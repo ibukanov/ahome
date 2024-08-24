@@ -3320,9 +3320,6 @@ DOMAINS_TXT="/etc/dehydrated/domains.txt"
 WELLKNOWN=/run/acme-challenge
 CERTDIR="/var/lib/dehydrated/certs"
 ACCOUNTDIR="/var/lib/dehydrated/accounts"
-
-# Workaround for a bug in older dehydrated
-CURL_OPTS=--http1.1
 '
   write_file /etc/dehydrated/config "${s}"
   write_file /etc/dehydrated/domains.txt \
