@@ -15,6 +15,7 @@ set -o noglob
 
 valid_primary_host_names="rhea mimas"
 valid_primary_host_names="$valid_primary_host_names r2.mir2.org"
+valid_primary_host_names="$valid_primary_host_names brave"
 valid_container_host_names="test-lms"
 valid_host_names="$valid_primary_host_names $valid_container_host_names"
 valid_host_names="$valid_host_names dev-igor"
@@ -118,6 +119,29 @@ get_host_options() {
     custom_user_watches_count="$((768*1025))"
     with_firejail_desktop_rules=1
     with_firewalld=1
+    ;;
+
+  brave )
+    main_user=user
+    with_common_packages=1
+    with_common_development_tools=1
+    #with_vm_tools=1
+    with_latex=1
+    with_disabled_selinux=1
+
+    #zswap_persent=20
+    zram_size=$((8*1024))
+    zram_algorithm=lz4
+    #with_disabled_turbo_boost=1
+    #with_hibernation=1
+
+    #with_stub_resolv_conf=1
+    #with_encrypted_dns=1
+    #with_mdns=1
+
+    custom_user_watches_count="$((768*1025))"
+    #with_firejail_desktop_rules=1
+    #with_firewalld=1
     ;;
 
   rhea )
