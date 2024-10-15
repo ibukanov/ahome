@@ -174,7 +174,7 @@ change_password() {
 }
 
 read_password() {
-    password="$(a/bin/u-kit ask-password -t backup -p "$password_hash_location")"
+    password="$("$self_top/bin/u-kit" ask-password -t backup -p "$password_hash_location")"
 }
 
 create_local_backup() {
