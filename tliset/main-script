@@ -102,9 +102,9 @@ get_host_options() {
     main_user=igor
     with_common_packages=1
     with_common_development_tools=1
-    with_vm_tools=1
+    #with_vm_tools=1
     with_latex=1
-    with_disabled_selinux=1
+    #with_disabled_selinux=1
 
     #zswap_persent=20
     #zram_size=$((16*1024))
@@ -114,10 +114,10 @@ get_host_options() {
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
-    with_mdns=1
+    #with_mdns=1
 
     custom_user_watches_count="$((768*1025))"
-    with_firejail_desktop_rules=1
+    #with_firejail_desktop_rules=1
     with_firewalld=1
     ;;
 
@@ -125,23 +125,13 @@ get_host_options() {
     main_user=user
     with_common_packages=1
     with_common_development_tools=1
-    #with_vm_tools=1
-    with_latex=1
-    with_disabled_selinux=1
+    #with_disabled_selinux=1
 
     #zswap_persent=20
     zram_size=$((8*1024))
-    zram_algorithm=lz4
-    #with_disabled_turbo_boost=1
-    #with_hibernation=1
-
-    #with_stub_resolv_conf=1
-    #with_encrypted_dns=1
-    #with_mdns=1
+    zram_algorithm=zstd
 
     custom_user_watches_count="$((768*1025))"
-    #with_firejail_desktop_rules=1
-    #with_firewalld=1
     ;;
 
   rhea )
@@ -152,11 +142,8 @@ get_host_options() {
 
     with_hibernation=1
 
-    # There is also the real swap device on the machine, so use the fastest
-    # compression algorithm here and do not use too much space.
-    #
     #zram_size=$((24 * 1024))
-    #zram_algorithm=lz4
+    #zram_algorithm=zstd
 
     # TODO: Consider using writeback device for zram when it will be
     # supported by Fedora
@@ -172,7 +159,7 @@ get_host_options() {
     #with_encrypted_dns=1
 
     custom_user_watches_count="$((768*1025))"
-    with_firejail_desktop_rules=1
+    #with_firejail_desktop_rules=1
     ;;
 
   dev-igor )
@@ -1651,9 +1638,12 @@ add_dracutmodules+=" resume "
       local swap_uuid
       find_device_uuid_by_type swap
       swap_uuid="${R}"
-      grub_lines="${grub_lines}"'
+      if ! grep -q "GRUB_CMDLINE_LINUX=.* resume=UUID='"${swap_uuid}"'" /etc/default/grub; then
+        grub_lines="${grub_lines}"'
 GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} resume=UUID='"${swap_uuid}"'"
 '
+      fi
+
       local unit_fragment
       unit_fragment='
 [Service]
@@ -3208,14 +3198,14 @@ php_version='"$php_version"'
 
 mkfifo -m 0600 "$log_fifo"
 
-# Redirect log_pipe to stderr using the cat. For this to work we must keep 
-# the pipe openned both for reading and writing all the type. However a 
-# straightforward cat <>"$log_fifo" >&2 will not do it. There is a race here 
-# as the open happens in the asynchronous subshell. So after the command we 
+# Redirect log_pipe to stderr using the cat. For this to work we must keep
+# the pipe openned both for reading and writing all the type. However a
+# straightforward cat <>"$log_fifo" >&2 will not do it. There is a race here
+# as the open happens in the asynchronous subshell. So after the command we
 # do not know if the pipe was openned and any write before that will fail.
 # To address that we first open a pipe to a file descriptor, then start cat,
 # then close the filed descriptor. As the descript is duplicated accross fork
-# we know that after that after cat & there is a process wich has openned 
+# we know that after that after cat & there is a process wich has openned
 # the pipe for both reading and writing
 
 exec 3<>"$log_fifo"; cat <&3 >&2 & exec 3>&-
