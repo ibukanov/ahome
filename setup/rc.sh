@@ -71,24 +71,6 @@ rc_setup_path() {
   d="$HOME/p/git-subrepo/man"
   test -d "$d" && m="$m:$d"
 
-  if rc_is_mac; then
-    d="/opt/homebrew/bin"
-    test -d "$d" && p="$p:$d"
-
-    d="/opt/homebrew/sbin"
-    test -d "$d" && p="$p:$d"
-
-    d="/opt/homebrew/opt/coreutils/libexec/gnubin"
-    test -d "$d" && p="$p:$d"
-  else
-    d="/home/linuxbrew/.linuxbrew"
-    if test -d "$d"; then
-      p="$p:$d/bin"
-      m="$m:$d/share/man"
-      export HOMEBREW_PREFIX="$d"
-    fi
-  fi
-
   d="$HOME/opt/go/bin"
   test -d "$d" && p="$p:$d"
 
@@ -101,6 +83,19 @@ rc_setup_path() {
   if test "$rc_nix_profile"; then
     p="$p:"$rc_nix_profile/bin""
     m="$m:$rc_nix_profile/share/man"
+  fi
+
+
+  if test "$rc_homebrew"; then
+    if rc_is_mac; then
+      p="$p:$rc_homebrew/bin"
+      p="$p:$rc_homebrew/sbin"
+      d="$rc_homebrew/opt/coreutils/libexec/gnubin"
+      test -d "$d" && p="$p:$d"
+    else
+      p="$p:$rc_homebrew/bin"
+      m="$m:$rc_homebrew/share/man"
+    fi
   fi
 
   export PATH="$p:$AHOME_ORIG_PATH"
@@ -117,10 +112,18 @@ rc_setup_path() {
 }
 
 rc_setup_env() {
-  local rc_nix_profile
+  local rc_nix_profile rc_homebrew
   rc_nix_profile=
   if test -x /nix; then
      rc_nix_profile="$HOME/.nix-profile"
+  fi
+  if rc_is_mac; then
+    rc_homebrew=/opt/homebrew
+  else
+    rc_homebrew=/home/linuxbrew/.linuxbrew
+  fi
+  if ! test -x "$rc_homebrew"; then
+    rc_homebrew=
   fi
 
   if rc_is_mac; then
@@ -167,12 +170,18 @@ rc_setup_env() {
   if test "$rc_nix_profile"; then
      export NIX_PROFILES="/nix/var/nix/profiles/default $rc_nix_profile"
      # According to XDG spec the default is /usr/local/share:/usr/share
-     export XDG_DATA_DIRS="${XFG_DATA_DIRS-'/usr/local/share:/usr/share'}:$rc_nix_profile/share:/nix/var/nix/profiles/default/share"
+     export XDG_DATA_DIRS="${XFG_DATA_DIRS-/usr/local/share:/usr/share}:$rc_nix_profile/share:/nix/var/nix/profiles/default/share"
      if test  -e /etc/ssl/certs/ca-certificates.crt; then
        export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
      elif test -e /etc/pki/tls/certs/ca-bundle.crt; then
        export NIX_SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt
      fi
+  fi
+
+  if test "$rc_homebrew"; then
+    export HOMEBREW_PREFIX="$rc_homebrew";
+    export HOMEBREW_CELLAR="$rc_homebrew/Cellar";
+    export HOMEBREW_REPOSITORY="$rc_homebrew/Homebrew";
   fi
 }
 
