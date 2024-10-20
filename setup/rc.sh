@@ -33,23 +33,46 @@ if rc_is_bash; then
   test -f /etc/bashrc && . /etc/bashrc
 fi
 
-rc_setup_path() {
-  # Set ORIG paths only if they are unset and keep as is if they are set even
-  # to an empty string.
-  if test -z "${AHOME_ORIG_PATH+x}"; then
-    export AHOME_ORIG_PATH="$PATH"
-  fi
-  if test -z "${AHOME_ORIG_MANPATH+x}"; then
-    export AHOME_ORIG_MANPATH="$MANPATH"
-  fi
-
-  if test "${AHOME_FORCED_PATH-}"; then
+# Append all colon-separated components from the dirs to prefix but
+# only if they not already there.
+rc_merge_path() {
+  local prefix dirs
+  prefix="$1"
+  dirs="$2"
+  # Strip initial colon in prefix
+  prefix="${prefix#:}"
+  if test -z "$prefix"; then
+    R="$dirs"
     return 0
   fi
+  while test "$dirs"; do
+    if test dirs = ":"; then
+      prefix="$prefix:"
+      break
+    fi 
+    local dir
+    # Select the first component
+    dir="${dirs%%:*}"
+    if test "$dir" = "$dirs"; then
+      dirs=""
+    else
+      dirs="${dirs#*:}"
+    fi
+    test "$prefix" = "$dir" && continue
+    # Check if prefix starts, ends or contains dir in the middle
+    case "$prefix" in
+    "$dir":*|*:"$dir"|*:"$dir":* ) continue ;;
+    esac
+    prefix="$prefix:$dir"
+  done
+  R="$prefix"
+}
 
-  local p m d
+rc_setup_path() {
+  local p m data_dirs d R
   p="$rc_ahome/bin:$rc_ahome/local/bin:$rc_ahome/state/bin"
   m=
+  data_dirs=
 
   d="$HOME/opt/bin"
   test -d "$d" && p="$p:$d"
@@ -80,11 +103,15 @@ rc_setup_path() {
   d="/usr/local/go/bin"
   test -d "$d" && p="$p:$d"
 
-  if test "$rc_nix_profile"; then
-    p="$p:"$rc_nix_profile/bin""
-    m="$m:$rc_nix_profile/share/man"
+  if test "$rc_flatpak"; then
+    data_dirs="$data_dirs:$rc_flatpak:$HOME/.local/share/flatpak/exports/share"
   fi
 
+  if test "$rc_nix_profile"; then
+    p="$p:$rc_nix_profile/bin"
+    m="$m:$rc_nix_profile/share/man"
+    data_dirs="$data_dirs:$rc_nix_profile/share:/nix/var/nix/profiles/default/share"
+  fi
 
   if test "$rc_homebrew"; then
     if rc_is_mac; then
@@ -98,21 +125,26 @@ rc_setup_path() {
     fi
   fi
 
-  export PATH="$p:$AHOME_ORIG_PATH"
+  if test -z "${AHOME_FORCED_PATH-}"; then
+    rc_merge_path "$p" "$PATH"
+    export PATH="$R"
+  fi
 
   if test "$m"; then
-    # Strip the initial colon
-    m="${m#:}"
-    if test "$AHOME_ORIG_MANPATH"; then
-      export MANPATH="$m:$AHOME_ORIG_MANPATH"
-    else
-      export MANPATH="$m:"
-    fi
+    # empty path in MANPATH means use the default
+    rc_merge_path "$m" "${MANPATH:-:}"
+    export MANPATH="$R"
+  fi
+
+  if test "$data_dirs"; then
+    # According to XDG spec the default is /usr/local/share:/usr/share
+    rc_merge_path "$data_dirs" "${XDG_DATA_DIRS:-"/usr/local/share:/usr/share"}"
+    export XDG_DATA_DIRS="$R"
   fi
 }
 
 rc_setup_env() {
-  local rc_nix_profile rc_homebrew
+  local rc_nix_profile rc_homebrew rc_flatpak
   rc_nix_profile=
   if test -x /nix; then
      rc_nix_profile="$HOME/.nix-profile"
@@ -124,6 +156,10 @@ rc_setup_env() {
   fi
   if ! test -x "$rc_homebrew"; then
     rc_homebrew=
+  fi
+  rc_flatpak=/var/lib/flatpak/exports/share
+  if ! test -d "$rc_flatpak"; then
+    rc_flatpak=
   fi
 
   if rc_is_mac; then
@@ -169,8 +205,6 @@ rc_setup_env() {
 
   if test "$rc_nix_profile"; then
      export NIX_PROFILES="/nix/var/nix/profiles/default $rc_nix_profile"
-     # According to XDG spec the default is /usr/local/share:/usr/share
-     export XDG_DATA_DIRS="${XFG_DATA_DIRS-/usr/local/share:/usr/share}:$rc_nix_profile/share:/nix/var/nix/profiles/default/share"
      if test  -e /etc/ssl/certs/ca-certificates.crt; then
        export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
      elif test -e /etc/pki/tls/certs/ca-bundle.crt; then
