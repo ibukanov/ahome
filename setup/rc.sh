@@ -64,6 +64,7 @@ rc_setup_path() {
     test -d "$d" && m="$m:$d"
   fi
 
+  # Rust support
   d="$HOME/.cargo/bin"
   test -d "$d" && p="$p:$d"
 
@@ -97,6 +98,11 @@ rc_setup_path() {
   d="/usr/local/go/bin"
   test -d "$d" && p="$p:$d"
 
+  if test "$rc_nix_profile"; then
+    p="$p:"$rc_nix_profile/bin""
+    m="$m:$rc_nix_profile/share/man"
+  fi
+
   export PATH="$p:$AHOME_ORIG_PATH"
 
   if test "$m"; then
@@ -111,6 +117,12 @@ rc_setup_path() {
 }
 
 rc_setup_env() {
+  local rc_nix_profile
+  rc_nix_profile=
+  if test -x /nix; then
+     rc_nix_profile="$HOME/.nix-profile"
+  fi
+
   if rc_is_mac; then
     export LANG=en_US.UTF-8
   else
@@ -150,6 +162,17 @@ rc_setup_env() {
     #local x
     #x="/mnt/c/Program Files/OpenSSH/ssh-sk-helper.exe"
     #test -x "$x" && export SSH_SK_HELPER="$x"
+  fi
+
+  if test "$rc_nix_profile"; then
+     export NIX_PROFILES="/nix/var/nix/profiles/default $rc_nix_profile"
+     # According to XDG spec the default is /usr/local/share:/usr/share
+     export XDG_DATA_DIRS="${XFG_DATA_DIRS-'/usr/local/share:/usr/share'}:$rc_nix_profile/share:/nix/var/nix/profiles/default/share"
+     if test  -e /etc/ssl/certs/ca-certificates.crt; then
+       export NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+     elif test -e /etc/pki/tls/certs/ca-bundle.crt; then
+       export NIX_SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt
+     fi
   fi
 }
 
