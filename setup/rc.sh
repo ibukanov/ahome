@@ -45,25 +45,39 @@ rc_merge_path() {
     R="$dirs"
     return 0
   fi
-  while test "$dirs"; do
-    if test dirs = ":"; then
-      prefix="$prefix:"
-      break
-    fi 
+  if test -z "$dirs"; then
+    R="$prefix"
+    return 0
+  fi
+  if test "$dirs" = ":"; then
+    R="$prefix:"
+    return 0
+  fi
+  while :; do
     local dir
     # Select the first component
     dir="${dirs%%:*}"
-    if test "$dir" = "$dirs"; then
-      dirs=""
-    else
-      dirs="${dirs#*:}"
+    if test "$prefix" != "$dir"; then
+      # Check if prefix starts, ends or contains dir in the middle
+      case "$prefix" in
+      "$dir":*|*:"$dir"|*:"$dir":* ) ;;
+      * )
+        # New directory
+        prefix="$prefix:$dir"
+        ;;
+      esac
     fi
-    test "$prefix" = "$dir" && continue
-    # Check if prefix starts, ends or contains dir in the middle
-    case "$prefix" in
-    "$dir":*|*:"$dir"|*:"$dir":* ) continue ;;
-    esac
-    prefix="$prefix:$dir"
+    if test "$dir" = "$dirs"; then
+      # The last components withot colon
+      break
+    fi
+    dirs="${dirs#*:}"
+    if test -z "$dirs"; then
+      # $disrs ends with : indicating default like in MANPATH, keep it in the
+      # result.
+      prefix="$prefix:"
+      break
+    fi
   done
   R="$prefix"
 }
