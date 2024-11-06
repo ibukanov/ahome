@@ -2,7 +2,7 @@
 
 # shellcheck shell=dash
 # shellcheck enable=all
-# shellcheck disable=SC2249,SC2034
+# shellcheck disable=SC2249,SC2034,SC2250
 
 set -u -e
 set -o noglob
@@ -15,7 +15,7 @@ set -o noglob
 
 valid_primary_host_names="rhea mimas"
 valid_primary_host_names="$valid_primary_host_names r2.mir2.org"
-valid_primary_host_names="$valid_primary_host_names brave"
+valid_primary_host_names="$valid_primary_host_names bravevm"
 valid_container_host_names="test-lms"
 valid_host_names="$valid_primary_host_names $valid_container_host_names"
 valid_host_names="$valid_host_names dev-igor"
@@ -29,7 +29,7 @@ get_host_options() {
   zram_size=
   zram_algorithm=
   zram_writeback=
-  zswap_persent=
+  zswap_percent=
   with_hibernation=
   custom_user_watches_count=
   with_disabled_selinux=
@@ -121,7 +121,7 @@ get_host_options() {
     with_firewalld=1
     ;;
 
-  brave )
+  bravevm )
     main_user=user
     with_common_packages=1
     with_common_development_tools=1
@@ -935,6 +935,7 @@ setup_rpm_packages() {
 
     earg gnome-tweaks
     earg gnome-terminal-nautilus
+    earg zenity
 
     # Containers
     earg debootstrap
@@ -1094,6 +1095,11 @@ deb http://deb.debian.org/debian $codename-backports main
     earg ffmpeg
     earg xpra
     #earg xephyr
+    earg zenity
+    earg fonts-dejavu
+
+    # Languages
+    earg hunspell hunspell-en-us hunspell-ru hunspell-no
   fi
 
   if test "$with_firejail_desktop_rules" || \
@@ -1151,6 +1157,10 @@ deb http://deb.debian.org/debian $codename-backports main
   if test "$with_gui_container_role"; then
     earg tzdata locales
     earg gnome-terminal geany
+  fi
+
+  if test "$zram_size"; then
+    earg zram-tools systemd-zram-generator
   fi
 
   local escaped_install_list
@@ -1555,7 +1565,7 @@ setup_kernel_parameters() {
   if test -n "${custom_user_watches_count}"; then
     pl "fs.inotify.max_user_watches=${custom_user_watches_count}"
   fi
-  if test "${zram_size}" || test "${zswap_persent}"; then
+  if test "$zram_size" || test "$zswap_percent"; then
     # See https://www.reddit.com/r/Fedora/comments/mzun99/new_zram_tuning_benchmarks/
     pl "vm.page-cluster=0"
     pl "vm.swappiness=130"
@@ -1737,7 +1747,7 @@ ForwardToSyslog=no
 }
 
 setup_zram() {
-  if test -z "${zram_size}"; then
+  if test -z "$zram_size"; then
     # Ensure zram is disabled
     if test -f /usr/lib/systemd/zram-generator.conf ; then
       ensure_symlink /dev/null /etc/systemd/zram-generator.conf
@@ -1748,12 +1758,13 @@ setup_zram() {
   log "Checking zram"
 
   local lines
-  if test -f /usr/lib/systemd/zram-generator.conf ; then
+  if test -f /usr/lib/systemd/zram-generator.conf || \
+    test -f /lib/systemd/system-generators/zram-generator; then
     lines=""
     pl "[zram0]"
-    pl "zram-size=${zram_size}"
-    if test "${zram_algorithm}"; then
-      pl "compression-algorithm=${zram_algorithm}"
+    pl "zram-size=$zram_size"
+    if test "$zram_algorithm"; then
+      pl "compression-algorithm=$zram_algorithm"
     fi
     if test "${zram_writeback}"; then
       test -b "${zram_writeback}" || \
@@ -1763,14 +1774,15 @@ setup_zram() {
       pl "writeback-device=${zram_writeback}"
     fi
 
-    p_file /etc/systemd/zram-generator.conf "${lines}"
+    p_dir "/etc/systemd/zram-generator.conf.d"
+    p_file "/etc/systemd/zram-generator.conf.d/99-tliset.conf" "${lines}"
     return 0
   fi
 
   local alg_arg
   alg_arg=
   if test -n "${zram_algorithm}"; then
-    alg_arg=" --algorithm ${zram_algorithm}"
+    alg_arg=" --algorithm $zram_algorithm"
   fi
 
   write_file -m 0755 /var/lib/tliset/zram-control \
@@ -1778,44 +1790,44 @@ setup_zram() {
 
 set -e -u;
 
-zram_size='"${zram_size}"'
-zram_algorithm='"${zram_algorithm}"'
-zram_writeback='"${zram_writeback}"'
+zram_size='"$zram_size"'
+zram_algorithm='"$zram_algorithm"'
+zram_writeback='"$zram_writeback"'
 
 
 start() {
   printf "" > /run/tliset-zram-state
   local device
   device="$(zramctl --find 2>/dev/null || :)"
-  if test -z "${device}"; then
+  if test -z "$device"; then
     # zram can be compiled as a module
     modprobe zram
     device="$(zramctl --find || :)"
-    if test -z "${device}"; then
+    if test -z "$device"; then
       echo "Failed to find a zram device" >&2; exit 1
     fi
   fi
-  echo "device ${device}" >> /run/tliset-zram-state
+  echo "device $device" >> /run/tliset-zram-state
   local zram_dir
   zram_dir="/sys/block/${device##*/}"
-  if ! test -d "${zram_dir}"; then
-    echo "zram config directory does not exist - ${zram_dir}" >&2; exit 1
+  if ! test -d "$zram_dir"; then
+    echo "zram config directory does not exist - $zram_dir" >&2; exit 1
   fi
-  if test "${zram_algorithm}"; then
-    printf "%s\\n" "${zram_algorithm}" > "${zram_dir}/comp_algorithm"
+  if test "$zram_algorithm"; then
+    printf "%s\\n" "$zram_algorithm" > "$zram_dir/comp_algorithm"
   fi
-  if test "${zram_writeback}"; then
-    zram_writeback="$(realpath "${zram_writeback}")"
-    printf "%s\\n" "${zram_writeback}" > "${zram_dir}/backing_dev"
+  if test "$zram_writeback"; then
+    zram_writeback="$(realpath "$zram_writeback")"
+    printf "%s\\n" "$zram_writeback" > "$zram_dir/backing_dev"
   fi
-  printf "%s\\n" "${zram_size}M" > "${zram_dir}/disksize"
-  /sbin/mkswap "${device}"
-  /sbin/swapon -p 100 "${device}"
+  printf "%s\\n" "${zram_size}M" > "$zram_dir/disksize"
+  /sbin/mkswap "$device"
+  /sbin/swapon -p 100 "$device"
   echo "after_swapon 1" >> /run/tliset-zram-state
   swappiness=
   read -r swappiness < /proc/sys/vm/swappiness || :
-  echo "original_swappiness ${swappiness}" >> /run/tliset-zram-state
-  printf 100 > /proc/sys/vm/swappiness
+  echo "original_swappiness $swappiness" >> /run/tliset-zram-state
+  printf 130 > /proc/sys/vm/swappiness
 }
 
 stop() {
@@ -1869,7 +1881,7 @@ RemainAfterExit=yes
 }
 
 setup_zswap() {
-  test "${zswap_persent}" || return 0
+  test "$zswap_percent" || return 0
 
   log "Checking zswap"
 
@@ -1881,7 +1893,7 @@ Type=oneshot
 ExecStart=/bin/sh -c "\
   cd /sys/module/zswap/parameters && \
   printf 1 > enabled && \
-  printf '"${zswap_persent}"' > max_pool_percent && \
+  printf '"$zswap_percent"' > max_pool_percent && \
   printf lz4 > compressor && \
   printf z3fold  > zpool"
 ExecStop=/bin/sh -c "printf 0 > /sys/module/zswap/parameters/enabled"
