@@ -110,7 +110,7 @@ get_host_options() {
     #zram_size=$((16*1024))
     #zram_algorithm=lz4
     with_disabled_turbo_boost=1
-    #with_hibernation=1
+    with_hibernation=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -794,26 +794,6 @@ note_path() {
   if test -n "${can_note_paths}"; then
     printf '%s\n' "${path}" 1>&9
   fi
-}
-
-find_device_uuid_by_type() {
-  local label s kind uuid
-  label="$1"
-  s="$(blkid --output export --match-token TYPE="${label}")"
-  R=
-  while IFS="=" read kind uuid; do
-    if test "${kind}" = UUID; then
-      test "${#uuid}" -eq 36 || \
-        err "Invalid format for UUID for the device with the label" \
-          "${label} - ${uuid}"
-      test -z "${R}" || \
-        err "At least two devices with the label ${label}"
-      R="${uuid}"
-    fi
-  done <<EOF
-${s}
-EOF
-  test "${R}" || err "Failed to find UUID for the device the lable ${label}"
 }
 
 setup_packages() {
@@ -1645,39 +1625,33 @@ omit_dracutmodules+="ifcfg network-legacy network-manager"
       test "$kind_fedora" && dracut_lines="$dracut_lines"'
 add_dracutmodules+=" resume "
 '
-      local swap_uuid
-      find_device_uuid_by_type swap
-      swap_uuid="${R}"
-      if ! grep -q "GRUB_CMDLINE_LINUX=.* resume=UUID='"${swap_uuid}"'" /etc/default/grub; then
-        grub_lines="${grub_lines}"'
-GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} resume=UUID='"${swap_uuid}"'"
-'
-      fi
 
-      local unit_fragment
-      unit_fragment='
+      if ! :; then
+        local unit_fragment
+        unit_fragment='
 [Service]
 Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1
 '
-      p_systemd_drop_in systemd-logind.service "${unit_fragment}"
-      if test "${file_update}"; then
-        # Restart while logged in does not work for some reason
-        log "Rebbot the system to ensure systemd-logind restart"
-        # add_service_try_restart systemd-logind.service
-      fi
-      p_systemd_drop_in systemd-hibernate.service "${unit_fragment}"
-      if test "${file_update}"; then
-        log "Rebbot the system to ensure systemd-hibernate restart"
-        # add_service_try_restart systemd-hibernate.service
+        p_systemd_drop_in systemd-logind.service "${unit_fragment}"
+        if test "${file_update}"; then
+          # Restart while logged in does not work for some reason
+          log "Rebbot the system to ensure systemd-logind restart"
+          # add_service_try_restart systemd-logind.service
+        fi
+        p_systemd_drop_in systemd-hibernate.service "${unit_fragment}"
+        if test "${file_update}"; then
+          log "Rebbot the system to ensure systemd-hibernate restart"
+          # add_service_try_restart systemd-hibernate.service
+        fi
       fi
 
-      # Configure suspend-then-hibernate after 30 minutes and make any suspend
-      # to hibernate eventually.
+      # Configure suspend-then-hibernate after a suspend pause minutes
+      # and make any suspend to hibernate eventually.
 
       local sleep_fragment
       sleep_fragment='
 [Sleep]
-HibernateDelaySec=30min
+HibernateDelaySec=20min
 '
       ensure_dir /etc/systemd/sleep.conf.d
       write_file /etc/systemd/sleep.conf.d/tliset.conf "${sleep_fragment}"
