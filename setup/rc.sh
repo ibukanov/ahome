@@ -108,14 +108,16 @@ rc_setup_path() {
   d="$HOME/p/git-subrepo/man"
   test -d "$d" && m="$m:$d"
 
-  d="$HOME/opt/go/bin"
+  # Go install
+  d="/usr/local/go/bin"
   test -d "$d" && p="$p:$d"
 
+  # Go compiled packages
   d="$HOME/go/bin"
   test -d "$d" && p="$p:$d"
 
-  d="/usr/local/go/bin"
-  test -d "$d" && p="$p:$d"
+  d="$HOME/python/active/bin"
+  test -d "$d" && p="$p:$(realpath "$d")"
 
   if test "$rc_flatpak"; then
     data_dirs="$data_dirs:$rc_flatpak:$HOME/.local/share/flatpak/exports/share"
