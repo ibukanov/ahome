@@ -273,14 +273,14 @@ fi
 rc_history() {
 
   # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-  HISTSIZE="$((100 * 1000))"
-  HISTFILESIZE="$((100 * 1000))"
+  HISTFILESIZE="$((500 * 1000))"
+  HISTSIZE="$HISTFILESIZE"
 
   if rc_is_bash; then
     HISTFILE="$HOME/.bash_history"
     # don't put duplicate lines or lines starting with space in the history.
     # See bash(1) for more options
-    HISTCONTROL=ignoreboth
+    HISTCONTROL=ignorespace:erasedups
 
     # append to the history file, don't overwrite it
     shopt -s histappend
