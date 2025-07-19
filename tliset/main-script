@@ -24,13 +24,14 @@ readonly valid_primary_host_names
 readonly valid_container_host_names
 readonly valid_host_names
 
+readonly swap_file_path=/swap/swap-file
+
 get_host_options() {
 
   zram_size=
   zram_algorithm=
   zram_writeback=
   zswap_percent=
-  with_hibernation=
   custom_user_watches_count=
   with_disabled_selinux=
   with_disabled_firewalld=
@@ -110,7 +111,6 @@ get_host_options() {
     #zram_size=$((16*1024))
     #zram_algorithm=lz4
     with_disabled_turbo_boost=1
-    with_hibernation=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -139,8 +139,6 @@ get_host_options() {
     with_common_packages=1
     with_latex=1
     #with_disabled_selinux=1
-
-    with_hibernation=1
 
     #zram_size=$((24 * 1024))
     #zram_algorithm=zstd
@@ -1572,10 +1570,9 @@ RemainAfterExit=yes
   fi
 }
 
-setup_initramfs_and_grub() {
-  local dracut_lines grub_lines
+setup_initramfs() {
+  local dracut_lines
   dracut_lines=
-  grub_lines=
 
   if test "$with_remote_ssh_unlock"; then
     if test "$kind_ubuntu" || test "$kind_debian"; then
@@ -1620,65 +1617,6 @@ omit_dracutmodules+="ifcfg network-legacy network-manager"
     fi
   fi
 
-  if test "$with_hibernation"; then
-    if test "$kind_fedora" || test "$kind_debian"; then
-      test "$kind_fedora" && dracut_lines="$dracut_lines"'
-add_dracutmodules+=" resume "
-'
-
-      if ! :; then
-        local unit_fragment
-        unit_fragment='
-[Service]
-Environment=SYSTEMD_BYPASS_HIBERNATION_MEMORY_CHECK=1
-'
-        p_systemd_drop_in systemd-logind.service "${unit_fragment}"
-        if test "${file_update}"; then
-          # Restart while logged in does not work for some reason
-          log "Rebbot the system to ensure systemd-logind restart"
-          # add_service_try_restart systemd-logind.service
-        fi
-        p_systemd_drop_in systemd-hibernate.service "${unit_fragment}"
-        if test "${file_update}"; then
-          log "Rebbot the system to ensure systemd-hibernate restart"
-          # add_service_try_restart systemd-hibernate.service
-        fi
-      fi
-
-      # Configure suspend-then-hibernate after a suspend pause minutes
-      # and make any suspend to hibernate eventually.
-
-      local sleep_fragment
-      sleep_fragment='
-[Sleep]
-HibernateDelaySec=20min
-'
-      ensure_dir /etc/systemd/sleep.conf.d
-      write_file /etc/systemd/sleep.conf.d/tliset.conf "${sleep_fragment}"
-      if test "${file_update}"; then
-        log "Rebbot to ensure the sleep.conf changes are taken into account"
-      fi
-
-      local service
-      service=/usr/lib/systemd/system/systemd-suspend-then-hibernate.service
-      test -f "$service" || err "$service file does not exist"
-      ensure_symlink "$service" /etc/systemd/system/systemd-suspend.service
-      if test "$file_update"; then
-        systemd_unit_update=1
-      fi
-
-      if test "$kind_debian"; then
-        write_file /etc/initramfs-tools/conf.d/resume \
-          "resume=UUID=$swap_uuid$NL"
-        if test "$file_update"; then
-          cmd_log update-initramfs -k all -u
-        fi
-      fi
-    else
-      err "Unsupported OS kind for with_hibernation"
-    fi
-  fi
-
   if test "$dracut_lines"; then
     write_file /etc/dracut.conf.d/tliset.conf "$dracut_lines"
     if test "$file_update"; then
@@ -1686,12 +1624,6 @@ HibernateDelaySec=20min
     fi
   fi
 
-  if test "$grub_lines"; then
-    ensure_config_file_tail_section /etc/default/grub "${grub_lines}"
-    if test "$file_update"; then
-      cmd_log grub2-mkconfig -o /boot/grub2/grub.cfg
-    fi
-  fi
 }
 
 setup_filesystems() {
@@ -3407,7 +3339,7 @@ run_setup() {
   setup_sshd
 
   setup_kernel_parameters
-  setup_initramfs_and_grub
+  setup_initramfs
   setup_filesystems
   setup_users
   setup_services
