@@ -793,22 +793,6 @@ main() {
         action_symlink "${i}" .config "${i##*/}"
     done
 
-    if is_linux; then
-        action_dir .config/autostart
-        action_write_file .config/autostart/u-autostart.desktop "\
-[Desktop Entry]
-Type=Application
-Exec=$self_top/bin/u-start-session
-Hidden=false
-X-GNOME-Autostart-enabled=true
-Name=Custom Session
-Comment=Start custom session script
-"
-        action_dir .local/share
-        action_dir .local/share/applications
-        action_symlink "$setup_source_dir/u-term.desktop" .local/share/applications
-    fi
-
     setup_emacs
 
     setup_lxde
