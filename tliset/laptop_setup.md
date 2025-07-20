@@ -1,5 +1,5 @@
 
-# Installer
+# Fedora Installer
 
 Install Fedora. Use net-installer image, not live image, to support
 proper LUKS setup and systemd-boot.
@@ -12,21 +12,32 @@ parameter, see [docs](https://anaconda-installer.readthedocs.io/en/latest/boot-o
 
 ## Partitioning during install
 
-Configure EFI partition with mount point: `/boot/efi`
+Configure EFI partition with mount point `/boot/efi`. Make it at least 2 GB.
 
 Configure Root partition: BTRS + encrypted + (advanced options 4K LUKS sectors)
 
-
 # System setup after on the first run
+
+## Software
 
 Go to Software app, enable 3rd-party repo and install flatpacks:
 
 * Bitwarden
 * Brave
 
+## fstab
+
 Edit `/etc/fstab` to add the option `nofail` to EFI partition at
 `/boot/efi`. Otherwise when reorganizing the partitions the system may
 refuse to boot.
+
+## Boot customization
+
+Make systemd-boot to use the last saved entry:
+
+```
+echo 'default @saved' >> /boot/efi/loader/loader.conf
+```
 
 ## Swap
 
