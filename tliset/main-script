@@ -79,8 +79,6 @@ get_host_options() {
 
   readonly dev_vz_network_prefix="192.168.97"
 
-  with_disabled_turbo_boost=
-
   case "${NAME}" in
   r2.mir2.org )
     lms_archive_time=01:40:00
@@ -110,7 +108,6 @@ get_host_options() {
     #zswap_persent=20
     #zram_size=$((16*1024))
     #zram_algorithm=lz4
-    with_disabled_turbo_boost=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -150,8 +147,6 @@ get_host_options() {
     # Prefer zswap as that deals with uncompressible data comming from images
     # in browser caches or memory compression in VMs.
     # zswap_persent=15
-
-    with_disabled_turbo_boost=1
 
     #with_stub_resolv_conf=1
     #with_encrypted_dns=1
@@ -1553,20 +1548,6 @@ setup_kernel_parameters() {
     p_file sysctl:50-tliset.conf "${lines}"
   else
     p_ensure_no_file sysctl:50-tliset.conf
-  fi
-
-  if test "${with_disabled_turbo_boost}"; then
-    # https://www.kernel.org/doc/html/v4.14/admin-guide/pm/intel_pstate.html
-    local unit
-    unit=tliset-disable-turbo.service
-    p_file "service:${unit}" '
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c "printf 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"
-ExecStop=/bin/sh -c "printf 0 > /sys/devices/system/cpu/intel_pstate/no_turbo"
-RemainAfterExit=yes
-'
-    add_basic_target_wants "${unit}"
   fi
 }
 
