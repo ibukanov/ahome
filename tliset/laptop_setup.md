@@ -39,6 +39,11 @@ Make systemd-boot to use the last saved entry:
 echo 'default @saved' >> /boot/efi/loader/loader.conf
 ```
 
+If necessary, add the timeout:
+```
+echo 'timeout 5' >> /boot/efi/loader/loader.conf
+```
+
 ## Swap
 
 Create the swap file on its own subvolume so snapshoting of root
